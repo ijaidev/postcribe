@@ -6,5 +6,5 @@ export const postGraphState = Annotation.Root({
         reducer: messagesStateReducer,
         default: () => [],
     }),
-    posts: Annotation<Post[]>
+    posts: Annotation<Post[]>,
 });

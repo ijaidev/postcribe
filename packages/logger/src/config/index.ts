@@ -1,6 +1,9 @@
 import { type LoggerOptions } from "pino";
 import { serializeError } from "../utils/index.js";
-import { type ConsoleTransportConfig, type FileOptions } from "../types/index.js";
+import {
+    type ConsoleTransportConfig,
+    type FileOptions,
+} from "../types/index.js";
 import dotenv from "dotenv";
 import { join } from "path";
 
