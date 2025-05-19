@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
+  "exports": {
+    "./nextjs": "./nextjs.json",
+    "./base": "./base.json"
+  },
   "publishConfig": {
     "access": "public"
   }
