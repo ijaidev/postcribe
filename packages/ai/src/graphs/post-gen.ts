@@ -14,11 +14,11 @@ import {
     SystemMessage,
 } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import postStructureTool from "../tools/post-structure.tool";
-import { postGraphState } from "../graph-states";
-import imageGenTool from "../tools/image-gen.tool";
+import { postGraphState } from "../graph-states/index.js";
+import ImageGenTool from "../tools/image-gen.tool";
 import imageEditTool from "../tools/image-edit-tool";
-import { postCreationPrompt } from "../config/system-prompts";
+import postStructureTool from "../tools/post-structure.tool";
+import { postCreationPrompt } from "../config/system-prompts.js";
 
 const model = new ChatOpenAI({
     model: "gpt-4o",
@@ -50,7 +50,7 @@ const tavilyExtract = new TavilyExtract({
 const tools = [
     tavilySearch,
     tavilyExtract,
-    imageGenTool,
+    ImageGenTool,
     imageEditTool,
     postStructureTool,
 ];
