@@ -1,14 +1,8 @@
 interface Post {
-    posts: {
-        x: string;
-        linkedin: string;
-    };
-    images: {
-        x: string;
-        linkedin: string;
-    };
+    post: string;
     options: string[];
     version: number;
+    messageId: string;
 }
 
 export type { Post };

@@ -11,7 +11,7 @@ const openai = new OpenAI({
 
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import s3 from "../utils/s3-r2-client";
-import { Command, getCurrentTaskInput } from "@langchain/langgraph";
+import { Command, END, getCurrentTaskInput } from "@langchain/langgraph";
 import type { postGraphState } from "../graph-states";
 import { ToolMessage } from "@langchain/core/messages";
 import { R2_BUCKET_NAME } from "../config/consts";
@@ -21,16 +21,24 @@ const paramsSchema = z.object({
     prompt: z
         .string()
         .describe(
-            "A detailed prompt or description of the image you want to generate. inlcude everything you can think of to make the image as accurate as possible.",
+            "A highly detailed textual description of the image to be generated. Include specifics like: subject, art style (e.g., 'photorealistic', 'cartoon', 'impressionistic'), colors, lighting, composition, mood, and any key elements. The more descriptive, the better the image. Example: 'A whimsical illustration of a red fox wearing a tiny crown, reading a book in a cozy, sunlit forest clearing.'",
         ),
-    platform: z.enum(["x", "linkedin", "all"]),
+    platform: z
+        .enum(["x", "linkedin", "all"])
+        .describe(
+            "Specifies the social media platform(s) for which the generated image is intended. Use 'x' for X/Twitter, 'linkedin' for LinkedIn, or 'all' if the image should apply to both. This determines how the image URL is associated with the post.",
+        ),
 });
 
 type Params = z.infer<typeof paramsSchema>;
 
 const toolSchema: StructuredToolParams = {
     name: "generate_image",
-    description: "Generate an image based on a prompt",
+    description: JSON.stringify({
+        zIndex: 2,
+        description:
+            "Creates a new image from a detailed textual prompt. Use this tool when a post requires an original visual. Crucial: This tool (zIndex 2) MUST be called *after* the 'response' tool (zIndex 1) has generated the post's text content.",
+    }),
     schema: paramsSchema,
 };
 
@@ -62,12 +70,15 @@ const ImageGenTool = tool(
 
         const state: typeof postGraphState.State = await getCurrentTaskInput();
         const lastVersion = state.posts[state.posts.length - 1];
+        if (!lastVersion || lastVersion.version === undefined)
+            throw new Error(
+                "this tool can only be called at last when a text post is already generated. Call the tools according to zIndex",
+            );
 
         await s3.send(command);
         return new Command<typeof postGraphState.State>({
             update: {
                 posts: [
-                    ...state.posts,
                     {
                         ...lastVersion,
                         images:
@@ -80,7 +91,7 @@ const ImageGenTool = tool(
                                       ...lastVersion?.images,
                                       [platform]: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
                                   },
-                        version: (lastVersion?.version ?? 0) + 1,
+                        version: lastVersion.version,
                     },
                 ],
                 messages: [
@@ -88,11 +99,13 @@ const ImageGenTool = tool(
                         content: JSON.stringify({
                             url: `${process.env.R2_PUBLIC_URL}/${process.env.R2_BUCKET_NAME}/${key}`,
                             platform,
+                            action: "generated_image",
                         }),
                         tool_call_id: config.toolCall?.id as string,
                     }),
                 ],
             },
+            goto: END
         });
     },
     toolSchema,
