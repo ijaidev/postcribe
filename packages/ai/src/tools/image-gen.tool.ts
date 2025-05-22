@@ -12,8 +12,8 @@ const openai = new OpenAI({
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import s3 from "../utils/s3-r2-client";
 import { Command, END, getCurrentTaskInput } from "@langchain/langgraph";
-import type { postGraphState } from "../graph-states";
-import { ToolMessage } from "@langchain/core/messages";
+import type { imageGraphState } from "../graph-states";
+import { isHumanMessage, ToolMessage } from "@langchain/core/messages";
 import { R2_BUCKET_NAME } from "../config/consts";
 import { R2_PUBLIC_URL } from "../config/consts";
 
@@ -46,7 +46,21 @@ const ImageGenTool = tool(
     async (
         { prompt, platform }: Params,
         config: ToolRunnableConfig,
-    ): Promise<Command<typeof postGraphState.State>> => {
+    ): Promise<Command<imageGraphState>> => {
+
+
+        const state: typeof imageGraphState.State = await getCurrentTaskInput();
+        const messages = state.messages;
+        const lastHumanMessage = messages.findLast(message =>
+            isHumanMessage(message),
+        )!;
+
+        if (!lastHumanMessage) {
+            throw new Error(
+                "This tool required a human message.",
+            );
+        }
+
         const result = await openai.images.generate({
             model: "gpt-image-1",
             prompt,
@@ -68,36 +82,19 @@ const ImageGenTool = tool(
             ContentType: "image/png",
         });
 
-        const state: typeof postGraphState.State = await getCurrentTaskInput();
-        const lastVersion = state.posts[state.posts.length - 1];
-        if (!lastVersion || lastVersion.version === undefined)
-            throw new Error(
-                "this tool can only be called at last when a text post is already generated. Call the tools according to zIndex",
-            );
-
         await s3.send(command);
-        return new Command<typeof postGraphState.State>({
+        return new Command<imageGraphState>({
             update: {
-                posts: [
+                images: [
                     {
-                        ...lastVersion,
-                        images:
-                            platform === "all"
-                                ? {
-                                      x: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                                      linkedin: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                                  }
-                                : {
-                                      ...lastVersion?.images,
-                                      [platform]: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                                  },
-                        version: lastVersion.version,
+                        imageUrl: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
+                        messageId: lastHumanMessage?.id
                     },
                 ],
                 messages: [
                     new ToolMessage({
                         content: JSON.stringify({
-                            url: `${process.env.R2_PUBLIC_URL}/${process.env.R2_BUCKET_NAME}/${key}`,
+                            url: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
                             platform,
                             action: "generated_image",
                         }),

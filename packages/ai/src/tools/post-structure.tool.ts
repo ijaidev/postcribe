@@ -26,7 +26,7 @@ const postStructureToolSchema: StructuredToolParams = {
     schema: postStructureSchema,
 };
 
-const postStructureTool = tool(
+const responseTool = tool(
     async (args: PostStructureArgs, config: ToolRunnableConfig) => {
         const state: typeof postGraphState.State = await getCurrentTaskInput();
 
@@ -57,4 +57,4 @@ const postStructureTool = tool(
     postStructureToolSchema,
 );
 
-export default postStructureTool;
+export default responseTool;

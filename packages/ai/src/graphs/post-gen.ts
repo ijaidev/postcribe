@@ -14,8 +14,8 @@ import {
 } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { postGraphState } from "../graph-states";
-import postStructureTool from "../tools/post-structure.tool";
-import { xPostCreationPrompt } from "../config/system-prompts";
+import responseTool from "../tools/post-structure.tool";
+import systemPrompts from "../config/system-prompts";
 import dateTimeTool from "../tools/date-time.tool";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
 
@@ -27,9 +27,7 @@ const model = new ChatOpenAI({
 
 const checkPointer = new MemorySaver();
 
-
-
-const tools = [dateTimeTool, tavilySearch, tavilyExtract, postStructureTool];
+const tools = [dateTimeTool, tavilySearch, tavilyExtract, responseTool];
 
 const toolNode = new ToolNode<typeof postGraphState.State>(tools);
 
@@ -57,7 +55,7 @@ const modelCallNode = async (
     };
 };
 
-const xPostWorkflow = new StateGraph(postGraphState)
+const postGraph = new StateGraph(postGraphState)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
@@ -72,7 +70,7 @@ const config: LangGraphRunnableConfig = {
 };
 
 let messages: BaseMessage[] = [
-    new SystemMessage(xPostCreationPrompt),
+    new SystemMessage(systemPrompts.xPrompt),
     new HumanMessage(
         "create a rosting post about when pakistan difence minsiter said it's all over social media when he asked about their claims of shooting down indian fighter jets in recent india pakistan conflict.",
     )
@@ -84,7 +82,7 @@ while (true) {
         const message = prompt("Enter a message: ");
         messages = [new HumanMessage(message || "")];
     }
-    const response = await xPostWorkflow.invoke(
+    const response = await postGraph.invoke(
         { messages: messages },
         {
             maxConcurrency: 5,

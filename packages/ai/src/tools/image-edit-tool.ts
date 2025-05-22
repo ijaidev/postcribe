@@ -13,8 +13,8 @@ import { Command, END, getCurrentTaskInput } from "@langchain/langgraph";
 
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import s3 from "../utils/s3-r2-client";
-import { postGraphState } from "../graph-states";
-import { ToolMessage } from "@langchain/core/messages";
+import { type imageGraphState } from "../graph-states";
+import { isHumanMessage, ToolMessage } from "@langchain/core/messages";
 import { R2_BUCKET_NAME } from "../config/consts";
 import { R2_PUBLIC_URL } from "../config/consts";
 
@@ -23,16 +23,6 @@ const paramsSchema = z.object({
         .string()
         .describe(
             "A detailed textual description of the desired modifications to the image. Be specific about the changes. For example: 'Make the cat wear a party hat', 'Change the background to a sunny beach with palm trees', 'Remove the person on the right'.",
-        ),
-    image_url: z
-        .string()
-        .describe(
-            "The publicly accessible URL of the PNG image to be edited. This URL must point directly to the image file (e.g., 'https://example.com/image.png'), not a webpage containing the image. pick the url from the previous image generation tool response",
-        ),
-    platform: z
-        .enum(["x", "linkedin", "all"])
-        .describe(
-            "Specifies the social media platform(s) for which the edited image is intended. Use 'x' for X/Twitter, 'linkedin' for LinkedIn, or 'all' if the edited image should apply to both. This influences where the resulting image URL is stored.",
         ),
 });
 
@@ -50,11 +40,31 @@ const toolSchema: StructuredToolParams = {
 
 const imageEditTool = tool(
     async (
-        { prompt, image_url, platform }: Params,
+        { prompt }: Params,
         config: ToolRunnableConfig,
-    ): Promise<Command<typeof postGraphState.State>> => {
+    ): Promise<Command<imageGraphState>> => {
+        const state: typeof imageGraphState.State = await getCurrentTaskInput();
+        const lastImage = state.images[state.images.length - 1];
+        if (!lastImage || lastImage.imageUrl === undefined)
+            throw new Error(
+                "This tool requires an existing image to edit. Ensure 'response' tool (zIndex 1) runs first to create a post, then call this tool (zIndex 2).",
+            );
+
+        const messages = state.messages;
+        const lastHumanMessage = messages.findLast(message =>
+            isHumanMessage(message),
+        );
+
+        if (!lastHumanMessage) {
+            throw new Error(
+                "This tool required a human message.",
+            );
+        }
+
+        const imageUrl = lastImage.imageUrl;
+
         const imageFile = await toFile(
-            await fetch(image_url).then(r => r.blob()),
+            await fetch(imageUrl).then(r => r.blob()),
             "image.png",
             { type: "image/png" },
         );
@@ -81,43 +91,25 @@ const imageEditTool = tool(
         });
         await s3.send(command);
 
-        const state: typeof postGraphState.State = await getCurrentTaskInput();
-        const lastVersion = state.posts[state.posts.length - 1];
-        if (!lastVersion || lastVersion.version === undefined)
-            throw new Error(
-                "This tool requires an existing post version to edit. Ensure 'response' tool (zIndex 1) runs first to create a post, then call this tool (zIndex 2).",
-            );
-
-        return new Command<typeof postGraphState.State>({
+        return new Command<imageGraphState>({
             update: {
-                posts: [
+                images: [
                     {
-                        ...lastVersion,
-                        images:
-                            platform === "all"
-                                ? {
-                                      x: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                                      linkedin: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                                  }
-                                : {
-                                      ...lastVersion?.images,
-                                      [platform]: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                                  },
-                        version: lastVersion.version + 1,
+                        imageUrl: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
+                        messageId: lastHumanMessage?.id,
                     },
                 ],
                 messages: [
                     new ToolMessage({
                         content: JSON.stringify({
                             url: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                            platform,
                             action: "edited_image",
                         }),
                         tool_call_id: config.toolCall?.id as string,
                     }),
                 ],
             },
-            goto: END
+            goto: END,
         });
     },
     toolSchema,

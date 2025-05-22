@@ -5,4 +5,10 @@ interface Post {
     messageId: string;
 }
 
-export type { Post };
+interface Image {
+    imageUrl: string;
+    version: number;
+    messageId: string;
+}
+
+export type { Post, Image };

@@ -1,5 +1,5 @@
 import { Annotation, messagesStateReducer } from "@langchain/langgraph";
-import type { Post } from "../types";
+import type { Post, Image } from "../types";
 import { BaseMessage } from "@langchain/core/messages";
 
 const postReducer = (prev: Post[], curr: Post[]) => {
@@ -12,6 +12,15 @@ const postReducer = (prev: Post[], curr: Post[]) => {
     return [...prev, { ...newPost, version }];
 };
 
+const imageReducer = (prev: Image[], curr: Image[]) => {
+    if (!curr.length) return prev;
+    const newImage = curr[0];
+    if (!newImage) return prev;
+
+    const lastImage = prev[prev.length - 1];
+    const version = lastImage ? lastImage.version + 1 : 0;
+    return [...prev, { ...newImage, version }];
+};
 export const postGraphState = Annotation.Root({
     messages: Annotation<BaseMessage[]>({
         reducer: messagesStateReducer,
@@ -23,4 +32,16 @@ export const postGraphState = Annotation.Root({
     }),
 });
 
+export const imageGraphState = Annotation.Root({
+    messages: Annotation<BaseMessage[]>({
+        reducer: messagesStateReducer,
+        default: () => [],
+    }),
+    images: Annotation<Image[]>({
+        reducer: imageReducer,
+        default: () => [],
+    }),
+});
+
 export type postGraphState = typeof postGraphState;
+export type imageGraphState = typeof imageGraphState;
