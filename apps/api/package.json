@@ -1,0 +1,17 @@
+{
+    "name": "api",
+    "scripts": {
+        "dev": "bun run --hot src/index.ts"
+    },
+    "dependencies": {
+        "hono": "^4.7.10",
+        "start": "bun run index.ts",
+        "lint": "eslint --max-warnings 0",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@repo/typescript-config": "workspace:*",
+        "@repo/eslint-config": "workspace:*"
+    }
+}

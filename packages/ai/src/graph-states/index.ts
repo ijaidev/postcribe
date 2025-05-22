@@ -21,6 +21,7 @@ const imageReducer = (prev: Image[], curr: Image[]) => {
     const version = lastImage ? lastImage.version + 1 : 0;
     return [...prev, { ...newImage, version }];
 };
+
 export const postGraphState = Annotation.Root({
     messages: Annotation<BaseMessage[]>({
         reducer: messagesStateReducer,
