@@ -1,6 +1,7 @@
 import { Annotation, messagesStateReducer } from "@langchain/langgraph";
 import type { Post, Image } from "../types";
-import { BaseMessage } from "@langchain/core/messages";
+import { BaseMessage, SystemMessage } from "@langchain/core/messages";
+import systemPrompts from "../config/system-prompts";
 
 const postReducer = (prev: Post[], curr: Post[]) => {
     if (!curr.length) return prev;
@@ -22,10 +23,21 @@ const imageReducer = (prev: Image[], curr: Image[]) => {
     return [...prev, { ...newImage, version }];
 };
 
-export const postGraphState = Annotation.Root({
+export const xPostGraphState = Annotation.Root({
     messages: Annotation<BaseMessage[]>({
         reducer: messagesStateReducer,
+        default: () => [new SystemMessage(systemPrompts.xPrompt)],
+    }),
+    posts: Annotation<Post[]>({
+        reducer: postReducer,
         default: () => [],
+    }),
+});
+
+export const linkedInPostGraphState = Annotation.Root({
+    messages: Annotation<BaseMessage[]>({
+        reducer: messagesStateReducer,
+        default: () => [new SystemMessage(systemPrompts.linkedinPrompt)],
     }),
     posts: Annotation<Post[]>({
         reducer: postReducer,
@@ -44,5 +56,5 @@ export const imageGraphState = Annotation.Root({
     }),
 });
 
-export type postGraphState = typeof postGraphState;
+export type postGraphState = typeof xPostGraphState.State;
 export type imageGraphState = typeof imageGraphState;

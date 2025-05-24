@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  db:
+  db-main:
     image: postgres:16-alpine
     container_name: postcribe_db
     restart: always
@@ -13,6 +13,15 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
+  db-ai:
+    image: postgres:16-alpine
+    container_name: postcribe_db_ai
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postcribe_ai
+    ports:
+      - "5433:5432"
 volumes:
   postgres_data: 

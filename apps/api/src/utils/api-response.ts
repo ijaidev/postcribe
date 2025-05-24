@@ -1,14 +1,14 @@
 interface ApiResponseProps<T> {
     statusCode: number;
     message: string;
-    data: T;
-    error: string | null;
+    data?: T;
+    error?: string;
 }
-class ApiResponse<T> implements ApiResponseProps<T> {
+class ApiResponse<T> {
     statusCode: number;
     message: string;
-    data: T;
-    error: string | null;
+    data?: T;
+    error?: string;
 
     constructor({ statusCode, message, data, error }: ApiResponseProps<T>) {
         this.statusCode = statusCode;

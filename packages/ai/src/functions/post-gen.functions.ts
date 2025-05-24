@@ -1,0 +1,122 @@
+import { xPostGraph, linkedInPostGraph } from "../graphs/post-gen";
+import {
+    HumanMessage,
+    isAIMessageChunk,
+    RemoveMessage,
+} from "@langchain/core/messages";
+import type { LangGraphRunnableConfig } from "@langchain/langgraph";
+import type { postGraphState } from "../graph-states";
+
+interface PostGenOptions {
+    message: string;
+    forceWeb?: boolean;
+    version?: number;
+    draftId: string;
+}
+
+interface PostGenReponse {
+    event: string;
+    content: string;
+}
+
+const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
+    const { message, forceWeb = false, version, draftId } = options;
+
+    // Create thread ID based on apply version or generate new on
+
+    const config: LangGraphRunnableConfig = {
+        configurable: {
+            thread_id: draftId,
+        },
+    };
+
+    const graph = platform === "x" ? xPostGraph : linkedInPostGraph;
+
+    if (version && version > 0) {
+        const currentState = await graph.getState(config);
+        const values: postGraphState = currentState.values;
+        const { posts, messages } = values;
+        if (posts.length - 1 > version) {
+            const postToRemoveIndex = version + 1;
+            const postToRemove = posts[postToRemoveIndex];
+            const messageToRemoveId = postToRemove?.messageId;
+            const messageToRemoveIndex = messages.findIndex(
+                message => message.id === messageToRemoveId,
+            );
+            if (messageToRemoveIndex !== -1 || postToRemoveIndex !== -1) {
+                graph.updateState(config, {
+                    messages: messages
+                        .slice(0, messageToRemoveIndex)
+                        .map(message => new RemoveMessage({ id: message.id! })),
+                });
+            }
+        }
+    }
+
+    // Enhance message with forceWeb instruction if needed
+    let enhancedMessage = message;
+    if (forceWeb) {
+        enhancedMessage = `${message} \n\nmust use web/internet to generate the post`;
+    }
+
+    // Create initial messages - SystemMessage is already in the graph state default
+    const inputMessage = [new HumanMessage(enhancedMessage)];
+
+    // Stream the graph execution
+    const stream = graph.streamEvents(
+        { messages: inputMessage },
+        {
+            ...config,
+            version: "v2",
+        },
+    );
+
+    let isResponse = false;
+    return {
+        async *stream(): AsyncGenerator<PostGenReponse> {
+            for await (const chunk of stream) {
+                const { data, event } = chunk;
+                if (event === "on_chat_model_stream") {
+                    const { chunk } = data;
+                    if (!isAIMessageChunk(chunk)) continue;
+                    
+                    const toolCallChunks = chunk.tool_call_chunks;
+                    if (!toolCallChunks || toolCallChunks.length === 0) {
+                        isResponse = false;
+                        continue;
+                    }
+                    const toolCallChunk =
+                        toolCallChunks[toolCallChunks.length - 1];
+
+                    if (toolCallChunk?.name === "response") {
+                        isResponse = true;
+                    }
+                    if (toolCallChunk?.name === "tavily_search") {
+                        console.log("tavily search");
+                        isResponse = false;
+                        yield {
+                            event: "search",
+                            content: "",
+                        };
+                    }
+                    if (toolCallChunk?.name === "tavily_extract") {
+                        isResponse = false;
+                        yield {
+                            event: "extract",
+                            content: "",
+                        };
+                    }
+                    if (isResponse) {
+                        yield {
+                            event: "response",
+                            content: toolCallChunk?.args || "",
+                        };
+                    }
+                }
+            }
+        },
+    };
+};
+
+export { postGen };
+export type { PostGenOptions, PostGenReponse };

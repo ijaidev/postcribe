@@ -1,3 +1,2 @@
-import { logger } from "@repo/logger";
-
-logger.info("Hello, world!");
+export * from "./functions/post-gen.functions";
+export * from "./functions/get-posts.functions";

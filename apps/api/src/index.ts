@@ -6,4 +6,9 @@ app.get('/', (c) => {
   return c.text('Hello Hono!')
 }).route('/post', postRouter)
 
-export default app
+export default {
+  fetch: app.fetch,
+  idleTimeout: 255,
+  port: 3000,
+  development: process.env.ENVIRONMENT === 'dev',
+}

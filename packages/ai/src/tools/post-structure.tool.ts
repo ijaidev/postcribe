@@ -28,7 +28,7 @@ const postStructureToolSchema: StructuredToolParams = {
 
 const responseTool = tool(
     async (args: PostStructureArgs, config: ToolRunnableConfig) => {
-        const state: typeof postGraphState.State = await getCurrentTaskInput();
+        const state = getCurrentTaskInput<postGraphState>();
 
         const messages = state.messages;
         const lastHumanMessage = messages.findLast(message =>
@@ -48,10 +48,10 @@ const responseTool = tool(
                     new ToolMessage({
                         content: "Message delivered to user",
                         tool_call_id: config.toolCall?.id as string,
+                        name: config.toolCall?.name as string,
                     }),
                 ],
             },
-            goto: END,
         });
     },
     postStructureToolSchema,

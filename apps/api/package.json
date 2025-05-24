@@ -1,13 +1,16 @@
 {
     "name": "api",
     "scripts": {
-        "dev": "bun run --hot src/index.ts"
-    },
-    "dependencies": {
-        "hono": "^4.7.10",
+        "dev": "bun run --hot src/index.ts",
         "start": "bun run index.ts",
         "lint": "eslint --max-warnings 0",
         "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@hono/zod-validator": "^0.5.0",
+        "hono": "^4.7.10",
+        "@repo/db": "workspace:*",
+        "@repo/ai": "workspace:*"
     },
     "devDependencies": {
         "@types/bun": "latest",

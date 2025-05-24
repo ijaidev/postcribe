@@ -322,7 +322,7 @@ ${imageGenBasePrompt}
 
 const systemPrompts = {
   xPrompt,
-  linkedinPrompt,
+  linkedinPrompt,   
   xImagePrompt,
   linkedinImagePrompt,
 };
