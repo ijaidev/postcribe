@@ -4,6 +4,6 @@ import factory from "../utils/factory";
 
 const postRouter = factory.createApp();
 
-postRouter.post("/draft/:platform", ...postGenController);
+postRouter.post("/draft", ...postGenController);
 postRouter.get("/draft/posts", ...getPostsController);
 export default postRouter;

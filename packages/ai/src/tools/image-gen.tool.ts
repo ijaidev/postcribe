@@ -21,12 +21,12 @@ const paramsSchema = z.object({
     prompt: z
         .string()
         .describe(
-            "A highly detailed textual description of the image to be generated. Include specifics like: subject, art style (e.g., 'photorealistic', 'cartoon', 'impressionistic'), colors, lighting, composition, mood, and any key elements. The more descriptive, the better the image. Example: 'A whimsical illustration of a red fox wearing a tiny crown, reading a book in a cozy, sunlit forest clearing.'",
+            "Ultra-detailed, specific description of the image to generate. Include: subject matter, artistic style (photorealistic, illustration, cartoon, etc.), color palette, lighting conditions, composition, mood/atmosphere, background elements, and any specific details. The more descriptive and specific, the better the generated image will match expectations. Example: 'A confident business woman in a navy blue blazer standing in a modern glass office, natural daylight streaming through floor-to-ceiling windows, professional photography style, clean background with city skyline visible, warm lighting, corporate aesthetic.'"
         ),
     platform: z
         .enum(["x", "linkedin", "all"])
         .describe(
-            "Specifies the social media platform(s) for which the generated image is intended. Use 'x' for X/Twitter, 'linkedin' for LinkedIn, or 'all' if the image should apply to both. This determines how the image URL is associated with the post.",
+            "Target social media platform."
         ),
 });
 
@@ -34,11 +34,7 @@ type Params = z.infer<typeof paramsSchema>;
 
 const toolSchema: StructuredToolParams = {
     name: "generate_image",
-    description: JSON.stringify({
-        zIndex: 2,
-        description:
-            "Creates a new image from a detailed textual prompt. Use this tool when a post requires an original visual. Crucial: This tool (zIndex 2) MUST be called *after* the 'response' tool (zIndex 1) has generated the post's text content.",
-    }),
+    description: "Creates high-impact, platform-optimized images from detailed text prompts. Use when original visual content is needed to enhance social media posts and drive engagement.",
     schema: paramsSchema,
 };
 
@@ -48,7 +44,6 @@ const ImageGenTool = tool(
         config: ToolRunnableConfig,
     ): Promise<Command<imageGraphState>> => {
 
-
         const state: typeof imageGraphState.State = await getCurrentTaskInput();
         const messages = state.messages;
         const lastHumanMessage = messages.findLast(message =>
@@ -57,7 +52,7 @@ const ImageGenTool = tool(
 
         if (!lastHumanMessage) {
             throw new Error(
-                "This tool required a human message.",
+                "Image generation requires a human message context.",
             );
         }
 
@@ -66,14 +61,16 @@ const ImageGenTool = tool(
             prompt,
             n: 1,
             size: "1024x1024",
-            quality: "medium",
+            quality: "hd",
             output_format: "png",
         });
+        
         const image_base64 = result?.data?.[0]?.b64_json;
         if (!image_base64) {
-            throw new Error("No image data found");
+            throw new Error("Failed to generate image - no data received from OpenAI");
         }
-        const key = `${Math.random().toString(36).substring(2, 15)}.png`;
+        
+        const key = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.png`;
         const image_bytes = Buffer.from(image_base64, "base64");
         const command = new PutObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
@@ -83,6 +80,7 @@ const ImageGenTool = tool(
         });
 
         await s3.send(command);
+        
         return new Command<imageGraphState>({
             update: {
                 images: [

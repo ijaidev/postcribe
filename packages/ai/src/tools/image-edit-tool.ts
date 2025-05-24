@@ -22,7 +22,7 @@ const paramsSchema = z.object({
     prompt: z
         .string()
         .describe(
-            "A detailed textual description of the desired modifications to the image. Be specific about the changes. For example: 'Make the cat wear a party hat', 'Change the background to a sunny beach with palm trees', 'Remove the person on the right'.",
+            "Detailed, specific description of the desired modifications to the existing image. Be explicit about what elements to change, add, remove, or transform. Include style adjustments, color changes, object modifications, background alterations, etc. Example: 'Change the business suit to casual clothing, replace office background with a coffee shop setting, make the lighting warmer and more relaxed.'"
         ),
 });
 
@@ -30,11 +30,7 @@ type Params = z.infer<typeof paramsSchema>;
 
 const toolSchema: StructuredToolParams = {
     name: "edit_image",
-    description: JSON.stringify({
-        zIndex: 2,
-        description:
-            "Modifies an existing image based on a detailed textual prompt. You must provide the URL of the image to be edited and clear instructions for the desired changes. Use this tool to alter specific elements, styles, or content within an image, such as adding objects, changing colors, or modifying backgrounds.",
-    }),
+    description: "Intelligently modifies existing images based on detailed instructions. Perfect for refining, adjusting, or transforming previously generated images to better match user vision or platform requirements.",
     schema: paramsSchema,
 };
 
@@ -45,10 +41,12 @@ const imageEditTool = tool(
     ): Promise<Command<imageGraphState>> => {
         const state: typeof imageGraphState.State = await getCurrentTaskInput();
         const lastImage = state.images[state.images.length - 1];
-        if (!lastImage || lastImage.imageUrl === undefined)
+        
+        if (!lastImage || lastImage.imageUrl === undefined) {
             throw new Error(
-                "This tool requires an existing image to edit. Ensure 'response' tool (zIndex 1) runs first to create a post, then call this tool (zIndex 2).",
+                "Image editing requires an existing image. Please generate an image first, then request modifications."
             );
+        }
 
         const messages = state.messages;
         const lastHumanMessage = messages.findLast(message =>
@@ -57,7 +55,7 @@ const imageEditTool = tool(
 
         if (!lastHumanMessage) {
             throw new Error(
-                "This tool required a human message.",
+                "Image editing requires a human message context."
             );
         }
 
@@ -69,48 +67,51 @@ const imageEditTool = tool(
             { type: "image/png" },
         );
 
-        const result = await openai.images.edit({
-            model: "gpt-image-1", // Consider making model configurable or using a newer one if available
-            prompt,
-            image: [imageFile], // OpenAI API expects an array for `image` in some SDK versions, ensure this matches current API
-            n: 1,
-            size: "1024x1024",
-            quality: "low", // "standard" or "hd" are typical values, "medium" might not be standard. Check OpenAI docs.
-        });
-        const image_base64 = result?.data?.[0]?.b64_json;
-        if (!image_base64) {
-            throw new Error("No image data found from OpenAI API response");
-        }
-        const key = `${Math.random().toString(36).substring(2, 15)}.png`;
-        const image_bytes = Buffer.from(image_base64, "base64");
-        const command = new PutObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key,
-            Body: image_bytes,
-            ContentType: "image/png",
-        });
-        await s3.send(command);
+            const result = await openai.images.edit({
+                model: "gpt-image-1",
+                prompt,
+                image: [imageFile],
+                n: 1,
+                size: "1024x1024",
+                quality: "standard",
+            });
+            
+            const image_base64 = result?.data?.[0]?.b64_json;
+            if (!image_base64) {
+                throw new Error("Failed to edit image - no data received from OpenAI");
+            }
+            
+            const key = `edited-${Date.now()}-${Math.random().toString(36).substring(2, 15)}.png`;
+            const image_bytes = Buffer.from(image_base64, "base64");
+            const command = new PutObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: key,
+                Body: image_bytes,
+                ContentType: "image/png",
+            });
+            
+            await s3.send(command);
 
-        return new Command<imageGraphState>({
-            update: {
-                images: [
-                    {
-                        imageUrl: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                        messageId: lastHumanMessage?.id,
-                    },
-                ],
-                messages: [
-                    new ToolMessage({
-                        content: JSON.stringify({
-                            url: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                            action: "edited_image",
+            return new Command<imageGraphState>({
+                update: {
+                    images: [
+                        {
+                            imageUrl: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
+                            messageId: lastHumanMessage?.id,
+                        },
+                    ],
+                    messages: [
+                        new ToolMessage({
+                            content: JSON.stringify({
+                                url: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
+                                action: "edited_image"
+                            }),
+                            tool_call_id: config.toolCall?.id as string,
                         }),
-                        tool_call_id: config.toolCall?.id as string,
-                    }),
-                ],
-            },
-            goto: END,
-        });
+                    ],
+                },
+                goto: END,
+            });
     },
     toolSchema,
 );

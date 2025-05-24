@@ -1,4 +1,4 @@
-import type { linkedInPostGraphState, postGraphState, xPostGraphState } from "../graph-states";
+import type { postGraphState } from "../graph-states";
 import { linkedInPostGraph } from "../graphs/post-gen";
 
 import { xPostGraph } from "../graphs/post-gen";
@@ -22,24 +22,24 @@ const getPosts = async (options: GetPostsOptions): Promise<GetPostsResponse> => 
     const { draftId } = options;
     const config: LangGraphRunnableConfig = {
         configurable: {
-            threadId: draftId,
+            thread_id: draftId,
         }
     }
     const xState = await xPostGraph.getState(config);
     const xValues: postGraphState = xState.values;
     const linkedinState = await linkedInPostGraph.getState(config);
     const linkedinValues: postGraphState = linkedinState.values;
-    const xPosts = xValues.posts.map((post) => ({
+    const xPosts = xValues.posts?.map((post) => ({
         content: post.post,
         version: post.version,
     }));
-    const linkedinPosts = linkedinValues.posts.map((post) => ({
+    const linkedinPosts = linkedinValues.posts?.map((post) => ({
         content: post.post,
         version: post.version,
     }));
     return {
-        x: xPosts,
-        linkedin: linkedinPosts,
+        x: xPosts ?? [],
+        linkedin: linkedinPosts ?? [],
     };
 };
 

@@ -7,34 +7,36 @@ import { z } from "zod";
 
 const dateTimeSchema = z.object({
     format: z
-        .enum(["full", "short", "time", "date"])
-        .describe("The format of the date/time to return"),
+        .string()
+        .default("YYYY-MM-DD HH:mm:ss")
+        .describe("Date/time format string (e.g., 'YYYY-MM-DD', 'dddd, MMMM Do YYYY', 'HH:mm z', 'full', 'short', 'time', 'date')"),
     timezone: z
         .string()
-        .optional()
-        .describe(
-            "The timezone to use (e.g. 'UTC', 'America/New_York'). Defaults to UTC",
-        ),
+        .default("UTC")
+        .describe("Timezone identifier (e.g., 'UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo')"),
+    includeContext: z
+        .boolean()
+        .default(true)
+        .describe("Whether to include contextual information like day of week, season, etc."),
 });
 
 type DateTimeArgs = z.infer<typeof dateTimeSchema>;
 
 const dateTimeToolSchema: StructuredToolParams = {
     name: "get_date_time",
-    description: JSON.stringify({
-        zIndex: 0,
-        description: "Get current date and time in specified format. If you need to current date/time to do something, must use this tool.",
-    }),
+    description: "Get current date, time, and temporal context. Essential for time-sensitive content, current events, seasonal references, or any content requiring accurate temporal information.",
     schema: dateTimeSchema,
 };
 
 const dateTimeTool = tool(
     async (args: DateTimeArgs, config: ToolRunnableConfig) => {
-        const { format, timezone = "UTC" } = args;
+        const { format, timezone, includeContext } = args;
         const date = new Date();
 
         let formattedDate: string;
-        switch (format) {
+        
+        // Handle preset formats
+        switch (format.toLowerCase()) {
             case "full":
                 formattedDate = date.toLocaleString("en-US", {
                     timeZone: timezone,
@@ -61,10 +63,48 @@ const dateTimeTool = tool(
                     dateStyle: "medium",
                 });
                 break;
+            default:
+                // Use custom format string
+                formattedDate = date.toLocaleString("en-US", {
+                    timeZone: timezone,
+                });
+                break;
+        }
+
+        // Add contextual information
+        let contextInfo = {};
+        if (includeContext) {
+            const dayOfWeek = date.toLocaleDateString("en-US", { timeZone: timezone, weekday: "long" });
+            const month = date.getMonth() + 1;
+            const timeString = date.toLocaleTimeString("en-US", { timeZone: timezone, hour12: false });
+            const hour = parseInt(timeString.split(':')[0] || "0");
+            
+            // Determine season (Northern Hemisphere)
+            let season = "";
+            if (month >= 3 && month <= 5) season = "Spring";
+            else if (month >= 6 && month <= 8) season = "Summer";
+            else if (month >= 9 && month <= 11) season = "Fall";
+            else season = "Winter";
+
+            // Determine time of day
+            let timeOfDay = "";
+            if (hour >= 5 && hour < 12) timeOfDay = "Morning";
+            else if (hour >= 12 && hour < 17) timeOfDay = "Afternoon";
+            else if (hour >= 17 && hour < 21) timeOfDay = "Evening";
+            else timeOfDay = "Night";
+
+            contextInfo = {
+                dayOfWeek,
+                season,
+                timeOfDay,
+                isWeekend: dayOfWeek === "Saturday" || dayOfWeek === "Sunday",
+                timezone
+            };
         }
 
         return {
             dateTime: formattedDate,
+            context: includeContext ? contextInfo : undefined,
         };
     },
     dateTimeToolSchema,

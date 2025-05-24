@@ -1,16 +1,11 @@
 import { ChatOpenAI } from "@langchain/openai";
 import {
     END,
-    MemorySaver,
     START,
     StateGraph,
-    type LangGraphRunnableConfig,
 } from "@langchain/langgraph";
 import {
     AIMessage,
-    BaseMessage,
-    HumanMessage,
-    SystemMessage,
     ToolMessage,
 } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
@@ -18,6 +13,7 @@ import responseTool from "../tools/post-structure.tool";
 import dateTimeTool from "../tools/date-time.tool";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
 import { linkedInPostGraphState, xPostGraphState, type postGraphState } from "../graph-states";
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
 const model = new ChatOpenAI({
     model: "gpt-4.1",
@@ -25,7 +21,23 @@ const model = new ChatOpenAI({
     temperature: 0.9,
 });
 
-const checkPointer = new MemorySaver();
+
+const xCheckPointer = PostgresSaver.fromConnString(
+    process.env.AI_DB_URL || "",
+    {
+        schema: "x_post_gen",
+    }
+);
+
+const linkedInCheckPointer = PostgresSaver.fromConnString(
+    process.env.AI_DB_URL || "",
+    {
+        schema: "linkedin_post_gen",
+    }
+);
+
+await xCheckPointer.setup();
+await linkedInCheckPointer.setup();
 
 const tools = [dateTimeTool, tavilySearch, tavilyExtract, responseTool];
 
@@ -36,7 +48,6 @@ const isToolCallNode = (
 ): "toolNode" | typeof END => {
     const { messages } = state;
     const lastMessage = messages[messages.length - 1] as AIMessage;
-    console.log(lastMessage);
     if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
         return "__end__";
     }
@@ -73,7 +84,7 @@ const xPostGraph = new StateGraph(xPostGraphState)
     .addEdge(START, "modelCall")
     .addConditionalEdges("modelCall", isToolCallNode)
     .addConditionalEdges("toolNode", isModelCallNode)
-    .compile({ checkpointer: checkPointer });
+    .compile({ checkpointer: xCheckPointer });
 
 const linkedInPostGraph = new StateGraph(linkedInPostGraphState)
     .addNode("modelCall", modelCallNode)
@@ -81,7 +92,7 @@ const linkedInPostGraph = new StateGraph(linkedInPostGraphState)
     .addEdge(START, "modelCall")
     .addConditionalEdges("modelCall", isToolCallNode)
     .addConditionalEdges("toolNode", isModelCallNode)
-    .compile({ checkpointer: checkPointer });
+    .compile({ checkpointer: linkedInCheckPointer });
 
 
 export {

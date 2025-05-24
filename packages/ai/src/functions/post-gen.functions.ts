@@ -12,6 +12,7 @@ interface PostGenOptions {
     forceWeb?: boolean;
     version?: number;
     draftId: string;
+    images?: string[];
 }
 
 interface PostGenReponse {
@@ -20,7 +21,7 @@ interface PostGenReponse {
 }
 
 const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
-    const { message, forceWeb = false, version, draftId } = options;
+    const { message, forceWeb = false, version, draftId, images } = options;
 
     // Create thread ID based on apply version or generate new on
 
@@ -54,13 +55,32 @@ const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
     }
 
     // Enhance message with forceWeb instruction if needed
-    let enhancedMessage = message;
+    const utcDate = new Date().toISOString();
+
+    let enhancedMessage = `${message} \n\nThe current UTC datetime (in ISO String format) is ${utcDate}`;
     if (forceWeb) {
         enhancedMessage = `${message} \n\nmust use web/internet to generate the post`;
     }
 
     // Create initial messages - SystemMessage is already in the graph state default
-    const inputMessage = [new HumanMessage(enhancedMessage)];
+    const inputMessage = [
+        new HumanMessage({
+            content: [
+                {
+                    type: "text",
+                    text: enhancedMessage,
+                },
+                ...(images && images.length > 0
+                    ? images.map(image => ({
+                          type: "image_url",
+                          image_url: {
+                              url: image,
+                          },
+                      }))
+                    : []),
+            ],
+        }),
+    ];
 
     // Stream the graph execution
     const stream = graph.streamEvents(
@@ -79,7 +99,7 @@ const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
                 if (event === "on_chat_model_stream") {
                     const { chunk } = data;
                     if (!isAIMessageChunk(chunk)) continue;
-                    
+
                     const toolCallChunks = chunk.tool_call_chunks;
                     if (!toolCallChunks || toolCallChunks.length === 0) {
                         isResponse = false;
@@ -92,7 +112,6 @@ const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
                         isResponse = true;
                     }
                     if (toolCallChunk?.name === "tavily_search") {
-                        console.log("tavily search");
                         isResponse = false;
                         yield {
                             event: "search",
