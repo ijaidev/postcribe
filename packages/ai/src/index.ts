@@ -1,2 +1,3 @@
-export * from "./functions/post-gen.functions";
-export * from "./functions/get-posts.functions";
+export * from "./functions/post-gen.function";
+export * from "./functions/get-posts.function";
+export * from "./functions/image-gen.function";

@@ -72,7 +72,7 @@ const modelCallNode = async (
     });
     const context = postGraphState?.values?.messages;
     if (!context) throw new Error("No post found to generate image for");
-    const systemPrompt = getImagePrompt(platform, context as string);
+    const systemPrompt = getImagePrompt(platform, JSON.stringify(context));
     const response = await modelWithTools.invoke([
         new SystemMessage(systemPrompt),
         ...messages,

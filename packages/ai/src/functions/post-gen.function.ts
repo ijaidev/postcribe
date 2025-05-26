@@ -48,17 +48,16 @@ const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
             if (messageToRemoveIndex !== -1 || postToRemoveIndex !== -1) {
                 graph.updateState(config, {
                     messages: messages
-                        .slice(0, messageToRemoveIndex)
+                        .slice(messageToRemoveIndex, messages.length)
                         .map(message => new RemoveMessage({ id: message.id! })),
+                    posts: posts.slice(postToRemoveIndex, posts.length),
                 });
             }
         }
     }
 
     // Enhance message with forceWeb instruction if needed
-    const utcDate = new Date().toISOString();
-
-    let enhancedMessage = `${message} \n\nThe current UTC datetime (in ISO String format) is ${utcDate}`;
+    let enhancedMessage = message;
     if (forceWeb) {
         enhancedMessage = `${message} \n\nmust use web/internet to generate the post`;
     }

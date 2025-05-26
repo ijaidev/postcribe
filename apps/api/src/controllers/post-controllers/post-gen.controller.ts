@@ -6,6 +6,7 @@ import db from "@repo/db";
 import { postGen, type PostGenOptions } from "@repo/ai";
 import { stream } from "hono/streaming";
 import type { Draft } from "@prisma/client";
+import fileToBase64 from "../../utils/file-to-base64";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
@@ -17,12 +18,18 @@ const bodySchema = z.object({
     images: z
         .union([
             z.instanceof(File),
-            z.array(z.instanceof(File))
+            z.array(z.instanceof(File)),
+            z.string().transform(() => undefined), // Handle string form data
+            z.array(z.string()).transform(() => undefined) // Handle array of strings from form data
         ])
         .optional()
         .transform((val) => {
             if (!val) return undefined;
-            return Array.isArray(val) ? val : [val];
+            if (val instanceof File) return [val];
+            if (Array.isArray(val)) {
+                return val.filter((item): item is File => item instanceof File);
+            }
+            return undefined;
         })
         .refine(
             (files) => {
@@ -38,8 +45,14 @@ const bodySchema = z.object({
             },
             { message: "Only PNG, JPEG, and WEBP images are allowed" }
         ),
-    forceWeb: z.boolean().default(false),
-    version: z.number().min(0).optional(),
+    forceWeb: z.union([
+        z.boolean(),
+        z.string().transform(val => val === 'true')
+    ]).default(false),
+    version: z.union([
+        z.number().min(0),
+        z.string().transform(val => parseInt(val, 10))
+    ]).optional(),
 });
 
 const bodySchemaValidator = zValidator("form", bodySchema, result => {
@@ -49,14 +62,7 @@ const bodySchemaValidator = zValidator("form", bodySchema, result => {
         });
     }
 });
-
-// Helper function to convert file to base64 URL
-const fileToBase64 = async (file: File): Promise<string> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = buffer.toString('base64');
-    return `data:${file.type};base64,${base64}`;
-};
+    
 
 const postGenController = factory.createHandlers(
     bodySchemaValidator,

@@ -11,7 +11,7 @@ const openai = new OpenAI({
 
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import s3 from "../utils/s3-r2-client";
-import { Command, END, getCurrentTaskInput } from "@langchain/langgraph";
+import { Command, getCurrentTaskInput } from "@langchain/langgraph";
 import type { imageGraphState } from "../graph-states";
 import { isHumanMessage, ToolMessage } from "@langchain/core/messages";
 import { R2_BUCKET_NAME } from "../config/consts";
@@ -22,12 +22,7 @@ const paramsSchema = z.object({
         .string()
         .describe(
             "Ultra-detailed, specific description of the image to generate. Include: subject matter, artistic style (photorealistic, illustration, cartoon, etc.), color palette, lighting conditions, composition, mood/atmosphere, background elements, and any specific details. The more descriptive and specific, the better the generated image will match expectations. Example: 'A confident business woman in a navy blue blazer standing in a modern glass office, natural daylight streaming through floor-to-ceiling windows, professional photography style, clean background with city skyline visible, warm lighting, corporate aesthetic.'"
-        ),
-    platform: z
-        .enum(["x", "linkedin", "all"])
-        .describe(
-            "Target social media platform."
-        ),
+        )
 });
 
 type Params = z.infer<typeof paramsSchema>;
@@ -40,11 +35,11 @@ const toolSchema: StructuredToolParams = {
 
 const ImageGenTool = tool(
     async (
-        { prompt, platform }: Params,
+        { prompt}: Params,
         config: ToolRunnableConfig,
     ): Promise<Command<imageGraphState>> => {
 
-        const state: typeof imageGraphState.State = await getCurrentTaskInput();
+        const state: imageGraphState = await getCurrentTaskInput();
         const messages = state.messages;
         const lastHumanMessage = messages.findLast(message =>
             isHumanMessage(message),
@@ -61,7 +56,7 @@ const ImageGenTool = tool(
             prompt,
             n: 1,
             size: "1024x1024",
-            quality: "hd",
+            quality: "medium",
             output_format: "png"
         });
 
@@ -95,14 +90,12 @@ const ImageGenTool = tool(
                     new ToolMessage({
                         content: JSON.stringify({
                             url: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                            platform,
                             action: "generated_image",
                         }),
                         tool_call_id: config.toolCall?.id as string,
                     }),
                 ],
-            },
-            goto: END
+            }
         });
     },
     toolSchema,

@@ -4,14 +4,12 @@ import {
     type ConsoleTransportConfig,
     type FileOptions,
 } from "../types/index.js";
-import dotenv from "dotenv";
 import { join } from "path";
 
-dotenv.config();
+const shouldEnableFileLogging = process.env.ENVIRONMENT === "production";
 
-const shouldEnableFileLogging = process.env.ENV === "production";
-
-const shouldEnableConsoleLogging = process.env.ENV === "development";
+const shouldEnableConsoleLogging = process.env.ENVIRONMENT === "development";
+console.log(process.env.ENVIRONMENT);
 
 const logDir = process.env.LOG_DIRECTORY || "logs";
 
@@ -47,7 +45,7 @@ const LOGGER_CONFIG: LoggerOptions = {
     },
     timestamp: true,
     base: {
-        env: process.env.ENV,
+        env: process.env.ENVIRONMENT,
     },
 };
 
