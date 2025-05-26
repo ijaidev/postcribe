@@ -10,9 +10,6 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import {
     graphConfig,
     imageGraphState,
-    linkedInPostGraphState,
-    xPostGraphState,
-    type postGraphState,
 } from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import imageEditTool from "../tools/image-edit-tool";
@@ -45,9 +42,9 @@ await linkedInCheckPointer.setup();
 
 const tools = [ImageGenTool, imageEditTool];
 
-const toolNode = new ToolNode<postGraphState>(tools);
+const toolNode = new ToolNode<imageGraphState>(tools);
 
-const isToolCallNode = (state: postGraphState): "toolNode" | typeof END => {
+const isToolCallNode = (state: imageGraphState): "toolNode" | typeof END => {
     const { messages } = state;
     const lastMessage = messages[messages.length - 1] as AIMessage;
     if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
@@ -86,7 +83,7 @@ const modelCallNode = async (
     };
 };
 
-const xImageGraph = new StateGraph(xPostGraphState, graphConfig)
+const xImageGraph = new StateGraph(imageGraphState, graphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
@@ -94,7 +91,7 @@ const xImageGraph = new StateGraph(xPostGraphState, graphConfig)
     .addEdge("toolNode", END)
     .compile({ checkpointer: xCheckPointer });
 
-const linkedInImageGraph = new StateGraph(linkedInPostGraphState, graphConfig)
+const linkedInImageGraph = new StateGraph(imageGraphState, graphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")

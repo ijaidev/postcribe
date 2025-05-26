@@ -3,17 +3,23 @@ import {
     END,
     START,
     StateGraph,
+    type LangGraphRunnableConfig,
 } from "@langchain/langgraph";
 import {
     AIMessage,
+    SystemMessage,
     ToolMessage,
 } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import responseTool from "../tools/post-structure.tool";
 import dateTimeTool from "../tools/date-time.tool";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
-import { linkedInPostGraphState, graphConfig, xPostGraphState, type postGraphState } from "../graph-states";
+import {
+    graphConfig,
+    postGraphState,
+} from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { getPostPrompt } from "../config/system-prompts";
 
 const model = new ChatOpenAI({
     model: "gpt-4.1",
@@ -21,19 +27,18 @@ const model = new ChatOpenAI({
     temperature: 0.9,
 });
 
-
 const xCheckPointer = PostgresSaver.fromConnString(
     process.env.AI_DB_URL || "",
     {
         schema: "x_post_gen",
-    }
+    },
 );
 
 const linkedInCheckPointer = PostgresSaver.fromConnString(
     process.env.AI_DB_URL || "",
     {
         schema: "linkedin_post_gen",
-    }
+    },
 );
 
 await xCheckPointer.setup();
@@ -43,9 +48,7 @@ const tools = [dateTimeTool, tavilySearch, tavilyExtract, responseTool];
 
 const toolNode = new ToolNode<postGraphState>(tools);
 
-const isToolCallNode = (
-    state: postGraphState,
-): "toolNode" | typeof END => {
+const isToolCallNode = (state: postGraphState): "toolNode" | typeof END => {
     const { messages } = state;
     const lastMessage = messages[messages.length - 1] as AIMessage;
     if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
@@ -54,9 +57,7 @@ const isToolCallNode = (
     return "toolNode";
 };
 
-const isModelCallNode = (
-    state: postGraphState,
-): "modelCall" | typeof END => {
+const isModelCallNode = (state: postGraphState): "modelCall" | typeof END => {
     const { messages } = state;
     const lastMessage = messages[messages.length - 1] as ToolMessage;
     if (lastMessage.name === "response") {
@@ -69,16 +70,23 @@ const modelWithTools = model.bindTools(tools);
 
 const modelCallNode = async (
     state: postGraphState,
+    config: LangGraphRunnableConfig<graphConfig>,
 ): Promise<postGraphState> => {
     const { messages } = state;
-    const response = await modelWithTools.invoke(messages);
+    const platform = config.configurable?.platform;
+    if (!platform) throw new Error("Platform is required");
+    const systemPrompt = getPostPrompt(platform);
+    const response = await modelWithTools.invoke([
+        new SystemMessage(systemPrompt),
+        ...messages,
+    ]);
     return {
         messages: [response],
         posts: [],
     };
 };
 
-const xPostGraph = new StateGraph(xPostGraphState, graphConfig)
+const xPostGraph = new StateGraph(postGraphState, graphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
@@ -86,7 +94,7 @@ const xPostGraph = new StateGraph(xPostGraphState, graphConfig)
     .addConditionalEdges("toolNode", isModelCallNode)
     .compile({ checkpointer: xCheckPointer });
 
-const linkedInPostGraph = new StateGraph(linkedInPostGraphState, graphConfig)
+const linkedInPostGraph = new StateGraph(postGraphState, graphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
@@ -94,8 +102,4 @@ const linkedInPostGraph = new StateGraph(linkedInPostGraphState, graphConfig)
     .addConditionalEdges("toolNode", isModelCallNode)
     .compile({ checkpointer: linkedInCheckPointer });
 
-
-export {
-    xPostGraph,
-    linkedInPostGraph,
-};
+export { xPostGraph, linkedInPostGraph };

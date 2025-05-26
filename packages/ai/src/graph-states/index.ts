@@ -28,21 +28,10 @@ export const graphConfig = Annotation.Root({
     platform: Annotation<"x" | "linkedin">,
 })
 
-export const xPostGraphState = Annotation.Root({
+export const postGraphState = Annotation.Root({
     messages: Annotation<BaseMessage[]>({
         reducer: messagesStateReducer,
-        default: () => [new SystemMessage(getPostPrompt("x"))],
-    }),
-    posts: Annotation<Post[]>({
-        reducer: postReducer,
         default: () => [],
-    }),
-});
-
-export const linkedInPostGraphState = Annotation.Root({
-    messages: Annotation<BaseMessage[]>({
-        reducer: messagesStateReducer,
-        default: () => [new SystemMessage(getPostPrompt("linkedin"))],
     }),
     posts: Annotation<Post[]>({
         reducer: postReducer,
@@ -62,5 +51,5 @@ export const imageGraphState = Annotation.Root({
 });
 
 export type graphConfig = typeof graphConfig.State;
-export type postGraphState = typeof xPostGraphState.State;
+export type postGraphState = typeof postGraphState.State;
 export type imageGraphState = typeof imageGraphState.State;
