@@ -132,16 +132,16 @@ const postGenController = factory.createHandlers(
                     })(),
                     // X stream
                     (async () => {
-                        for await (const chunk of xPostGenResult.stream()) {
+                for await (const chunk of xPostGenResult.stream()) {
                             console.log("Streaming X post", chunk);
-                            await stream.write(
+                    await stream.write(
                                 JSON.stringify({ 
                                     draftId: draft.id, 
                                     platform: "x", 
                                     ...chunk 
                                 })
-                            );
-                        }
+                    );
+                }
                     })(),
                 ]);
                 console.log("All posts streamed");

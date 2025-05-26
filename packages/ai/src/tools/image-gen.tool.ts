@@ -62,8 +62,10 @@ const ImageGenTool = tool(
             n: 1,
             size: "1024x1024",
             quality: "hd",
-            output_format: "png",
+            output_format: "png"
         });
+
+
         
         const image_base64 = result?.data?.[0]?.b64_json;
         if (!image_base64) {

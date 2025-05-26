@@ -7,10 +7,12 @@ if (!tavilyApiKey) {
 }
 
 const tavilySearch = new TavilySearch({
+    name: "search",
     tavilyApiKey: tavilyApiKey,
 });
 
 const tavilyExtract = new TavilyExtract({
+    name: "extract",
     tavilyApiKey: tavilyApiKey,
 });
 

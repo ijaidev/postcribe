@@ -12,7 +12,7 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import responseTool from "../tools/post-structure.tool";
 import dateTimeTool from "../tools/date-time.tool";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
-import { linkedInPostGraphState, xPostGraphState, type postGraphState } from "../graph-states";
+import { linkedInPostGraphState, graphConfig, xPostGraphState, type postGraphState } from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
 const model = new ChatOpenAI({
@@ -78,7 +78,7 @@ const modelCallNode = async (
     };
 };
 
-const xPostGraph = new StateGraph(xPostGraphState)
+const xPostGraph = new StateGraph(xPostGraphState, graphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
@@ -86,7 +86,7 @@ const xPostGraph = new StateGraph(xPostGraphState)
     .addConditionalEdges("toolNode", isModelCallNode)
     .compile({ checkpointer: xCheckPointer });
 
-const linkedInPostGraph = new StateGraph(linkedInPostGraphState)
+const linkedInPostGraph = new StateGraph(linkedInPostGraphState, graphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
