@@ -9,7 +9,7 @@ const getPostsSchema = z.object({
 
 const queryValidator = zValidator("query", getPostsSchema);
 
-const getPostsController = factory.createHandlers(queryValidator, async (c) => {
+const getPostsController = factory.createHandlers(queryValidator, async c => {
     const { draftId } = c.req.valid("query");
     const posts = await getPosts({ draftId });
     return c.json(posts);

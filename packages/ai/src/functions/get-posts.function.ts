@@ -1,4 +1,5 @@
-import type { postGraphState } from "../graph-states";
+import type { imageGraphState, postGraphState } from "../graph-states";
+import { linkedInImageGraph, xImageGraph } from "../graphs/image-gen";
 import { linkedInPostGraph } from "../graphs/post-gen";
 
 import { xPostGraph } from "../graphs/post-gen";
@@ -13,9 +14,20 @@ interface Post {
     version: number;
 }
 
+interface Image {
+    url: string;
+    version: number;
+}
+
 interface GetPostsResponse {
-    x: Post[];
-    linkedin: Post[];
+    x: {
+        posts: Post[];
+        images: Image[];
+    };
+    linkedin: {
+        posts: Post[];
+        images: Image[];
+    };
 }
 
 const getPosts = async (options: GetPostsOptions): Promise<GetPostsResponse> => {
@@ -29,17 +41,39 @@ const getPosts = async (options: GetPostsOptions): Promise<GetPostsResponse> => 
     const xValues: postGraphState = xState.values;
     const linkedinState = await linkedInPostGraph.getState(config);
     const linkedinValues: postGraphState = linkedinState.values;
+
+    const xImageState = await xImageGraph.getState(config);
+    const xImageValues: imageGraphState = xImageState.values;
+    const linkedinImageState = await linkedInImageGraph.getState(config);
+    const linkedinImageValues: imageGraphState = linkedinImageState.values;
+
     const xPosts = xValues.posts?.map((post) => ({
         content: post.post,
         version: post.version,
     }));
+    const xImages = xImageValues.images?.map((image) => ({
+        url: image.imageUrl,
+        version: image.version,
+    }));
+
+    const linkedinImages = linkedinImageValues.images?.map((image) => ({
+        url: image.imageUrl,
+        version: image.version,
+    }));
+
     const linkedinPosts = linkedinValues.posts?.map((post) => ({
         content: post.post,
         version: post.version,
     }));
     return {
-        x: xPosts ?? [],
-        linkedin: linkedinPosts ?? [],
+        x: {
+            posts: xPosts ?? [],
+            images: xImages ?? [],  
+        },
+        linkedin: {
+            posts: linkedinPosts ?? [],
+            images: linkedinImages ?? [],
+        },
     };
 };
 
