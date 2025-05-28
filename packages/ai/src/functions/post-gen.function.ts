@@ -15,7 +15,7 @@ interface PostGenOptions {
     images?: string[];
 }
 
-interface PostGenReponse {
+interface PostGenResponse {
     event: string;
     content: string;
 }
@@ -93,7 +93,7 @@ const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
 
     let isResponse = false;
     return {
-        async *stream(): AsyncGenerator<PostGenReponse> {
+        async *stream(): AsyncGenerator<PostGenResponse> {
             for await (const chunk of stream) {
                 const { data, event } = chunk;
                 if (event === "on_chat_model_stream") {
@@ -138,4 +138,4 @@ const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
 };
 
 export { postGen };
-export type { PostGenOptions, PostGenReponse };
+export type { PostGenOptions, PostGenResponse };

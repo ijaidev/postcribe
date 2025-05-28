@@ -1,10 +1,9 @@
 import factory from './utils/factory'
-import postRouter from './routes/post.routes'
+import postRouter from './router/post.router'
+import mainRouter from './router/main.router'
 const app = factory.createApp()
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-}).route('/post', postRouter)
+app.route('/v1', mainRouter)
 
 export default {
   fetch: app.fetch,

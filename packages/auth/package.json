@@ -1,5 +1,5 @@
 {
-  "name": "template",
+  "name": "@repo/auth",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -19,5 +19,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "better-auth": "^1.2.8",
+    "@repo/db": "workspace:*"
   }
 }

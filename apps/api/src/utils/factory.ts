@@ -1,5 +1,15 @@
-import { createFactory } from 'hono/factory'
+import type { auth } from "@repo/auth";
+import { createFactory } from "hono/factory";
 
-const factory = createFactory()
+interface Variables {
+    user: typeof auth.$Infer.Session.user | null;
+    session: typeof auth.$Infer.Session.session | null;
+}
 
-export default factory
+interface Env {
+    Variables: Variables;
+}
+
+const factory = createFactory<Env>();
+
+export default factory;
