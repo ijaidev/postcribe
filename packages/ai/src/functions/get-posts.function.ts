@@ -77,4 +77,4 @@ const getPosts = async (options: GetPostsOptions): Promise<GetPostsResponse> => 
     };
 };
 
-export { getPosts };
+export { getPosts, type GetPostsResponse };

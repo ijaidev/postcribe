@@ -9,36 +9,33 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import s3 from "../utils/s3-r2-client";
+import { uploadImages } from "@repo/s3";
 import { Command, getCurrentTaskInput } from "@langchain/langgraph";
 import type { imageGraphState } from "../graph-states";
 import { isHumanMessage, ToolMessage } from "@langchain/core/messages";
-import { R2_BUCKET_NAME } from "../config/consts";
-import { R2_PUBLIC_URL } from "../config/consts";
 
 const paramsSchema = z.object({
     prompt: z
         .string()
         .describe(
-            "Ultra-detailed, specific description of the image to generate. Include: subject matter, artistic style (photorealistic, illustration, cartoon, etc.), color palette, lighting conditions, composition, mood/atmosphere, background elements, and any specific details. The more descriptive and specific, the better the generated image will match expectations. Example: 'A confident business woman in a navy blue blazer standing in a modern glass office, natural daylight streaming through floor-to-ceiling windows, professional photography style, clean background with city skyline visible, warm lighting, corporate aesthetic.'"
-        )
+            "Ultra-detailed, specific description of the image to generate. Include: subject matter, artistic style (photorealistic, illustration, cartoon, etc.), color palette, lighting conditions, composition, mood/atmosphere, background elements, and any specific details. The more descriptive and specific, the better the generated image will match expectations. Example: 'A confident business woman in a navy blue blazer standing in a modern glass office, natural daylight streaming through floor-to-ceiling windows, professional photography style, clean background with city skyline visible, warm lighting, corporate aesthetic.'",
+        ),
 });
 
 type Params = z.infer<typeof paramsSchema>;
 
 const toolSchema: StructuredToolParams = {
     name: "generate_image",
-    description: "Creates high-impact, platform-optimized images from detailed text prompts. Use when original visual content is needed to enhance social media posts and drive engagement.",
+    description:
+        "Creates high-impact, platform-optimized images from detailed text prompts. Use when original visual content is needed to enhance social media posts and drive engagement.",
     schema: paramsSchema,
 };
 
 const ImageGenTool = tool(
     async (
-        { prompt}: Params,
+        { prompt }: Params,
         config: ToolRunnableConfig,
     ): Promise<Command<imageGraphState>> => {
-
         const state: imageGraphState = await getCurrentTaskInput();
         const messages = state.messages;
         const lastHumanMessage = messages.findLast(message =>
@@ -57,45 +54,41 @@ const ImageGenTool = tool(
             n: 1,
             size: "1024x1024",
             quality: "medium",
-            output_format: "png"
+            output_format: "png",
         });
 
-
-        
         const image_base64 = result?.data?.[0]?.b64_json;
         if (!image_base64) {
-            throw new Error("Failed to generate image - no data received from OpenAI");
+            throw new Error(
+                "Failed to generate image - no data received from OpenAI",
+            );
         }
-        
-        const key = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.png`;
-        const image_bytes = Buffer.from(image_base64, "base64");
-        const command = new PutObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: key,
-            Body: image_bytes,
-            ContentType: "image/png",
-        });
 
-        await s3.send(command);
-        
+        const urls = await uploadImages([
+            {
+                base64: image_base64,
+                contentType: "image/png",
+            },
+        ]);
+
         return new Command<imageGraphState>({
             update: {
                 images: [
                     {
-                        imageUrl: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
-                        messageId: lastHumanMessage?.id
+                        imageUrl: urls[0],
+                        messageId: lastHumanMessage?.id,
                     },
                 ],
                 messages: [
                     new ToolMessage({
                         content: JSON.stringify({
-                            url: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
+                            url: urls[0],
                             action: "generated_image",
                         }),
                         tool_call_id: config.toolCall?.id as string,
                     }),
                 ],
-            }
+            },
         });
     },
     toolSchema,

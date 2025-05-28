@@ -9,7 +9,7 @@ import type { Draft } from "@prisma/client";
 import fileToBase64 from "../../utils/file-to-base64";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const bodySchema = z.object({
     id: z.string().optional(),
@@ -20,10 +20,10 @@ const bodySchema = z.object({
             z.instanceof(File),
             z.array(z.instanceof(File)),
             z.string().transform(() => undefined), // Handle string form data
-            z.array(z.string()).transform(() => undefined) // Handle array of strings from form data
+            z.array(z.string()).transform(() => undefined), // Handle array of strings from form data
         ])
         .optional()
-        .transform((val) => {
+        .transform(val => {
             if (!val) return undefined;
             if (val instanceof File) return [val];
             if (Array.isArray(val)) {
@@ -32,49 +32,53 @@ const bodySchema = z.object({
             return undefined;
         })
         .refine(
-            (files) => {
+            files => {
                 if (!files) return true;
                 return files.every(file => file.size <= MAX_FILE_SIZE);
             },
-            { message: "Each image must be less than 5MB" }
+            { message: "Each image must be less than 5MB" },
         )
         .refine(
-            (files) => {
+            files => {
                 if (!files) return true;
                 return files.every(file => ALLOWED_TYPES.includes(file.type));
             },
-            { message: "Only PNG, JPEG, and WEBP images are allowed" }
+            { message: "Only PNG, JPEG, and WEBP images are allowed" },
         ),
-    forceWeb: z.union([
-        z.boolean(),
-        z.string().transform(val => val === 'true')
-    ]).default(false),
-    version: z.union([
-        z.number().min(0),
-        z.string().transform(val => parseInt(val, 10))
-    ]).optional(),
+    forceWeb: z
+        .union([z.boolean(), z.string().transform(val => val === "true")])
+        .default(false),
+    version: z
+        .union([
+            z.number().min(0),
+            z.string().transform(val => parseInt(val, 10)),
+        ])
+        .optional(),
 });
 
 const bodySchemaValidator = zValidator("form", bodySchema, result => {
     if (!result.success) {
         throw new HTTPException(400, {
-            message: "Invalid Body: " + result.error.errors.map(e => e.message).join(", "),
+            message:
+                "Invalid Body: " +
+                result.error.errors.map(e => e.message).join(", "),
         });
     }
 });
-    
 
 const postGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
-        const { id, message, forceWeb, version, platform, images } = c.req.valid("form");
+        const user = c.get("user")!;
+        const { id, message, forceWeb, version, platform, images } =
+            c.req.valid("form");
 
         // Convert images to base64 URLs
         let base64Images: string[] = [];
         if (images && images.length > 0) {
             try {
                 base64Images = await Promise.all(
-                    images.map(file => fileToBase64(file))
+                    images.map(file => fileToBase64(file)),
                 );
             } catch (error) {
                 throw new HTTPException(500, {
@@ -87,12 +91,15 @@ const postGenController = factory.createHandlers(
 
         if (!id) {
             draft = await db.draft.create({
-                data: {}
+                data: {
+                    userId: user.id,
+                },
             });
         } else {
             draft = await db.draft.findUnique({
                 where: {
                     id,
+                    userId: user.id,
                 },
             });
         }
@@ -117,37 +124,37 @@ const postGenController = factory.createHandlers(
         if (platform === "all") {
             const [xPostGenResult, linkedinPostGenResult] = await Promise.all([
                 postGen(options, "x"),
-                postGen(options, "linkedin")
+                postGen(options, "linkedin"),
             ]);
-            
+
             return stream(c, async stream => {
                 console.log("Streaming all posts");
                 await Promise.allSettled([
-                    // LinkedIn stream  
+                    // LinkedIn stream
                     (async () => {
                         for await (const chunk of linkedinPostGenResult.stream()) {
                             console.log("Streaming LinkedIn post", chunk);
                             await stream.write(
-                                JSON.stringify({ 
-                                    draftId: draft.id, 
-                                    platform: "linkedin", 
-                                    ...chunk 
-                                })
+                                JSON.stringify({
+                                    draftId: draft.id,
+                                    platform: "linkedin",
+                                    ...chunk,
+                                }),
                             );
                         }
                     })(),
                     // X stream
                     (async () => {
-                for await (const chunk of xPostGenResult.stream()) {
+                        for await (const chunk of xPostGenResult.stream()) {
                             console.log("Streaming X post", chunk);
-                    await stream.write(
-                                JSON.stringify({ 
-                                    draftId: draft.id, 
-                                    platform: "x", 
-                                    ...chunk 
-                                })
-                    );
-                }
+                            await stream.write(
+                                JSON.stringify({
+                                    draftId: draft.id,
+                                    platform: "x",
+                                    ...chunk,
+                                }),
+                            );
+                        }
                     })(),
                 ]);
                 console.log("All posts streamed");

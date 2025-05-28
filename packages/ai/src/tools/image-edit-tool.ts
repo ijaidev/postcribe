@@ -11,12 +11,9 @@ const openai = new OpenAI({
 
 import { Command, getCurrentTaskInput } from "@langchain/langgraph";
 
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import s3 from "../utils/s3-r2-client";
 import { type imageGraphState } from "../graph-states";
 import { isHumanMessage, ToolMessage } from "@langchain/core/messages";
-import { R2_BUCKET_NAME } from "../config/consts";
-import { R2_PUBLIC_URL } from "../config/consts";
+import { uploadImages } from "@repo/s3";
 
 const paramsSchema = z.object({
     prompt: z
@@ -82,46 +79,34 @@ const imageEditTool = tool(
             );
         }
 
-        const key = `edited-${Date.now()}-${Math.random().toString(36).substring(2, 15)}.png`;
-        const image_bytes = Buffer.from(image_base64, "base64");
-        const command = new PutObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key,
-            Body: image_bytes,
-            ContentType: "image/png",
-        });
-
-        await s3.send(command);
+        const urls = await uploadImages([
+            {
+                base64: image_base64,
+                contentType: "image/png",
+            },
+        ]);
 
         return new Command<imageGraphState>({
             update: {
                 images: [
                     {
-                        imageUrl: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
+                        imageUrl: urls[0],
                         messageId: lastHumanMessage?.id,
                     },
                 ],
                 messages: [
                     new ToolMessage({
                         content: JSON.stringify({
-                            url: `${R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`,
+                            url: urls[0],
                             action: "edited_image",
                         }),
                         tool_call_id: config.toolCall?.id as string,
                     }),
                 ],
-            }
+            },
         });
     },
     toolSchema,
 );
 
 export default imageEditTool;
-
-// const result = await imageEditTool.invoke({
-//     prompt: "change the otter to a dog",
-//     image_url: "https://pub-a9d1d733450b4c238f0f8fcd82d6d699.r2.dev/postcribe/0os53hqzpcf.png",
-//     platform: "x",
-// });
-
-// console.log(result);

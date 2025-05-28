@@ -19,6 +19,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
+  timeZone String
+
   @@unique([email])
   @@map("user")
 }

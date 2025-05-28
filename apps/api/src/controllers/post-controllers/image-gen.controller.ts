@@ -61,6 +61,7 @@ interface ImageGenResponse {
 const imageGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
+        const user = c.get("user")!;
         const { id, message, version, platform, images } = c.req.valid("form");
 
         // Convert images to base64 URLs
@@ -80,6 +81,7 @@ const imageGenController = factory.createHandlers(
         const draft = await db.draft.findUnique({
             where: {
                 id,
+                userId: user.id,
             },
         });
 
@@ -110,6 +112,7 @@ const imageGenController = factory.createHandlers(
                         linkedin: linkedinResult.status === "fulfilled" ? linkedinResult.value.imageUrl : undefined,
                     },
                 }),
+                200,
             );
         }
 
@@ -123,6 +126,7 @@ const imageGenController = factory.createHandlers(
                         [platform]: result.imageUrl,
                     },
                 }),
+                200,
             );
         } catch (error) {
             logger.error(error);

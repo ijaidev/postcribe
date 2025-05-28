@@ -4,11 +4,17 @@ import db from "@repo/db";
 import factory from "../../utils/factory";
 import { HTTPException } from "hono/http-exception";
 import fileToBase64 from "../../utils/file-to-base64";
+import { uploadImages, type UploadImagesInput } from "@repo/s3";
+import type { PostCron } from "@repo/db";
+import ApiResponse from "../../utils/api-response";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const createPostCronSchema = z.object({
+    title: z.string().min(2, {
+        message: "Title must be at least 2 characters long",
+    }),
     scheduledAt: z.string().datetime(),
     message: z.string().min(20, {
         message: "Message must be at least 20 characters long",
@@ -52,75 +58,65 @@ export type CreatePostCronInput = z.infer<typeof createPostCronSchema>;
 
 const postCronController = factory.createHandlers(bodyValidator, async c => {
     const data = c.req.valid("form");
+    const user = c.get("user")!;
 
-
-    let base64Images: string[] = [];
-        if (data.inputImages && data.inputImages.length > 0) {
-            try {
-                base64Images = await Promise.all(
-                    data.inputImages.map(file => fileToBase64(file)),
-                );
-            } catch (error) {
-                throw new HTTPException(500, {
-                    message: "Failed to process images",
-                });
-            }
+    let images: UploadImagesInput = [];
+    if (data.inputImages && data.inputImages.length > 0) {
+        try {
+            images = await Promise.all(
+                data.inputImages.map(async file => ({
+                    base64: await fileToBase64(file),
+                    contentType:
+                        file.type as UploadImagesInput[number]["contentType"],
+                })),
+            );
+        } catch (error) {
+            throw new HTTPException(500, {
+                message: "Failed to process images",
+            });
         }
+    }
 
-
-
-        const key = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.png`;
-        const image_bytes = Buffer.from(image_base64, "base64");
-        const command = new PutObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: key,
-            Body: image_bytes,
-            ContentType: "image/png",
-        });
-
+    const urls = await uploadImages(images);
 
     try {
-        // Create the PostCronData first
-        const postCronData = await db.postCronData.create({
-            data: {
-                message: data.message,
-                platform: data.platform,
-                inputImages: base64Images,
-                generateImage: data.generateImage,
-                imagePrompt: data.imagePrompt,
-                forceWeb: data.forceWeb,
-            },
-        });
+        // Create PostCronData first
 
-        // Then create the PostCron, linking it to the PostCronData
-        const postCron = await db.postCron.create({
-            data: {
-                scheduledAt: new Date(data.scheduledAt),
-                postCronDataId: postCronData.id,
-            },
-            include: {
-                // Optionally include the related data in the response
-                PostCronData: true,
-            },
-        });
-
-        return c.json({ success: true, data: postCron }, 201);
-    } catch (error: any) {
-        console.error("Error creating post cron:", error);
-        if (error instanceof PrismaClientKnownRequestError) {
-            // Handle known Prisma errors (e.g., unique constraint violation)
-            return c.json(
-                {
-                    success: false,
-                    message: `Failed to create post cron: ${error.message}`,
+        const postCronData = await db.$transaction(async tx => {
+            const postCronData = await tx.postCronData.create({
+                data: {
+                    message: data.message,
+                    platform: data.platform,
+                    inputImages: urls,
+                    generateImage: data.generateImage,
+                    imagePrompt: data.imagePrompt,
+                    forceWeb: data.forceWeb,
                 },
-                400,
-            );
-        }
+            });
+
+            const postCron = await tx.postCron.create({
+                data: {
+                    title: data.title,
+                    scheduledAt: new Date(data.scheduledAt).toISOString(),
+                    userId: user.id,
+                    postCronDataId: postCronData.id,
+                },
+            });
+            return postCron;
+        });
+
         return c.json(
-            { success: false, message: "An unexpected error occurred." },
-            500,
+            new ApiResponse<PostCron>({
+                statusCode: 201,
+                message: "Post cron created successfully",
+                data: postCronData,
+            }),
+            201,
         );
+    } catch (error: any) {
+        throw new HTTPException(500, {
+            message: "Internal server error, Failed to create post cron",
+        });
     }
 });
 
