@@ -51,7 +51,13 @@ const bodySchema = z.object({
     version: z
         .union([
             z.number().min(0),
-            z.string().transform(val => parseInt(val, 10)),
+            z.string().transform(val => {
+                const parsed = parseInt(val, 10);
+                if (isNaN(parsed) || parsed < 0) {
+                    throw new Error("Version must be a non-negative number");
+                }
+                return parsed;
+            }),
         ])
         .optional(),
 });
@@ -121,57 +127,63 @@ const postGenController = factory.createHandlers(
             options.version = version;
         }
 
-        if (platform === "all") {
-            const [xPostGenResult, linkedinPostGenResult] = await Promise.all([
-                postGen(options, "x"),
-                postGen(options, "linkedin"),
-            ]);
+        try {
+            if (platform === "all") {
+                const [xPostGenResult, linkedinPostGenResult] =
+                    await Promise.all([
+                        postGen(options, "x"),
+                        postGen(options, "linkedin"),
+                    ]);
+
+                return stream(c, async stream => {
+                    await Promise.all([
+                        // LinkedIn stream
+                        (async () => {
+                            for await (const chunk of linkedinPostGenResult.stream()) {
+                                await stream.write(
+                                    JSON.stringify({
+                                        draftId: draft.id,
+                                        platform: "linkedin",
+                                        ...chunk,
+                                    }),
+                                );
+                            }
+                        })(),
+                        // X stream
+                        (async () => {
+                            for await (const chunk of xPostGenResult.stream()) {
+                                await stream.write(
+                                    JSON.stringify({
+                                        draftId: draft.id,
+                                        platform: "x",
+                                        ...chunk,
+                                    }),
+                                );
+                            }
+                        })(),
+                    ]);
+                    stream.close();
+                });
+            }
+            const postGenResult = await postGen(options, platform);
 
             return stream(c, async stream => {
-                console.log("Streaming all posts");
-                await Promise.allSettled([
-                    // LinkedIn stream
-                    (async () => {
-                        for await (const chunk of linkedinPostGenResult.stream()) {
-                            console.log("Streaming LinkedIn post", chunk);
-                            await stream.write(
-                                JSON.stringify({
-                                    draftId: draft.id,
-                                    platform: "linkedin",
-                                    ...chunk,
-                                }),
-                            );
-                        }
-                    })(),
-                    // X stream
-                    (async () => {
-                        for await (const chunk of xPostGenResult.stream()) {
-                            console.log("Streaming X post", chunk);
-                            await stream.write(
-                                JSON.stringify({
-                                    draftId: draft.id,
-                                    platform: "x",
-                                    ...chunk,
-                                }),
-                            );
-                        }
-                    })(),
-                ]);
-                console.log("All posts streamed");
+                for await (const chunk of postGenResult.stream()) {
+                    await stream.write(
+                        JSON.stringify({
+                            draftId: draft.id,
+                            platform,
+                            ...chunk,
+                        }),
+                    );
+                }
                 stream.close();
             });
+        } catch (error) {
+            throw new HTTPException(500, {
+                message: "Failed to generate post",
+            });
         }
-        const postGenResult = await postGen(options, platform);
-
-        return stream(c, async stream => {
-            for await (const chunk of postGenResult.stream()) {
-                console.log("Streaming post", chunk);
-                await stream.write(
-                    JSON.stringify({ draftId: draft.id, platform, ...chunk }),
-                );
-            }
-            stream.close();
-        });
     },
 );
 

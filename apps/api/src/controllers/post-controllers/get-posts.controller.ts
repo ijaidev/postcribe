@@ -19,6 +19,7 @@ const getPostsController = factory.createHandlers(queryValidator, async c => {
         where: {
             id: draftId,
             userId: user.id,
+            isDeleted: false,
         },
     });
     if (!draft) {
@@ -27,11 +28,14 @@ const getPostsController = factory.createHandlers(queryValidator, async c => {
         });
     }
     const posts = await getPosts({ draftId: draft.id });
-    return c.json(new ApiResponse<GetPostsResponse>({
-        statusCode: 200,
-        message: "Posts fetched successfully",
-        data: posts,
-    }), 200);
+    return c.json(
+        new ApiResponse<GetPostsResponse>({
+            statusCode: 200,
+            message: "Posts fetched successfully",
+            data: posts,
+        }),
+        200,
+    );
 });
 
 export default getPostsController;

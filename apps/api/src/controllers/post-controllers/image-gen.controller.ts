@@ -39,7 +39,13 @@ const bodySchema = z.object({
         ),
     version: z.union([
         z.number().min(0),
-        z.string().transform(val => parseInt(val, 10))
+        z.string().transform(val => {
+            const parsed = parseInt(val, 10);
+            if (isNaN(parsed) || parsed < 0) {
+                throw new Error("Version must be a non-negative number");
+            }
+            return parsed;
+        })
     ]).optional(),
 });
 
@@ -103,14 +109,36 @@ const imageGenController = factory.createHandlers(
                 imageGen(options, "x"),
                 imageGen(options, "linkedin"),  
             ]);
+            
+            // Log any failures for debugging
+            if (xResult.status === "rejected") {
+                logger.error("X image generation failed:", xResult.reason);
+            }
+            if (linkedinResult.status === "rejected") {
+                logger.error("LinkedIn image generation failed:", linkedinResult.reason);
+            }
+            
+            const response: ImageGenResponse = {};
+            
+            if (xResult.status === "fulfilled") {
+                response.x = xResult.value.imageUrl;
+            }
+            if (linkedinResult.status === "fulfilled") {
+                response.linkedin = linkedinResult.value.imageUrl;
+            }
+            
+            // If both failed, throw an error
+            if (xResult.status === "rejected" && linkedinResult.status === "rejected") {
+                throw new HTTPException(500, {
+                    message: "Failed to generate images for both platforms",
+                });
+            }
+            
             return c.json(
                 new ApiResponse<ImageGenResponse>({
                     statusCode: 200,
                     message: "Images generated",
-                    data: {
-                        x: xResult.status === "fulfilled" ? xResult.value.imageUrl : undefined,
-                        linkedin: linkedinResult.status === "fulfilled" ? linkedinResult.value.imageUrl : undefined,
-                    },
+                    data: response,
                 }),
                 200,
             );

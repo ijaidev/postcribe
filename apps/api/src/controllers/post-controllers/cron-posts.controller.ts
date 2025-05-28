@@ -5,7 +5,6 @@ import factory from "../../utils/factory";
 import { HTTPException } from "hono/http-exception";
 import fileToBase64 from "../../utils/file-to-base64";
 import { uploadImages, type UploadImagesInput } from "@repo/s3";
-import type { PostCron } from "@repo/db";
 import ApiResponse from "../../utils/api-response";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -77,12 +76,12 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
         }
     }
 
-    const urls = await uploadImages(images);
-
     try {
-        // Create PostCronData first
+        // Upload images first if any
+        const urls = await uploadImages(images);
 
-        const postCronData = await db.$transaction(async tx => {
+        // Create PostCronData and PostCron in transaction
+        const result = await db.$transaction(async tx => {
             const postCronData = await tx.postCronData.create({
                 data: {
                     message: data.message,
@@ -97,25 +96,35 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
             const postCron = await tx.postCron.create({
                 data: {
                     title: data.title,
-                    scheduledAt: new Date(data.scheduledAt).toISOString(),
+                    scheduledAt: new Date(data.scheduledAt),
                     userId: user.id,
                     postCronDataId: postCronData.id,
                 },
+                omit: {
+                    userId: true,
+                    postCronDataId: true,
+                },
             });
+
             return postCron;
         });
 
         return c.json(
-            new ApiResponse<PostCron>({
+            new ApiResponse<typeof result>({
                 statusCode: 201,
                 message: "Post cron created successfully",
-                data: postCronData,
+                data: result,
             }),
             201,
         );
     } catch (error: any) {
+        if (error.message?.includes("Failed to process images")) {
+            throw error;
+        }
+        
+        console.error("Error creating post cron:", error);
         throw new HTTPException(500, {
-            message: "Internal server error, Failed to create post cron",
+            message: "Internal server error: Failed to create post cron",
         });
     }
 });

@@ -81,8 +81,7 @@ model Draft {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   Post            Post[]
-  draftSchedule   DraftSchedule? @relation(fields: [draftScheduleId], references: [id])
-  draftScheduleId String?        @unique
+  draftSchedule   DraftSchedule?
 
   @@map("draft")
 }
@@ -111,7 +110,8 @@ enum PostType {
 // Draft Schedule
 model DraftSchedule {
   id          String    @id @default(uuid())
-  drafts      Draft[]
+  draft       Draft     @relation(fields: [draftId], references: [id])
+  draftId     String    @unique
   scheduledAt DateTime
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
