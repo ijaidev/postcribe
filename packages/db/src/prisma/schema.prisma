@@ -23,6 +23,8 @@ model User {
 
   timeZone String
 
+  socialLogins SocialLogin[]
+
   @@unique([email])
   @@map("user")
 }
@@ -155,4 +157,25 @@ enum Platform {
   X
   LINKEDIN
   ALL
+}
+
+// Login
+model SocialLogin {
+  id String @id @default(uuid())
+  name String
+  provider LoginProvider
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  accessToken String
+  refreshToken String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  state String?
+
+  @@map("social_login")
+}
+
+enum LoginProvider {
+  X
+  LINKEDIN
 }

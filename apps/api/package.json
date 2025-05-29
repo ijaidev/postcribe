@@ -12,6 +12,7 @@
         "@repo/auth": "workspace:*",
         "@repo/db": "workspace:*",
         "@repo/logger": "workspace:*",
+        "@repo/x": "workspace:*",
         "hono": "^4.7.10",
         "luxon": "^3.6.1"
     },
