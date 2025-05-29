@@ -1,5 +1,5 @@
 {
-  "name": "@repo/cron",
+  "name": "@repo/cron-sender",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.817.0",
-    "@repo/db": "workspace:*"
+    "@repo/db": "workspace:*",
+    "@repo/logger": "workspace:*"
   }
 }

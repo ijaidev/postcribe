@@ -23,7 +23,7 @@ const getCrons = async () => {
 
 const main = async () => {
     const crons = await getCrons();
-
+    if (crons.length === 0) return;
     for (const cron of crons) {
         sendMessage(JSON.stringify(cron));
     }

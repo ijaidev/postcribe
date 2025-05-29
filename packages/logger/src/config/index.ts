@@ -6,7 +6,8 @@ import {
 } from "../types/index.js";
 import { join } from "path";
 
-const shouldEnableFileLogging = process.env.ENVIRONMENT === "production";
+// const shouldEnableFileLogging = process.env.ENVIRONMENT === "production";
+const shouldEnableFileLogging = false;
 
 const shouldEnableConsoleLogging = process.env.ENVIRONMENT === "development";
 console.log(process.env.ENVIRONMENT);
