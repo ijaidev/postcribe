@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Tech Stack
+- We are using bun for run time and package manager
+- Typescript as a language
+- Turborepo as monorepo
