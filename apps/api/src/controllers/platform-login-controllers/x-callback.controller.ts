@@ -1,7 +1,7 @@
 import db from "@repo/db";
 import factory from "../../utils/factory";
 import ApiResponse from "../../utils/api-response";
-import { xAuthClient, xClient } from "@repo/x";
+import { requestAccessToken } from "@repo/x";
 import { z } from "zod";
 import { zValidator as zv } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
@@ -15,51 +15,79 @@ const queryValidator = zv("query", querySchema);
 const xCallbackHandler = factory.createHandlers(queryValidator, async c => {
     const { code, state } = c.req.valid("query");
     const user = c.get("user")!;
-    const socialLogin = await db.socialLogin.findFirst({
-        where: {
-            state: state as string,
-            userId: user.id,
-        },
-    });
 
-    if (!socialLogin) {
-        throw new HTTPException(400, {
-            message: "Invalid state",
+    try {
+        // Find the social login record with the provided state
+        const socialLogin = await db.socialLogin.findFirst({
+            where: {
+                state: state as string,
+                userId: user.id,
+                provider: "X",
+            },
+        });
+
+        if (!socialLogin) {
+            throw new HTTPException(400, {
+                message: "Invalid state or session expired",
+            });
+        }
+
+        // Retrieve the code verifier from the accessToken field (where we temporarily stored it)
+        const codeVerifier = socialLogin.accessToken;
+        
+        if (!codeVerifier) {
+            throw new HTTPException(400, {
+                message: "Code verifier not found",
+            });
+        }
+
+        // Exchange the authorization code for access tokens
+        const tokenResult = await requestAccessToken(code, codeVerifier);
+
+        // Calculate expiration time
+        const expiresAt = tokenResult.expiresIn 
+            ? new Date(Date.now() + (tokenResult.expiresIn * 1000)).toISOString()
+            : new Date(Date.now() + 7200000).toISOString(); // Default to 2 hours
+
+        // Update the social login record with actual tokens
+        const updatedSocialLogin = await db.socialLogin.update({
+            where: {
+                id: socialLogin.id,
+            },
+            data: {
+                accessToken: tokenResult.accessToken,
+                refreshToken: tokenResult.refreshToken || "",
+                expiresAt: expiresAt,
+                state: null, // Clear the state as it's no longer needed
+            },
+            select: {
+                name: true,
+                provider: true,
+            },
+        });
+
+        const data = {
+            name: updatedSocialLogin.name,
+            provider: updatedSocialLogin.provider,
+        };
+        
+        return c.json(
+            new ApiResponse<typeof data>({
+                data,
+                statusCode: 200,
+                message: "X login successful",
+            }),
+            200,
+        );
+    } catch (error) {        
+        if (error instanceof HTTPException) {
+            throw error;
+        }
+        
+        throw new HTTPException(500, {
+            message: "Failed to complete X authentication",
         });
     }
-
-    const { token } = await xAuthClient.requestAccessToken(code);
-
-    const updatedSocialLogin = await db.socialLogin.update({
-        where: {
-            id: socialLogin.id,
-        },
-        data: {
-            accessToken: token.access_token,
-            refreshToken: token.refresh_token,
-            expiresAt: new Date(
-                token.expires_at || Date.now() + 3600000,
-            ).toISOString(),
-        },
-        select: {
-            name: true,
-            provider: true,
-        },
-    });
-
-    const data = {
-        name: updatedSocialLogin.name,
-        provider: updatedSocialLogin.provider,
-    };
-    
-    return c.json(
-        new ApiResponse<typeof data>({
-            data,
-            statusCode: 200,
-            message: "Login successful",
-        }),
-        200,
-    );
 });
 
 export default xCallbackHandler;

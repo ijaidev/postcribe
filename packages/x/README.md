@@ -1,262 +1,284 @@
-# X (Twitter) Package
+# @repo/x
 
-A TypeScript package for interacting with the X (Twitter) API, providing functions for media upload and tweet posting.
+A functional Twitter/X API client package built on top of `twitter-api-v2` with OAuth2 authentication support.
 
 ## Features
 
-- 📷 **Media Upload**: Upload images and videos to X
-- 🐦 **Tweet Posting**: Create tweets with text, media, polls, and replies
-- 🔒 **OAuth2 Authentication**: Secure user authentication using OAuth2
-- 📝 **TypeScript Support**: Fully typed interfaces and functions
+- **OAuth2 Authentication**: Full OAuth2 flow implementation using Twitter API v2
+- **Functional Programming**: Pure functions, no classes
+- **Built-in Token Management**: Automatic token refresh capabilities
+- **Media Upload**: Support for uploading images and videos
+- **Tweet Operations**: Post tweets, get user details, fetch timelines
+- **Type Safety**: Full TypeScript support
 
-## Setup
-
-### Environment Variables
-
-Create a `.env` file in your project root with the following variables:
-
-```env
-# Twitter API Credentials
-TWITTER_API_KEY=your_api_key
-TWITTER_API_SECRET=your_api_secret
-TWITTER_BEARER_TOKEN=your_bearer_token
-TWITTER_CALLBACK_URL=your_callback_url
-```
-
-### Installation
+## Environment Variables
 
 ```bash
-bun install
+# Required for OAuth2 authentication
+TWITTER_CLIENT_ID=your_client_id
+TWITTER_CLIENT_SECRET=your_client_secret
+TWITTER_CALLBACK_URL=your_callback_url
+
+# Required for app-only authentication
+TWITTER_BEARER_TOKEN=your_bearer_token
+
+# Optional: Required only for OAuth 1.0a operations (legacy)
+TWITTER_API_KEY=your_api_key
+TWITTER_API_SECRET=your_api_secret
 ```
 
 ## Usage
 
-### Import Functions
+### OAuth2 Authentication Flow
+
+#### 1. Generate Authorization URL
 
 ```typescript
-import { uploadMedia, postTweet, getUserProfile, createUserClient } from "@repo/x";
+import { generateAuthURL } from "@repo/x";
+
+const state = "unique-state-string";
+const authData = await generateAuthURL(state);
+
+// Store authData.codeVerifier securely for the callback
+console.log("Redirect user to:", authData.url);
 ```
 
-### Authentication
-
-All posting and media upload operations require user authentication tokens. These are obtained through the OAuth2 flow handled by the controllers.
-
-### Upload Media
-
-Upload an image or video to X:
+#### 2. Handle OAuth Callback
 
 ```typescript
-import { uploadMedia } from "@repo/x";
+import { requestAccessToken } from "@repo/x";
 
-async function uploadImage(accessToken: string, accessSecret: string) {
-  try {
-    const result = await uploadMedia(
-      "/path/to/image.jpg", 
-      accessToken, 
-      accessSecret, 
-      "Alt text for accessibility"
-    );
-    console.log("Media uploaded:", result);
-    return result.media_id_string;
-  } catch (error) {
-    console.error("Upload failed:", error);
-  }
+const { code, state } = callbackParams;
+const codeVerifier = "stored-code-verifier-from-step-1";
+
+const tokenResult = await requestAccessToken(code, codeVerifier);
+
+// Store these tokens securely
+const {
+  accessToken,
+  refreshToken,
+  expiresIn
+} = tokenResult;
+```
+
+#### 3. Refresh Expired Tokens
+
+```typescript
+import { refreshAccessToken, isTokenExpired } from "@repo/x";
+
+// Check if token needs refresh
+if (isTokenExpired(expiresAt)) {
+  const refreshResult = await refreshAccessToken(refreshToken);
+  
+  // Update stored tokens
+  const newAccessToken = refreshResult.accessToken;
+  const newRefreshToken = refreshResult.refreshToken;
 }
 ```
 
-### Post a Tweet
+### Client Creation
 
-#### Text-only Tweet
-
-```typescript
-import { postTweet } from "@repo/x";
-
-async function postTextTweet(accessToken: string, accessSecret: string) {
-  try {
-    const result = await postTweet("Hello, X! 🚀", accessToken, accessSecret);
-    console.log("Tweet posted:", result);
-  } catch (error) {
-    console.error("Tweet failed:", error);
-  }
-}
-```
-
-#### Tweet with Media
-
-```typescript
-async function postTweetWithMedia(accessToken: string, accessSecret: string) {
-  try {
-    // First upload media
-    const mediaResult = await uploadMedia(
-      "/path/to/image.jpg", 
-      accessToken, 
-      accessSecret, 
-      "Image description"
-    );
-    
-    // Then post tweet with media
-    const tweetResult = await postTweet("Check out this image!", accessToken, accessSecret, {
-      media_ids: [mediaResult.media_id_string],
-    });
-    
-    console.log("Tweet with media posted:", tweetResult);
-  } catch (error) {
-    console.error("Failed:", error);
-  }
-}
-```
-
-#### Tweet with Poll
-
-```typescript
-async function postPollTweet(accessToken: string, accessSecret: string) {
-  try {
-    const result = await postTweet("What's your favorite programming language?", accessToken, accessSecret, {
-      poll: {
-        options: ["JavaScript", "TypeScript", "Python", "Rust"],
-        duration_minutes: 1440, // 24 hours
-      },
-    });
-    console.log("Poll tweet posted:", result);
-  } catch (error) {
-    console.error("Poll tweet failed:", error);
-  }
-}
-```
-
-#### Reply to a Tweet
-
-```typescript
-async function replyToTweet(originalTweetId: string, accessToken: string, accessSecret: string) {
-  try {
-    const result = await postTweet("Great point!", accessToken, accessSecret, {
-      reply: {
-        in_reply_to_tweet_id: originalTweetId,
-      },
-    });
-    console.log("Reply posted:", result);
-  } catch (error) {
-    console.error("Reply failed:", error);
-  }
-}
-```
-
-### Get User Profile
-
-```typescript
-import { getUserProfile } from "@repo/x";
-
-async function getProfile(accessToken: string, accessSecret: string) {
-  try {
-    const profile = await getUserProfile(accessToken, accessSecret);
-    console.log("User profile:", profile);
-  } catch (error) {
-    console.error("Failed to get profile:", error);
-  }
-}
-```
-
-### Create Custom Client
-
+#### User-Authenticated Client (OAuth2)
 ```typescript
 import { createUserClient } from "@repo/x";
 
-function createCustomClient(accessToken: string, accessSecret: string) {
-  const userClient = createUserClient(accessToken, accessSecret);
-  // Use userClient for custom API calls
-  return userClient;
+const client = createUserClient(accessToken);
+```
+
+#### App-Only Client (Read-only)
+```typescript
+import { createAppClient } from "@repo/x";
+
+// Create app client
+const appClient = createAppClient();
+const tweets = await appClient.v2.search("JavaScript");
+```
+
+### Function Examples
+
+#### Get Valid Access Token (with Auto-Refresh)
+```typescript
+import { getValidAccessToken, getValidAccessTokenById } from "@repo/x";
+
+// Get token by user ID (uses most recent X login)
+const tokenResult = await getValidAccessToken(userId);
+
+// Get token by specific social login ID
+const tokenResult = await getValidAccessTokenById(socialLoginId);
+
+// The function automatically refreshes if expired
+console.log(tokenResult.accessToken); // Always valid
+console.log(tokenResult.isRefreshed); // true if token was refreshed
+```
+
+#### Get User Details
+```typescript
+import { getUserDetails, getValidAccessToken } from "@repo/x";
+
+const tokenResult = await getValidAccessToken(userId);
+const userInfo = await getUserDetails(tokenResult.accessToken);
+console.log(userInfo.username, userInfo.followers_count);
+```
+
+#### Post a Tweet
+```typescript
+import { postTweet, getValidAccessToken } from "@repo/x";
+
+const tokenResult = await getValidAccessToken(userId);
+const result = await postTweet(
+  "Hello Twitter!",
+  tokenResult.accessToken,
+  {
+    // Optional: reply to another tweet
+    reply: { in_reply_to_tweet_id: "123456" },
+    
+    // Optional: attach media
+    media: { media_ids: ["media_id_1"] },
+    
+    // Optional: add a poll
+    poll: {
+      options: ["Option 1", "Option 2"],
+      duration_minutes: 1440
+    }
+  }
+);
+```
+
+#### Upload Media
+```typescript
+import { uploadMedia, getValidAccessToken } from "@repo/x";
+
+const tokenResult = await getValidAccessToken(userId);
+const mediaResult = await uploadMedia(
+  "/path/to/image.jpg",
+  tokenResult.accessToken,
+  "Alt text for accessibility"
+);
+
+// Use the media ID in a tweet
+await postTweet("Check out this image!", tokenResult.accessToken, {
+  media: { media_ids: [mediaResult.media_id] }
+});
+```
+
+#### Get Current User's Tweets
+```typescript
+import { getUserTweets, getValidAccessToken } from "@repo/x";
+
+const tokenResult = await getValidAccessToken(userId);
+const tweets = await getUserTweets(tokenResult.accessToken);
+tweets.forEach(tweet => console.log(tweet.text));
+```
+
+## Token Management
+
+### Automatic Token Refresh
+
+The `getValidAccessToken` functions automatically handle token expiration:
+
+```typescript
+import { getValidAccessToken } from "@repo/x";
+
+// This function will:
+// 1. Check if access token is expired (with 5-minute buffer)
+// 2. If expired, automatically refresh using refresh token
+// 3. Update database with new tokens
+// 4. Return valid access token
+
+const tokenResult = await getValidAccessToken(userId);
+
+if (tokenResult.isRefreshed) {
+  console.log("Token was automatically refreshed");
+}
+
+// Use the always-valid access token
+const client = createUserClient(tokenResult.accessToken);
+```
+
+### Manual Token Management
+
+```typescript
+import { refreshAccessToken, isTokenExpired } from "@repo/x";
+
+// Check if token needs refresh
+if (isTokenExpired(expiresAt, 10)) { // 10-minute buffer
+  const refreshResult = await refreshAccessToken(refreshToken);
+  
+  // Update your storage
+  await updateTokensInDatabase({
+    accessToken: refreshResult.accessToken,
+    refreshToken: refreshResult.refreshToken,
+    expiresAt: new Date(Date.now() + 7200000) // 2 hours
+  });
 }
 ```
 
-## API Reference
+## OAuth2 Scopes
 
-### `uploadMedia(filePath: string, accessToken: string, accessSecret: string, altText?: string): Promise<MediaUploadResult>`
-
-Uploads media to X.
-
-**Parameters:**
-- `filePath` (string): Absolute path to the media file
-- `accessToken` (string): User's OAuth access token
-- `accessSecret` (string): User's OAuth access secret
-- `altText` (string, optional): Alt text for accessibility
-
-**Returns:** Promise with media upload result containing `media_id_string`
-
-### `postTweet(text: string, accessToken: string, accessSecret: string, options?: TweetOptions): Promise<TweetResult>`
-
-Posts a tweet to X.
-
-**Parameters:**
-- `text` (string): Tweet text content (max 280 characters)
-- `accessToken` (string): User's OAuth access token
-- `accessSecret` (string): User's OAuth access secret
-- `options` (object, optional): Tweet options
-
-**Options:**
-- `media_ids` (string[]): Array of media IDs to attach
-- `poll` (object): Poll configuration with options and duration
-- `reply` (object): Reply configuration with tweet ID
-- `quote_tweet_id` (string): ID of tweet to quote
-
-### `getUserProfile(accessToken: string, accessSecret: string): Promise<UserProfile>`
-
-Gets user's Twitter profile information.
-
-**Parameters:**
-- `accessToken` (string): User's OAuth access token
-- `accessSecret` (string): User's OAuth access secret
-
-**Returns:** Promise with user profile data
-
-### `createUserClient(accessToken: string, accessSecret: string): TwitterApi`
-
-Creates an authenticated TwitterApi client for a specific user.
-
-**Parameters:**
-- `accessToken` (string): User's OAuth access token
-- `accessSecret` (string): User's OAuth access secret
-
-**Returns:** TwitterApi client instance
-
-## Authentication Flow
-
-The package includes OAuth2 authentication controllers for handling user login:
-
-1. **Login Initiation**: `/x/login` - Generates authorization URL
-2. **Callback Handling**: `/x/callback` - Exchanges code for tokens
-
-The controllers handle PKCE (Proof Key for Code Exchange) for secure authentication.
+The package requests the following scopes by default:
+- `tweet.read` - Read tweets
+- `tweet.write` - Post tweets  
+- `users.read` - Read user profiles
+- `offline.access` - Refresh tokens
 
 ## Error Handling
 
-All functions throw errors that should be caught and handled:
+All functions throw descriptive errors. Wrap calls in try-catch blocks:
 
 ```typescript
 try {
-  await postTweet("Hello!", accessToken, accessSecret);
+  const tokenResult = await getValidAccessToken(userId);
+  const result = await postTweet("Hello!", tokenResult.accessToken);
 } catch (error) {
-  if (error.message.includes("character limit")) {
-    console.error("Tweet too long");
-  } else if (error.message.includes("authentication")) {
-    console.error("Check your API credentials");
+  if (error.message.includes("not connected")) {
+    // User needs to authenticate with X
+    console.error("Please connect your X account first");
+  } else if (error.message.includes("refresh")) {
+    // Token refresh failed, re-authentication needed
+    console.error("Please re-authenticate with X");
   } else {
-    console.error("Unexpected error:", error);
+    // Handle other API errors
+    console.error("API Error:", error.message);
   }
 }
 ```
 
-## Rate Limits
+## Database Integration
 
-Be aware of X's rate limits:
-- Tweet posting: 300 tweets per 15-minute window
-- Media upload: varies by file size and type
+When storing OAuth2 data, consider this structure:
 
-Implement appropriate retry logic and rate limiting in your application.
+```sql
+CREATE TABLE social_login (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL,
+  provider VARCHAR(20) NOT NULL,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  expires_at TIMESTAMP NOT NULL,
+  state VARCHAR(255), -- For OAuth flow
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+## Migration from v1.0a
+
+If you were using OAuth 1.0a before:
+
+1. Update environment variables to use `TWITTER_CLIENT_ID/SECRET`
+2. Replace class-based `xAuthClient` with functional calls
+3. Update token storage to handle OAuth2 tokens
+4. Use `createUserClient()` instead of v1 clients for most operations
+
+## Contributing
+
+This package follows functional programming principles. When adding new features:
+- Use pure functions
+- Avoid classes and mutable state
+- Include proper TypeScript types
+- Add error handling
+- Update this README
 
 ## Dependencies
 
-- `twitter-api-v2`: Full-featured Twitter API v2 client with OAuth support
-
-## Migration from twitter-api-sdk
-
-This package has been migrated from `twitter-api-sdk` to `twitter-api-v2` for better OAuth2 support and more comprehensive API coverage.
+- `twitter-api-v2` - Official Twitter API v2 client
+- Built for Bun runtime and TypeScript

@@ -84,7 +84,6 @@ model Draft {
   updatedAt       DateTime       @updatedAt
   Post            Post[]
   draftSchedule   DraftSchedule?
-
   @@map("draft")
 }
 
@@ -100,6 +99,7 @@ model Post {
   updatedAt   DateTime  @updatedAt
   draft       Draft     @relation(fields: [draftId], references: [id])
   draftId     String
+  isDeleted Boolean @default(false)
 
   @@map("post")
 }
@@ -119,6 +119,7 @@ model DraftSchedule {
   updatedAt   DateTime  @updatedAt
   isPublished Boolean   @default(false)
   publishedAt DateTime?
+  isDeleted Boolean @default(false)
 
   @@map("draft_schedule")
 }
@@ -135,7 +136,7 @@ model PostCron {
   updatedAt      DateTime     @updatedAt
   PostCronData   PostCronData @relation(fields: [postCronDataId], references: [id])
   postCronDataId String       @unique
-
+  isDeleted      Boolean      @default(false)
   @@map("post_cron")
 }
 
@@ -171,6 +172,8 @@ model SocialLogin {
   expiresAt DateTime
   createdAt DateTime @default(now())
   state String?
+  isConnected Boolean @default(false)
+  isDeleted Boolean @default(false)
 
   @@map("social_login")
 }

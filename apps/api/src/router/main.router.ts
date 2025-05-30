@@ -4,6 +4,7 @@ import postRouter from "./post.router";
 import { cors } from "hono/cors";
 import { authorizationMiddleware } from "../middlewares/authorization";
 import socialLoginRouter from "./social-login.router";
+import socialUploadRouter from "./social-upload.router";
 
 const mainRouter = factory.createApp();
 
@@ -11,6 +12,7 @@ mainRouter
     .on(["POST", "GET"], "/auth/*", c => auth.handler(c.req.raw))
     .use("*", authorizationMiddleware)
     .route("/post", postRouter)
-    .route("/login", socialLoginRouter);
+    .route("/social/login", socialLoginRouter)
+    .route("/social/upload", socialUploadRouter);
 
 export default mainRouter;
