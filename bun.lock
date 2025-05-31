@@ -157,6 +157,7 @@
     "packages/linkedin": {
       "name": "@repo/linkedin",
       "dependencies": {
+        "@repo/db": "workspace:*",
         "linkedin-api-client": "^0.3.0",
       },
       "devDependencies": {

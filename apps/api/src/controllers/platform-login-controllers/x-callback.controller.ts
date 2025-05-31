@@ -5,6 +5,7 @@ import { requestAccessToken } from "@repo/x";
 import { z } from "zod";
 import { zValidator as zv } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
+import { logger } from "@repo/logger";
 
 const querySchema = z.object({
     code: z.string(),
@@ -80,10 +81,7 @@ const xCallbackHandler = factory.createHandlers(queryValidator, async c => {
             200,
         );
     } catch (error) {        
-        if (error instanceof HTTPException) {
-            throw error;
-        }
-        
+        logger.error("X callback error:", error);
         throw new HTTPException(500, {
             message: "Failed to complete X authentication",
         });
