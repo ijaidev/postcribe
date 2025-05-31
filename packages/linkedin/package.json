@@ -1,5 +1,5 @@
 {
-  "name": "template",
+  "name": "@repo/linkedin",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -19,5 +19,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "linkedin-api-client": "^0.3.0",
+    "@repo/db": "workspace:*"
   }
 }
