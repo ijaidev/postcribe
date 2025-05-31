@@ -1,5 +1,5 @@
 {
-  "name": "@repo/cron-handler",
+  "name": "@repo/mail-templates",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -15,19 +15,13 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/aws-lambda": "^8.10.149",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/mjml": "^4.7.4"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-sqs": "^3.817.0",
-    "@repo/db": "workspace:*",
-    "@repo/logger": "workspace:*",
-    "@repo/mailer": "workspace:*",
-    "@repo/ai": "workspace:*",
-    "@repo/mail-templates": "workspace:*",
-    "@repo/cron-sender": "workspace:*"
+    "mjml": "^4.15.3"
   }
 }

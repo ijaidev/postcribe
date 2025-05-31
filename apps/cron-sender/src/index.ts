@@ -10,3 +10,4 @@ export const handler: Handler = async () => {
         throw error;
     }
 };
+

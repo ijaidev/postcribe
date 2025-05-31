@@ -7,6 +7,8 @@ const sendMessage = async (message: string) => {
         QueueUrl: process.env.SQS_QUEUE_URL,
         MessageBody: message,
     });
+    
+    return await queue.send(command);
 };
 
 export default sendMessage;

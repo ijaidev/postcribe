@@ -137,6 +137,7 @@ model PostCron {
   updatedAt      DateTime     @updatedAt
   PostCronData   PostCronData @relation(fields: [postCronDataId], references: [id])
   postCronDataId String       @unique
+  autoApprove    Boolean      @default(false)
   isDeleted      Boolean      @default(false)
   @@map("post_cron")
 }

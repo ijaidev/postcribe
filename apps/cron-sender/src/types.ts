@@ -1,11 +1,4 @@
-import type { PostCronData } from "@repo/db";
-
-export type PostCron = {
+export type CronMessage = {
     id: string;
-    title: string;
-    scheduledAt: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-    PostCronData: PostCronData;
+    userId: string;
 };

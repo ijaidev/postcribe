@@ -1,0 +1,63 @@
+service: postcribe-cron-handler
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  environment:
+    DATABASE_URL: ${env:DATABASE_URL}
+    SQS_QUEUE_URL: ${env:SQS_QUEUE_URL}
+    FRONTEND_BASE_URL: ${env:FRONTEND_BASE_URL}
+    BASE_URL: ${env:BASE_URL}
+    FROM_EMAIL: ${env:FROM_EMAIL}
+    SMTP_HOST: ${env:SMTP_HOST}
+    SMTP_PORT: ${env:SMTP_PORT}
+    SMTP_USER: ${env:SMTP_USER}
+    SMTP_PASS: ${env:SMTP_PASS}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+    AI_DB_URL: ${env:AI_DB_URL}
+    TAVILY_API_KEY: ${env:TAVILY_API_KEY}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sqs:ReceiveMessage
+        - sqs:DeleteMessage
+        - sqs:GetQueueAttributes
+      Resource: ${env:SQS_QUEUE_ARN}
+
+functions:
+  cronHandler:
+    handler: dist/index.handler
+    timeout: 900 # 15 minutes
+    memorySize: 1024
+    events:
+      - sqs:
+          arn: ${env:SQS_QUEUE_ARN}
+          batchSize: 10
+          maximumBatchingWindowInSeconds: 20
+
+plugins:
+  - serverless-esbuild
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    exclude:
+      - aws-sdk
+    target: node20
+    define:
+      require.resolve: undefined
+    platform: node
+    concurrency: 10
+    external:
+      - '@prisma/client'
+    packager: bun
+
+package:
+  patterns:
+    - '!node_modules/.prisma/client/libquery_engine-*'
+    - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+    - '!node_modules/@prisma/engines/**' 
