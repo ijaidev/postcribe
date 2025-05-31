@@ -97,7 +97,8 @@ export async function uploadMediaBuffer(
     mediaBuffer: Buffer,
     mediaType: string,
     accessToken: string,
-    altText?: string
+    altText?: string,
+    expiresAfterSecs?: number
 ): Promise<MediaUploadResult> {
     try {
         // Validate buffer
@@ -124,7 +125,7 @@ export async function uploadMediaBuffer(
             media_id: mediaId,
             media_id_string: mediaId,
             size: mediaBuffer.length,
-            expires_after_secs: 86400, // 24 hours default
+            expires_after_secs: expiresAfterSecs || 1000 * 60 * 60 * 24, // 1 day default
         };
     } catch (error) {
         console.error("Error uploading media buffer:", error);

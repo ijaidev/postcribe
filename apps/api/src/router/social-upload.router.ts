@@ -3,6 +3,6 @@ import factory from "../utils/factory";
 
 const socialUploadRouter = factory.createApp()
 
-socialUploadRouter.post("/x/media", ...xMediaUploadController);
+socialUploadRouter.post("/x", ...xMediaUploadController);
 
 export default socialUploadRouter;

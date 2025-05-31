@@ -13,6 +13,6 @@ mainRouter
     .use("*", authorizationMiddleware)
     .route("/post", postRouter)
     .route("/social/login", socialLoginRouter)
-    .route("/social/upload", socialUploadRouter);
+    .route("/social/media/upload", socialUploadRouter);
 
 export default mainRouter;

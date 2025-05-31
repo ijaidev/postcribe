@@ -8,4 +8,5 @@ const postRouter = factory.createApp();
 postRouter.post("/draft", ...postGenController);
 postRouter.get("/draft/posts", ...getPostsController);
 postRouter.post("/draft/image", ...imageGenController);
+postRouter.post("/draft/post", ...schedulePostController);
 export default postRouter;

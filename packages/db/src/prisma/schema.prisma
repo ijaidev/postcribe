@@ -92,6 +92,7 @@ model Post {
   id          String    @id @default(uuid())
   post        String
   imageUrl    String?
+  mediaIds    String[]
   postType    PostType
   isPublished Boolean   @default(false)
   publishedAt DateTime?

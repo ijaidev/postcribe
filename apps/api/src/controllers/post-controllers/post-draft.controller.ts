@@ -14,6 +14,9 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const schema = z.object({
+    action: z.enum(["post", "schedule"]),
+    scheduleDate: z.string().datetime().optional(),
+    updatedPost: z.string().optional(),
     file: z
         .instanceof(File)
         .refine(file => file.size > 0, {
@@ -30,31 +33,50 @@ const schema = z.object({
         }),
 
     altText: z.string().optional(),
-    socialLoginId: z.string(),
+    socialLoginId: z.array(
+        z.object({
+            id: z.string(),
+            platform: z
+                .enum(["x", "linkedin"])
+                .transform(val => val.toUpperCase()),
+        }),
+    ),
     draftId: z.string(),
 });
 
 const validate = zv("form", schema);
 
-const xMediaUploadHandler = factory.createHandlers(validate, async c => {
-    const { file, altText, socialLoginId, draftId } = c.req.valid("form");
+const postDraftHandler = factory.createHandlers(validate, async c => {
+    const {
+        file,
+        altText,
+        socialLoginId,
+        draftId,
+        updatedPost,
+        action,
+        scheduleDate,
+    } = c.req.valid("form");
 
     try {
-        const tokenResult = await getValidAccessToken(socialLoginId);
-
         const arrayBuffer = await file.arrayBuffer();
         const mediaBuffer = Buffer.from(arrayBuffer);
+
+        const expiresAfterSecs =
+            action === "schedule" && scheduleDate
+                ? new Date(scheduleDate).getTime() - new Date().getTime()
+                : undefined;
 
         const uploadResult = await uploadMediaBuffer(
             mediaBuffer,
             file.type,
             tokenResult.accessToken,
             altText,
+            expiresAfterSecs,
         );
 
         const socialLogin = await db.socialLogin.findUnique({
             where: {
-                id: socialLoginId,
+                id: socialLoginId.id,
             },
         });
 
@@ -101,7 +123,6 @@ const xMediaUploadHandler = factory.createHandlers(validate, async c => {
             }),
             200,
         );
-        
     } catch (error) {
         console.error("Error in X media upload:", error);
 
@@ -152,4 +173,4 @@ const xMediaUploadHandler = factory.createHandlers(validate, async c => {
     }
 });
 
-export default xMediaUploadHandler;
+export default postDraftHandler;
