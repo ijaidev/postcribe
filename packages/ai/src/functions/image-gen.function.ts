@@ -22,7 +22,7 @@ interface ImageGenResponse {
 
 const imageGen = async (
     options: ImageGenOptions,
-    platform: "x" | "linkedin",
+    platform: "X" | "LINKEDIN",
 ): Promise<ImageGenResponse> => {
     const { message, version, draftId, images } = options;
 
@@ -33,7 +33,7 @@ const imageGen = async (
         },
     };
 
-    const graph = platform === "x" ? xImageGraph : linkedInImageGraph;
+    const graph = platform === "X" ? xImageGraph : linkedInImageGraph;
 
     const currentState = await graph.getState(config);
     const values: imageGraphState = currentState.values;

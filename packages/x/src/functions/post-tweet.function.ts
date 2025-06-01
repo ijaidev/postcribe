@@ -9,6 +9,7 @@ export interface TweetResult {
 }
 
 interface PostTweetOptions {
+    text: string;
     media_ids?: string[];
 }
 
@@ -20,12 +21,11 @@ interface PostTweetOptions {
  * @returns Promise with tweet result
  */
 export async function postTweet(
-    text: string,
     accessToken: string,
-    options?: PostTweetOptions,
+    options: PostTweetOptions,
 ): Promise<TweetResult> {
     try {
-        if (text.length > 280) {
+        if (options.text && options.text.length > 280) {
             throw new Error("Tweet text exceeds 280 character limit");
         }
 
@@ -34,7 +34,7 @@ export async function postTweet(
 
         let optionsPayload: Partial<SendTweetV2Params> = {};
 
-        if (options?.media_ids?.length) {
+        if (options.media_ids?.length) {
             // Twitter API allows max 4 media items
             const mediaIds = options.media_ids.slice(0, 4);
             optionsPayload.media = { 
@@ -42,7 +42,7 @@ export async function postTweet(
             } as SendTweetV2Params["media"];
         }
 
-        const result = await userClient.v2.tweet(text, optionsPayload);
+        const result = await userClient.v2.tweet(options.text, optionsPayload);
 
         return {
             data: {

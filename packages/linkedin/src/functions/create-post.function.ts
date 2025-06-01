@@ -1,5 +1,6 @@
 import type { LICreateRequestOptions } from "linkedin-api-client";
 import { createLinkedInClient } from "../client";
+import { getProfile } from "./get-profile.function";
 
 interface ShareContent {
     shareCommentary: {
@@ -41,17 +42,20 @@ export interface LinkedInPostResult {
  * Create a post on LinkedIn
  * @param options - Post options including text and media
  * @param accessToken - LinkedIn access token
- * @param personUrn - Person URN (e.g., "urn:li:person:abc123")
  * @returns Created post information
  */
 export async function createPost(
     options: LinkedInPostOptions,
     accessToken: string,
-    personUrn: string,
 ): Promise<LinkedInPostResult> {
     try {
         const client = createLinkedInClient();
 
+        const person = await getProfile(accessToken);
+        const personUrn = person?.id;
+        if (!personUrn) {
+            throw new Error("Failed to get LinkedIn profile");
+        }
         const postData: LICreateRequestOptions = {
             resourcePath: "/ugcPosts",
             accessToken,
@@ -173,10 +177,9 @@ export async function createPost(
 export async function createTextPost(
     text: string,
     accessToken: string,
-    personUrn: string,
     visibility: "PUBLIC" | "CONNECTIONS" | "LOGGED_IN_MEMBERS" = "PUBLIC",
 ): Promise<LinkedInPostResult> {
-    return createPost({ text, visibility }, accessToken, personUrn);
+    return createPost({ text, visibility }, accessToken);
 }
 
 /**
@@ -193,7 +196,6 @@ export async function shareArticle(
     text: string,
     articleUrl: string,
     accessToken: string,
-    personUrn: string,
     title?: string,
     description?: string,
 ): Promise<LinkedInPostResult> {
@@ -207,6 +209,5 @@ export async function shareArticle(
             },
         },
         accessToken,
-        personUrn,
     );
 }

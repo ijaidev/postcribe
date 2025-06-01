@@ -13,7 +13,7 @@ import {
 export interface CronPostGenOptions {
     draftId: string;
     message: string; // user requirement
-    platform: "x" | "linkedin" | "all";
+    platform: "X" | "LINKEDIN" | "ALL";
     inputImages?: string[]; // URLs or base64
     generateImage?: boolean; // defaults to true if not provided
     imagePrompt?: string;
@@ -43,24 +43,24 @@ export const cronPostGen = async (
             stream(): AsyncGenerator<PostGenResponse>;
         }>[] = [];
 
-        if (platform === "x" || platform === "all") {
+        if (platform === "X" || platform === "ALL") {
             const xPostGenOptions: PostGenOptions = {
                 draftId,
                 message,
                 images: inputImages.length > 0 ? inputImages : undefined,
                 forceWeb,
             };
-            postGenPromises.push(postGen(xPostGenOptions, "x"));
+            postGenPromises.push(postGen(xPostGenOptions, "X"));
         }
 
-        if (platform === "linkedin" || platform === "all") {
+        if (platform === "LINKEDIN" || platform === "ALL") {
             const linkedinPostGenOptions: PostGenOptions = {
                 draftId,
                 message,
                 images: inputImages.length > 0 ? inputImages : undefined,
                 forceWeb,
             };
-            postGenPromises.push(postGen(linkedinPostGenOptions, "linkedin"));
+            postGenPromises.push(postGen(linkedinPostGenOptions, "LINKEDIN"));
         }
 
         await Promise.all(postGenPromises);
@@ -75,11 +75,11 @@ export const cronPostGen = async (
                 images: inputImages.length > 0 ? inputImages : undefined,
             };
 
-            if (platform === "x" || platform === "all") {
-                imageGenPromises.push(imageGen(commonImageGenOpts, "x"));
+            if (platform === "X" || platform === "ALL") {
+                imageGenPromises.push(imageGen(commonImageGenOpts, "X"));
             }
-            if (platform === "linkedin" || platform === "all") {
-                imageGenPromises.push(imageGen(commonImageGenOpts, "linkedin"));
+            if (platform === "LINKEDIN" || platform === "ALL") {
+                imageGenPromises.push(imageGen(commonImageGenOpts, "LINKEDIN"));
             }
             await Promise.all(imageGenPromises);
         }

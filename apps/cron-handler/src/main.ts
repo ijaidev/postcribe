@@ -1,9 +1,12 @@
-import {
-    SQSClient,
-    ReceiveMessageCommand,
-    DeleteMessageCommand,
-} from "@aws-sdk/client-sqs";
-import db from "@repo/db";
+import db, {
+    CronState,
+    Platform,
+    PostType,
+    type Draft,
+    type PostCron,
+    type PostCronData,
+    type User,
+} from "@repo/db";
 import { type CronMessage } from "@repo/cron-sender/types";
 import { logger } from "@repo/logger";
 import { cronPostGen, type CronPostGenOptions } from "@repo/ai";
@@ -12,96 +15,380 @@ import {
     generatePostApprovalEmail,
     type PostApprovalEmailData,
 } from "@repo/mail-templates";
+import {
+    postTweet,
+    getValidAccessToken as getXAccessToken,
+    uploadMediaBuffer,
+    type MediaUploadResult,
+} from "@repo/x";
+import {
+    createPost as createLinkedInPost,
+    getValidAccessToken as getLinkedInAccessToken,
+} from "@repo/linkedin";
+import { getPosts } from "@repo/ai";
+import { type Prisma } from "@repo/db";
 
-const sqsClient = new SQSClient({});
+interface DraftWithUser extends Draft {
+    user: User;
+}
 
-const processCron = async (message: CronMessage) => {
+interface PostCronWithData extends PostCron {
+    PostCronData: PostCronData;
+}
+
+const processCron = async (message: CronMessage, isRetry: boolean) => {
+    const { id: cronId, userId } = message;
+    let currentStage: CronState = CronState.DRAFT_CREATION;
+    let draft: DraftWithUser | null = null;
+
     try {
-        // Fetch the PostCron with its data
         const postCron = await db.postCron.findUnique({
-            where: {
-                id: message.id,
-                userId: message.userId,
-                isDeleted: false,
-            },
+            where: { id: cronId, userId },
             include: {
                 PostCronData: true,
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
             },
         });
 
         if (!postCron) {
-            logger.warn(`PostCron not found: ${message.id}`);
-            return;
+            throw new Error(`PostCron not found for cronId: ${cronId}`);
         }
 
-        if (!postCron.isActive) {
-            logger.info(`PostCron is not active: ${message.id}`);
-            return;
+        if (isRetry) {
+            draft = await db.draft.findFirst({
+                where: { postCronId: postCron.id, userId },
+                include: {
+                    user: true,
+                },
+            });
+            if (draft?.cronState === CronState.COMPLETED) return;
+        }
+        if (!draft) {
+            draft = await db.draft.create({
+                data: {
+                    userId,
+                    title: `Draft for ${postCron.title}`,
+                    postCronId: postCron.id,
+                    cronState: CronState.DRAFT_CREATION,
+                },
+                include: {
+                    user: true,
+                },
+            });
         }
 
-        // Create a draft for this cron post
-        const draft = await db.draft.create({
+        currentStage = draft.cronState as CronState;
+
+        switch (currentStage) {
+            case CronState.AI_GENERATION:
+                await processAIGeneration(draft, postCron);
+                break;
+            case CronState.EMAIL_NOTIFICATION:
+                await processEmailNotification(draft, postCron);
+                break;
+            case CronState.MEDIA_UPLOAD:
+                await processMediaUpload(draft, postCron);
+                break;
+            case CronState.POST_CREATION:
+                await processPostCreation(draft, postCron);
+                break;
+            case CronState.PLATFORM_PUBLISHING:
+                await processPlatformPublishing(draft, postCron);
+                break;
+            case CronState.COMPLETED:
+                return;
+        }
+
+        await db.draft.update({
+            where: { id: draft.id },
             data: {
-                userId: postCron.userId,
+                cronState: CronState.COMPLETED,
             },
         });
+        return;
+    } catch (error) {
+        logger.error(`Error processing cron message ${cronId}:`, error);
+        throw error;
+    }
+};
 
-        // Prepare options for AI post generation
+const processAIGeneration = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    const existingPosts = await getPosts({ draftId: draft.id });
+    const hasXPost = existingPosts.x.posts.length > 0;
+    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
+    const cronData = postCron.PostCronData;
+
+    if (!hasXPost || !hasLinkedinPost) {
         const cronPostGenOptions: CronPostGenOptions = {
             draftId: draft.id,
-            message: postCron.PostCronData.message,
-            platform: postCron.PostCronData.platform.toLowerCase() as
-                | "x"
-                | "linkedin"
-                | "all",
-            inputImages: postCron.PostCronData.inputImages,
-            generateImage: postCron.PostCronData.generateImage,
-            imagePrompt: postCron.PostCronData.imagePrompt || undefined,
-            forceWeb: postCron.PostCronData.forceWeb,
+            message: cronData.message,
+            platform: cronData.platform,
+            inputImages: cronData.inputImages,
+            generateImage: cronData.generateImage,
+            imagePrompt: cronData.imagePrompt || undefined,
+            forceWeb: cronData.forceWeb,
         };
 
-        // Generate the post using AI
         await cronPostGen(cronPostGenOptions);
-
-        // Handle auto-approval or send notification email
-        if (postCron.autoApprove) {
-            // Auto-approve: publish the post immediately
-            await publishDraft(draft.id);
-        } else {
-            // Send notification email for manual approval
-            await sendApprovalEmail(postCron.user, draft.id, postCron.title);
-        }
-    } catch (error) {
-        logger.error(`Error processing cron message ${message.id}:`, error);
-        throw error;
     }
-};
 
-const publishDraft = async (draftId: string) => {
-    try {
-        // Update all posts in the draft to published
-        await db.post.updateMany({
-            where: {
-                draftId: draftId,
-                isDeleted: false,
-            },
+    if (postCron.autoApprove) {
+        await db.draft.update({
+            where: { id: draft.id },
             data: {
-                isPublished: true,
-                publishedAt: new Date(),
+                cronState: CronState.MEDIA_UPLOAD,
             },
         });
-    } catch (error) {
-        logger.error(`Error publishing draft ${draftId}:`, error);
-        throw error;
+        await processMediaUpload(draft, postCron);
+    } else {
+        await db.draft.update({
+            where: { id: draft.id },
+            data: {
+                cronState: CronState.EMAIL_NOTIFICATION,
+            },
+        });
+        await processEmailNotification(draft, postCron);
     }
 };
 
+const processEmailNotification = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    if (postCron.autoApprove) {
+        await processPlatformPublishing(draft, postCron);
+        return;
+    }
+
+    const existingPosts = await getPosts({ draftId: draft.id });
+    const hasXPost = existingPosts.x.posts.length > 0;
+    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
+
+    if (!hasXPost || !hasLinkedinPost) {
+        throw new Error("No posts found for draft");
+    }
+
+    const baseUrl =
+        process.env.FRONTEND_BASE_URL ||
+        process.env.BASE_URL ||
+        "http://localhost:3000";
+    const reviewUrl = `${baseUrl}/post/draft/${draft.id}`;
+
+    const emailData: PostApprovalEmailData = {
+        userName: draft.user.name,
+        postTitle: draft.title,
+        reviewUrl: reviewUrl,
+    };
+
+    const htmlContent = generatePostApprovalEmail(emailData);
+
+    const emailOptions: SendEmailOptions = {
+        to: [{ name: draft.user.name, email: draft.user.email }],
+        subject: `Post Ready for Review: ${draft.title}`,
+        htmlContent: htmlContent,
+        sender: {
+            name: "PostCribe",
+            email: process.env.FROM_EMAIL || "noreply@postcribe.com",
+        },
+    };
+
+    await sendEmail(emailOptions);
+
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.COMPLETED,
+        },
+    });
+};
+
+const processMediaUpload = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    const existingPosts = await getPosts({ draftId: draft.id });
+    const hasXPost = existingPosts.x.posts.length > 0;
+    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
+
+    const platform = postCron.PostCronData.platform;
+
+    let mediaPromises: Promise<MediaUploadResult>[] = [];
+
+    if ((platform === "X" || platform === "ALL") && hasXPost) {
+        const xImage = existingPosts.x.images[0];
+        if (xImage && xImage.url) {
+            const buffer = await fetch(xImage.url).then(res =>
+                res.arrayBuffer(),
+            );
+            const media = uploadMediaBuffer(
+                Buffer.from(buffer),
+                "image/png",
+                "x-image",
+            );
+            mediaPromises.push(media);
+        }
+    }
+
+    if ((platform === "LINKEDIN" || platform === "ALL") && hasLinkedinPost) {
+        const linkedinImage = existingPosts.linkedin.images[0];
+        if (linkedinImage && linkedinImage.url) {
+            const buffer = await fetch(linkedinImage.url).then(res =>
+                res.arrayBuffer(),
+            );
+            const media = uploadMediaBuffer(
+                Buffer.from(buffer),
+                "image/png",
+                "linkedin-image",
+            );
+            mediaPromises.push(media);
+        }
+    }
+
+    await Promise.allSettled(mediaPromises);
+
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.POST_CREATION,
+        },
+    });
+
+    await processPostCreation(draft, postCron);
+};
+
+const processPostCreation = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    const existingPosts = await getPosts({ draftId: draft.id });
+    const hasXPost = existingPosts.x.posts.length > 0;
+    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
+
+    const platform = postCron.PostCronData.platform;
+
+    if (!hasXPost || !hasLinkedinPost) {
+        let postsToCreate: Prisma.PostCreateManyInput[] = [];
+
+        if (
+            (platform === "X" || platform === "ALL") &&
+            existingPosts.x.posts[0]?.content
+        ) {
+            const mediaIds = existingPosts.x.images[0]?.url
+                ? [existingPosts.x.images[0].url]
+                : [];
+
+            postsToCreate.push({
+                draftId: draft.id,
+                postType: "X" as PostType,
+                post: existingPosts.x.posts[0].content,
+                mediaIds: mediaIds,
+            });
+        }
+
+        if (
+            (platform === "LINKEDIN" || platform === "ALL") &&
+            existingPosts.linkedin.posts[0]?.content
+        ) {
+            const mediaIds = existingPosts.linkedin.images[0]?.url
+                ? [existingPosts.linkedin.images[0].url]
+                : [];
+
+            postsToCreate.push({
+                draftId: draft.id,
+                postType: "LINKEDIN" as PostType,
+                post: existingPosts.linkedin.posts[0].content,
+                mediaIds: mediaIds,
+            });
+        }
+
+        if (postsToCreate.length > 0) {
+            await db.post.createMany({ data: postsToCreate });
+        }
+    }
+
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.PLATFORM_PUBLISHING,
+        },
+    });
+
+    await processPlatformPublishing(draft, postCron);
+};
+
+const processPlatformPublishing = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    const dbPosts = await db.post.findMany({
+        where: { draftId: draft.id, isPublished: false },
+    });
+
+    const cronData = postCron.PostCronData;
+
+    if (cronData.platform === "X" || cronData.platform === "ALL") {
+        const xPost = dbPosts.find(post => post.postType === "X");
+        if (xPost && !xPost.isPublished) {
+            const xSocialLoginId = cronData.xSocialLoginId;
+            if (xSocialLoginId) {
+                const xAccessToken = await getXAccessToken(xSocialLoginId);
+                await postTweet(xAccessToken.accessToken, {
+                    text: xPost.post,
+                    media_ids:
+                        xPost.mediaIds.length > 0 ? xPost.mediaIds : undefined,
+                });
+
+                await db.post.update({
+                    where: { id: xPost.id },
+                    data: { isPublished: true, publishedAt: new Date() },
+                });
+            }
+        }
+    }
+
+    if (cronData.platform === "LINKEDIN" || cronData.platform === "ALL") {
+        const linkedinPost = dbPosts.find(post => post.postType === "LINKEDIN");
+        if (linkedinPost && !linkedinPost.isPublished) {
+            const linkedinSocialLoginId = cronData.linkedinSocialLoginId;
+            if (linkedinSocialLoginId) {
+                const linkedinAccessToken = await getLinkedInAccessToken(
+                    linkedinSocialLoginId,
+                );
+
+                const postOptions: any = {
+                    text: linkedinPost.post,
+                };
+
+                if (
+                    linkedinPost.mediaIds.length > 0 &&
+                    linkedinPost.mediaIds[0]
+                ) {
+                    postOptions.media = {
+                        media: linkedinPost.mediaIds[0],
+                    };
+                }
+
+                await createLinkedInPost(
+                    postOptions,
+                    linkedinAccessToken.accessToken,
+                );
+
+                await db.post.update({
+                    where: { id: linkedinPost.id },
+                    data: { isPublished: true, publishedAt: new Date() },
+                });
+            }
+        }
+    }
+
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.COMPLETED,
+        },
+    });
+};
 
 export default processCron;

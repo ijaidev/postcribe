@@ -20,7 +20,7 @@ interface PostGenResponse {
     content: string;
 }
 
-const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
+const postGen = async (options: PostGenOptions, platform: "X" | "LINKEDIN") => {
     const { message, forceWeb = false, version, draftId, images } = options;
 
     // Create thread ID based on apply version or generate new on
@@ -32,7 +32,7 @@ const postGen = async (options: PostGenOptions, platform: "x" | "linkedin") => {
         },
     };
 
-    const graph = platform === "x" ? xPostGraph : linkedInPostGraph;
+    const graph = platform === "X" ? xPostGraph : linkedInPostGraph;
 
     if (version && version > 0) {
         const currentState = await graph.getState(config);

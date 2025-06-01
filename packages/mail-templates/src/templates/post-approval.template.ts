@@ -208,7 +208,7 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => `
 
 export const generatePostApprovalEmail = (
     data: PostApprovalEmailData,
-): { html: string; text: string } => {
+): string => {
     const mjmlTemplate = getMjmlTemplate(data);
 
     try {
@@ -221,33 +221,7 @@ export const generatePostApprovalEmail = (
             console.warn("MJML compilation warnings:", result.errors);
         }
 
-        // Generate a simple text version for fallback
-        const textVersion = `
-Hi ${data.userName},
-
-Your scheduled post is ready for review!
-
-Post Title: ${data.postTitle}
-${data.previewText ? `Preview: ${data.previewText}` : ""}
-
-Your AI-generated post content has been created based on your requirements. Please review the content, make any necessary edits, and publish when you're ready.
-
-Review & Edit Post: ${data.reviewUrl}
-
-What you can do in the editor:
-• Edit Content - Modify the AI-generated text to match your voice
-• Add Media - Upload images or generate new visuals  
-• Schedule - Set the perfect time to publish
-
-This email was sent by your PostCribe scheduling system.
-
-© 2024 PostCribe. All rights reserved.
-        `.trim();
-
-        return {
-            html: result.html,
-            text: textVersion,
-        };
+        return result.html;
     } catch (error) {
         console.error("Error generating MJML email:", error);
         throw new Error("Failed to generate email template");
