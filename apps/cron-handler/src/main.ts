@@ -1,12 +1,12 @@
 import db, {
     CronState,
-    Platform,
     PostType,
     type Draft,
     type PostCron,
     type PostCronData,
     type User,
 } from "@repo/db";
+
 import { type CronMessage } from "@repo/cron-sender/types";
 import { logger } from "@repo/logger";
 import { cronPostGen, type CronPostGenOptions } from "@repo/ai";
