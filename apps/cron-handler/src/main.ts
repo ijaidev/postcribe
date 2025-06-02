@@ -138,30 +138,27 @@ const processAIGeneration = async (
         await db.draft.update({
             where: { id: draft.id },
             data: {
-                cronState: CronState.MEDIA_UPLOAD,
+                cronState: CronState.POST_CREATION,
             },
         });
-        await processMediaUpload(draft, postCron);
-    } else {
-        await db.draft.update({
-            where: { id: draft.id },
-            data: {
-                cronState: CronState.EMAIL_NOTIFICATION,
-            },
-        });
-        await processEmailNotification(draft, postCron);
+        await processPostCreation(draft, postCron);
+        return;
     }
+
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.EMAIL_NOTIFICATION,
+        },
+    });
+    await processEmailNotification(draft, postCron);
+    return;
 };
 
 const processEmailNotification = async (
     draft: DraftWithUser,
     postCron: PostCronWithData,
 ) => {
-    if (postCron.autoApprove) {
-        await processPlatformPublishing(draft, postCron);
-        return;
-    }
-
     const existingPosts = await getPosts({ draftId: draft.id });
     const hasXPost = existingPosts.x.posts.length > 0;
     const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
@@ -202,6 +199,73 @@ const processEmailNotification = async (
             cronState: CronState.COMPLETED,
         },
     });
+
+    return;
+};
+
+const processPostCreation = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    const existingPosts = await getPosts({ draftId: draft.id });
+    const hasXPost = existingPosts.x.posts.length > 0;
+    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
+
+    const platform = postCron.PostCronData.platform;
+
+    if (hasXPost || hasLinkedinPost) {
+        let postsToCreate: Prisma.PostCreateManyInput[] = [];
+
+        if (
+            (platform === "X" || platform === "ALL") &&
+            existingPosts.x.posts[0]?.content
+        ) {
+            postsToCreate.push({
+                draftId: draft.id,
+                postType: "X" as PostType,
+                post: existingPosts.x.posts[0].content,
+                socialLoginId: postCron.PostCronData.xSocialLoginId || "",
+            });
+        }
+
+        if (
+            (platform === "LINKEDIN" || platform === "ALL") &&
+            existingPosts.linkedin.posts[0]?.content
+        ) {
+            postsToCreate.push({
+                draftId: draft.id,
+                postType: "LINKEDIN" as PostType,
+                post: existingPosts.linkedin.posts[0].content,
+                socialLoginId: postCron.PostCronData.linkedinSocialLoginId || "",
+            });
+        }
+
+        if (postsToCreate.length > 0) {
+            await db.post.createMany({ data: postsToCreate });
+        }
+    }
+
+    if (postCron.PostCronData.generateImage) {
+        await db.draft.update({
+            where: { id: draft.id },
+            data: {
+                cronState: CronState.MEDIA_UPLOAD,
+            },
+        });
+        await processMediaUpload(draft, postCron);
+        return;
+    }
+
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.PLATFORM_PUBLISHING,
+        },
+    });
+
+    await processPlatformPublishing(draft, postCron);
+
+    return;
 };
 
 const processMediaUpload = async (
@@ -246,67 +310,47 @@ const processMediaUpload = async (
         }
     }
 
-    await Promise.allSettled(mediaPromises);
+    const dbPromises = [];
+    const mediaResults = await Promise.allSettled(mediaPromises);
+    const [xMediaId, linkedinMediaId] = mediaResults.map(result =>
+        result.status === "fulfilled" ? result.value.media_id_string : null,
+    );
 
-    await db.draft.update({
-        where: { id: draft.id },
-        data: {
-            cronState: CronState.POST_CREATION,
+    const posts = await db.post.findMany({
+        where: {
+            draftId: draft.id,
         },
     });
 
-    await processPostCreation(draft, postCron);
-};
-
-const processPostCreation = async (
-    draft: DraftWithUser,
-    postCron: PostCronWithData,
-) => {
-    const existingPosts = await getPosts({ draftId: draft.id });
-    const hasXPost = existingPosts.x.posts.length > 0;
-    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
-
-    const platform = postCron.PostCronData.platform;
-
-    if (!hasXPost || !hasLinkedinPost) {
-        let postsToCreate: Prisma.PostCreateManyInput[] = [];
-
-        if (
-            (platform === "X" || platform === "ALL") &&
-            existingPosts.x.posts[0]?.content
-        ) {
-            const mediaIds = existingPosts.x.images[0]?.url
-                ? [existingPosts.x.images[0].url]
-                : [];
-
-            postsToCreate.push({
-                draftId: draft.id,
-                postType: "X" as PostType,
-                post: existingPosts.x.posts[0].content,
-                mediaIds: mediaIds,
-            });
-        }
-
-        if (
-            (platform === "LINKEDIN" || platform === "ALL") &&
-            existingPosts.linkedin.posts[0]?.content
-        ) {
-            const mediaIds = existingPosts.linkedin.images[0]?.url
-                ? [existingPosts.linkedin.images[0].url]
-                : [];
-
-            postsToCreate.push({
-                draftId: draft.id,
-                postType: "LINKEDIN" as PostType,
-                post: existingPosts.linkedin.posts[0].content,
-                mediaIds: mediaIds,
-            });
-        }
-
-        if (postsToCreate.length > 0) {
-            await db.post.createMany({ data: postsToCreate });
-        }
+    const xPost = posts.find(post => post.postType === "X");
+    if (xMediaId && xPost) {
+        dbPromises.push(
+            db.post.update({
+                where: {
+                    id: xPost.id,
+                },
+                data: {
+                    mediaIds: [xMediaId],
+                },
+            }),
+        );
     }
+
+    const linkedinPost = posts.find(post => post.postType === "LINKEDIN");
+    if (linkedinMediaId && linkedinPost) {
+        dbPromises.push(
+            db.post.update({
+                where: {
+                    id: linkedinPost.id,
+                },
+                data: {
+                    mediaIds: [linkedinMediaId],
+                },
+            }),
+        );
+    }
+
+    await Promise.all(dbPromises);
 
     await db.draft.update({
         where: { id: draft.id },
@@ -331,7 +375,7 @@ const processPlatformPublishing = async (
     if (cronData.platform === "X" || cronData.platform === "ALL") {
         const xPost = dbPosts.find(post => post.postType === "X");
         if (xPost && !xPost.isPublished) {
-            const xSocialLoginId = cronData.xSocialLoginId;
+            const xSocialLoginId = xPost.socialLoginId;
             if (xSocialLoginId) {
                 const xAccessToken = await getXAccessToken(xSocialLoginId);
                 await postTweet(xAccessToken.accessToken, {
@@ -351,7 +395,7 @@ const processPlatformPublishing = async (
     if (cronData.platform === "LINKEDIN" || cronData.platform === "ALL") {
         const linkedinPost = dbPosts.find(post => post.postType === "LINKEDIN");
         if (linkedinPost && !linkedinPost.isPublished) {
-            const linkedinSocialLoginId = cronData.linkedinSocialLoginId;
+            const linkedinSocialLoginId = linkedinPost.socialLoginId;
             if (linkedinSocialLoginId) {
                 const linkedinAccessToken = await getLinkedInAccessToken(
                     linkedinSocialLoginId,
@@ -387,8 +431,23 @@ const processPlatformPublishing = async (
         where: { id: draft.id },
         data: {
             cronState: CronState.COMPLETED,
+            isPublished: true,
+            publishedAt: new Date(),
+            posts: {
+                updateMany: {
+                    where: {
+                        draftId: draft.id,
+                    },
+                    data: {
+                        isPublished: true,
+                        publishedAt: new Date(),
+                    },
+                },
+            },
         },
     });
+
+    return;
 };
 
 export default processCron;

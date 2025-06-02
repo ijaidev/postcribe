@@ -14,10 +14,18 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/aws-lambda": "^8.10.149",
     "@repo/typescript-config": "workspace:*",
     "@repo/eslint-config": "workspace:*"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@repo/db": "workspace:*",
+    "@repo/logger": "workspace:*",
+    "@repo/x": "workspace:*",
+    "@repo/linkedin": "workspace:*",
+    "@repo/ai": "workspace:*"
   }
 }

@@ -9,6 +9,7 @@ const getCrons = async () => {
             nextRunAt: {
                 lte: new Date().toISOString(),
             },
+            isDeleted: false,
         },
         select: {
             id: true,
