@@ -15,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body  className="fontm">
+      <body className="font-montserrat antialiased">
         <Providers>
           {children}
         </Providers>

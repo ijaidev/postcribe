@@ -1,0 +1,205 @@
+---
+description: 
+globs: *.tsx
+alwaysApply: false
+---
+# Frontend UI Guidelines - Social Media Post Creator
+
+## App Overview
+This is an AI-powered social media post creator app built with Next.js, React, and Tailwind CSS v4. The app focuses on delivering a smooth, minimal UI with cool lightweight animations and an exceptional UX experience.
+
+## Tech Stack
+- **Framework**: Next.js 15 with App Router
+- **Styling**: Tailwind CSS v4 with CSS-first configuration
+- **Components**: shadcn/ui component library
+- **Font**: Montserrat (custom font via Google Fonts)
+- **Animations**: Lightweight, smooth animations using CSS transitions and Tailwind utilities
+- **Package Manager**: Bun (as specified in project setup)
+
+## Design Philosophy
+- **Minimal & Clean**: Focus on simplicity and clarity
+- **Smooth Interactions**: Every interaction should feel fluid and responsive
+- **Lightweight Animations**: Subtle, purposeful animations that enhance UX
+- **Consistency**: Maintain visual and behavioral consistency across the app
+- **Mobile-First**: Responsive design that works beautifully on all devices
+
+## Folder Structure & Component Organization
+
+### Components Architecture
+```
+components/
+├── ui/                    # Default shadcn components (DO NOT MODIFY)
+│   ├── button.tsx
+│   ├── input.tsx
+│   ├── card.tsx
+│   └── ...
+├── custom-ui/            # Customized shadcn components with app-specific styling
+│   ├── app-button.tsx    # Custom button variants
+│   ├── post-card.tsx     # Custom card for social posts
+│   ├── creator-input.tsx # Custom input components
+│   └── ...
+└── layout/               # Reusable layout components for consistency
+    ├── header.tsx
+    ├── sidebar.tsx
+    ├── footer.tsx
+    ├── page-container.tsx
+    └── ...
+```
+
+### Component Usage Rules
+
+#### 1. shadcn/ui Components (`components/ui/`)
+- **Import shadcn components directly** into this folder using the CLI
+- **NEVER modify** these files directly
+- These serve as the base components for customization
+- Import example: `bunx shadcn@latest add button`
+
+#### 2. Custom UI Components (`components/custom-ui/`)
+- **Extend and customize** shadcn components here
+- Add app-specific styling and behavior
+- Use Montserrat font and app color scheme
+- Apply consistent spacing and animation patterns
+- Example approach:
+```tsx
+// components/custom-ui/app-button.tsx
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+export function AppButton({ className, ...props }) {
+  return (
+    <Button 
+      className={cn(
+        "font-montserrat transition-all duration-200 hover:scale-105",
+        "bg-gradient-to-r from-blue-500 to-purple-600",
+        className
+      )} 
+      {...props} 
+    />
+  )
+}
+```
+
+#### 3. Layout Components (`components/layout/`)
+- **Consistent layout patterns** across the app
+- Reusable page structures and containers
+- Navigation components
+- Common layout utilities
+- Example: `PageContainer`, `Header`, `Sidebar`
+
+## Styling Guidelines
+
+### Tailwind CSS v4 Configuration
+- Use CSS-first configuration in [globals.css](mdc:apps/web/src/app/globals.css)
+- Custom font: `font-montserrat` (Montserrat)
+- Maintain the existing theme variables structure
+
+### Animation Principles
+- **Subtle and Fast**: 200-300ms duration for most transitions
+- **Purposeful**: Every animation should enhance understanding or feedback
+- **Consistent Easing**: Use consistent easing functions (`ease-out`, `ease-in-out`)
+- **Hover States**: Gentle scale/shadow changes (`hover:scale-105`, `hover:shadow-lg`)
+- **Focus States**: Clear focus indicators for accessibility
+
+### Color Scheme
+- Use the existing CSS variables from the theme
+- Maintain consistency with light/dark mode support
+- Implement smooth transitions between theme changes
+
+## Component Development Best Practices
+
+### 1. Naming Conventions
+- **UI Components**: PascalCase (e.g., `AppButton`, `PostCard`)
+- **Layout Components**: Descriptive names (e.g., `PageContainer`, `NavigationHeader`)
+- **File Names**: kebab-case matching component name (e.g., `app-button.tsx`)
+
+### 2. Props and API Design
+- Use TypeScript for all components
+- Extend shadcn component props when applicable
+- Provide sensible defaults
+- Support className override patterns
+
+### 3. Accessibility
+- Maintain shadcn's accessibility features
+- Add proper ARIA labels where needed
+- Ensure keyboard navigation works
+- Test with screen readers
+
+### 4. Performance
+- Use React.memo() for expensive components
+- Implement proper loading states
+- Optimize images and assets
+- Lazy load non-critical components
+
+## Animation Examples
+
+### Micro-interactions
+```tsx
+// Hover effects
+className="transition-all duration-200 hover:scale-105 hover:shadow-lg"
+
+// Button press feedback
+className="active:scale-95 transition-transform duration-100"
+
+// Loading states
+className="animate-pulse"
+
+// Fade in animations
+className="animate-in fade-in duration-300"
+```
+
+### Page Transitions
+- Use subtle slide/fade effects for page changes
+- Implement skeleton loading for better perceived performance
+- Smooth transitions between different app states
+
+## File Organization Best Practices
+
+### Import Structure
+```tsx
+// 1. React and Next.js imports
+import React from 'react'
+import { useRouter } from 'next/navigation'
+
+// 2. Third-party libraries
+import { motion } from 'framer-motion'
+
+// 3. Internal UI components
+import { Button } from '@/components/ui/button'
+import { AppButton } from '@/components/custom-ui/app-button'
+
+// 4. Layout components
+import { PageContainer } from '@/components/layout/page-container'
+
+// 5. Utilities and types
+import { cn } from '@/lib/utils'
+import type { PostData } from '@/types'
+```
+
+### Code Organization
+- Keep components focused and single-purpose
+- Extract complex logic into custom hooks
+- Use proper TypeScript interfaces and types
+- Document complex components with JSDoc
+
+## Quality Standards
+
+### Code Quality
+- All components must be TypeScript
+- Use ESLint and Prettier (configured)
+- Follow React best practices
+- Implement proper error boundaries
+
+### UX Standards
+- Loading states for all async operations
+- Error handling with user-friendly messages
+- Responsive design (mobile-first)
+- Fast page load times
+- Intuitive navigation patterns
+
+### Testing Approach
+- Test component behavior, not implementation
+- Include accessibility testing
+- Test responsive layouts
+- Validate loading and error states
+
+This ruleset ensures we maintain a consistent, high-quality frontend codebase that delivers an exceptional user experience for our AI-powered social media post creator app.
