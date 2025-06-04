@@ -45,6 +45,48 @@ components/
 
 ### Component Usage Rules
 
+#### 0. Layout Components First (CONSISTENCY PRIORITY)
+**ALWAYS check [components/layout/](mdc:apps/web/src/components/layout) FIRST before creating any UI elements**
+
+- **Check existing layout components** before building new UI elements
+- **Reuse layout patterns** from [headings.tsx](mdc:apps/web/src/components/layout/headings.tsx) and other layout files
+- **Maintain visual consistency** by using established layout components
+- **Extend layout components** rather than creating duplicates
+
+**Layout Component Priority:**
+```tsx
+// ✅ CORRECT: Check layout components first
+import { H1, H2, Subtitle, DisplayHeading } from '@/components/layout/headings'
+import { Button } from '@/components/ui/button'
+
+function MyPage() {
+  return (
+    <div>
+      <H1>Main Title</H1>      // Use existing heading styles
+      <Subtitle>Supporting text</Subtitle>  // Use existing subtitle styles
+      <Button>Action</Button>   // Then use shadcn/ui components
+    </div>
+  )
+}
+
+// ❌ WRONG: Creating custom headings when layout components exist
+function MyPage() {
+  return (
+    <div>
+      <h1 className="text-4xl font-bold">Title</h1>  // Don't recreate existing styles
+      <p className="text-lg text-muted-foreground">Subtitle</p>  // Use layout components
+    </div>
+  )
+}
+```
+
+**Layout Component Development Flow:**
+1. **Check [components/layout/](mdc:apps/web/src/components/layout)** for existing components
+2. **Use existing layout components** if they match your needs
+3. **Extend layout components** if you need variations
+4. **Create new layout components** only if truly unique
+5. **Update layout components** if patterns should be reusable
+
 #### 1. shadcn/ui Components (`components/ui/`)
 - **Import and use directly** in your pages and components
 - **Add shadcn components** using the CLI: `bunx shadcn@latest add button`

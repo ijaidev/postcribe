@@ -24,6 +24,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { CLIENT_URL } from "@/config"
 
 // Schema
 const formSchema = z.object({
@@ -63,7 +64,7 @@ export default function SignupPage() {
       if (res.error) {
         setError(res.error.message || "Failed to create account")
       } else {
-        router.push(redirect || "/dashboard")
+        router.push(redirect || `${CLIENT_URL}/dashboard`)
       }
     }).catch((err) => {
       setError("Something went wrong. Please try again.")
@@ -80,7 +81,7 @@ export default function SignupPage() {
     try {
       const res = await authClient.signIn.social({
         provider: "google",
-        callbackURL: redirect || "/dashboard",
+        callbackURL: redirect || `${CLIENT_URL}/dashboard`,
       })
       console.log(res)
 
