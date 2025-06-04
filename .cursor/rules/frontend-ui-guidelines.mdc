@@ -11,8 +11,8 @@ This is an AI-powered social media post creator app built with Next.js, React, a
 ## Tech Stack
 - **Framework**: Next.js 15 with App Router
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
-- **Components**: shadcn/ui component library
-- **Font**: Montserrat (custom font via Google Fonts)
+- **Components**: shadcn/ui component library (used directly)
+- **Font**: Poppins (set via CSS variables in globals.css)
 - **Animations**: Lightweight, smooth animations using CSS transitions and Tailwind utilities
 - **Package Manager**: Bun (as specified in project setup)
 
@@ -22,184 +22,279 @@ This is an AI-powered social media post creator app built with Next.js, React, a
 - **Lightweight Animations**: Subtle, purposeful animations that enhance UX
 - **Consistency**: Maintain visual and behavioral consistency across the app
 - **Mobile-First**: Responsive design that works beautifully on all devices
+- **Direct Usage**: Use shadcn/ui components directly without custom wrappers
 
 ## Folder Structure & Component Organization
 
 ### Components Architecture
 ```
 components/
-├── ui/                    # Default shadcn components (DO NOT MODIFY)
+├── ui/                    # shadcn/ui components (USE DIRECTLY)
 │   ├── button.tsx
 │   ├── input.tsx
 │   ├── card.tsx
+│   ├── form.tsx
+│   ├── label.tsx
+│   ├── sonner.tsx
 │   └── ...
-├── custom-ui/            # Customized shadcn components with app-specific styling
-│   ├── app-button.tsx    # Custom button variants
-│   ├── post-card.tsx     # Custom card for social posts
-│   ├── creator-input.tsx # Custom input components
-│   └── ...
-└── layout/               # Reusable layout components for consistency
+└── layout/               # Custom layout components only
     ├── header.tsx
     ├── sidebar.tsx
-    ├── footer.tsx
-    ├── page-container.tsx
     └── ...
 ```
 
 ### Component Usage Rules
 
 #### 1. shadcn/ui Components (`components/ui/`)
-- **Import shadcn components directly** into this folder using the CLI
-- **NEVER modify** these files directly
-- These serve as the base components for customization
-- Import example: `bunx shadcn@latest add button`
+- **Import and use directly** in your pages and components
+- **Add shadcn components** using the CLI: `bunx shadcn@latest add button`
+- **Customize with className** when needed using Tailwind utilities
+- **No custom wrappers** - use the components as-is
 
-#### 2. Custom UI Components (`components/custom-ui/`)
-- **Extend and customize** shadcn components here
-- Add app-specific styling and behavior
-- Use Montserrat font and app color scheme
-- Apply consistent spacing and animation patterns
-- Example approach:
+**Usage Pattern:**
 ```tsx
-// components/custom-ui/app-button.tsx
+// ✅ CORRECT: Direct usage with Tailwind customization
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export function AppButton({ className, ...props }) {
+function MyComponent() {
   return (
-    <Button 
-      className={cn(
-        "font-montserrat transition-all duration-200 hover:scale-105",
-        "bg-gradient-to-r from-blue-500 to-purple-600",
-        className
-      )} 
-      {...props} 
-    />
+    <Card className="bg-card/80 backdrop-blur-sm border-border/30">
+      <CardHeader>
+        <CardTitle className="text-foreground">My Title</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Button 
+          className="transition-all duration-200 hover:scale-105 bg-gradient-to-r from-blue-500 to-purple-600"
+          disabled={isLoading}
+        >
+          {isLoading ? "Loading..." : "Click me"}
+        </Button>
+      </CardContent>
+    </Card>
   )
 }
+
+// ❌ WRONG: Creating custom wrapper components
+function AppButton() { ... }  // Don't do this!
 ```
 
-#### 3. Layout Components (`components/layout/`)
-- **Consistent layout patterns** across the app
-- Reusable page structures and containers
-- Navigation components
-- Common layout utilities
-- Example: `PageContainer`, `Header`, `Sidebar`
+#### 2. Layout Components (`components/layout/`)
+- **Only for layout-specific components** like headers, sidebars, page containers
+- **Not shadcn-based components** - these are custom layout utilities
+- **Keep minimal** - most components should be direct shadcn usage
+
+## CSS Variable Usage Guidelines
+
+### Priority Order for Styling
+1. **CSS Variables (HIGHEST PRIORITY)**: Use existing CSS variables through Tailwind classes when available
+2. **Tailwind Utilities**: Use standard Tailwind classes for additional styling
+3. **Custom CSS**: Only for complex animations or unique requirements
+
+### CSS Variables Available
+From [globals.css](mdc:apps/web/src/app/globals.css):
+```css
+/* Colors - Use through Tailwind classes */
+--color-background, --color-foreground, --color-primary, --color-muted, etc.
+/* Example: bg-background, text-foreground, border-primary */
+
+/* Fonts - Applied automatically via CSS variables */
+--font-sans: Poppins, sans-serif  /* Default font family */
+--font-serif: Poppins, sans-serif
+--font-mono: Poppins, sans-serif
+/* NO NEED for explicit font classes - Poppins is applied by default */
+
+/* Shadows - Use through Tailwind classes */
+--shadow-sm, --shadow-md, --shadow-lg, etc.
+/* Example: shadow-sm, shadow-lg */
+
+/* Custom animations */
+--animate-dots: dots 1s infinite linear
+/* Example: animate-dots for loading states */
+```
+
+**Examples:**
+```tsx
+// ✅ CORRECT: Using CSS variables through Tailwind
+className="bg-background text-foreground border-primary shadow-lg"
+
+// ✅ CORRECT: Font is automatically Poppins via CSS variables
+className="font-medium"  // Uses Poppins automatically
+
+// ❌ WRONG: Direct color values when CSS vars exist
+className="bg-white text-black border-blue-500"
+
+// ✅ CORRECT: Using available custom animation
+className="animate-dots"
+
+// ✅ CORRECT: Combining with Tailwind utilities
+className="hover:scale-105 transition-transform duration-200"
+```
 
 ## Styling Guidelines
 
 ### Tailwind CSS v4 Configuration
 - Use CSS-first configuration in [globals.css](mdc:apps/web/src/app/globals.css)
-- Custom font: `font-montserrat` (Montserrat)
-- Maintain the existing theme variables structure
+- Font: Poppins automatically applied via `--font-sans` CSS variable
+- Leverage existing theme variables for consistent design
+- Add custom animations using `@theme` directive with `@keyframes`
 
 ### Animation Principles
 - **Subtle and Fast**: 200-300ms duration for most transitions
 - **Purposeful**: Every animation should enhance understanding or feedback
-- **Consistent Easing**: Use consistent easing functions (`ease-out`, `ease-in-out`)
+- **Consistent Easing**: Use `ease-out`, `ease-in-out` for smooth feel
 - **Hover States**: Gentle scale/shadow changes (`hover:scale-105`, `hover:shadow-lg`)
 - **Focus States**: Clear focus indicators for accessibility
+- **Loading States**: Use custom `animate-dots` for consistent loading indicators
 
-### Color Scheme
-- Use the existing CSS variables from the theme
-- Maintain consistency with light/dark mode support
-- Implement smooth transitions between theme changes
+### Common Styling Patterns
+- **Glassmorphism**: `bg-background/80 backdrop-blur-sm border-border/30`
+- **Hover Effects**: `hover:shadow-lg hover:-translate-y-0.5 active:scale-95`
+- **Focus States**: `focus-visible:ring-2 focus-visible:ring-primary`
+- **Transitions**: `transition-all duration-200 ease-out`
+- **Loading States**: `animate-dots` with three-dot animation
 
-## Component Development Best Practices
+## Component Usage Examples
 
-### 1. Naming Conventions
-- **UI Components**: PascalCase (e.g., `AppButton`, `PostCard`)
-- **Layout Components**: Descriptive names (e.g., `PageContainer`, `NavigationHeader`)
-- **File Names**: kebab-case matching component name (e.g., `app-button.tsx`)
-
-### 2. Props and API Design
-- Use TypeScript for all components
-- Extend shadcn component props when applicable
-- Provide sensible defaults
-- Support className override patterns
-
-### 3. Accessibility
-- Maintain shadcn's accessibility features
-- Add proper ARIA labels where needed
-- Ensure keyboard navigation works
-- Test with screen readers
-
-### 4. Performance
-- Use React.memo() for expensive components
-- Implement proper loading states
-- Optimize images and assets
-- Lazy load non-critical components
-
-## Animation Examples
-
-### Micro-interactions
+### Button Usage
 ```tsx
-// Hover effects
-className="transition-all duration-200 hover:scale-105 hover:shadow-lg"
-
-// Button press feedback
-className="active:scale-95 transition-transform duration-100"
-
-// Loading states
-className="animate-pulse"
-
-// Fade in animations
-className="animate-in fade-in duration-300"
-```
-
-### Page Transitions
-- Use subtle slide/fade effects for page changes
-- Implement skeleton loading for better perceived performance
-- Smooth transitions between different app states
-
-## File Organization Best Practices
-
-### Import Structure
-```tsx
-// 1. React and Next.js imports
-import React from 'react'
-import { useRouter } from 'next/navigation'
-
-// 2. Third-party libraries
-import { motion } from 'framer-motion'
-
-// 3. Internal UI components
 import { Button } from '@/components/ui/button'
-import { AppButton } from '@/components/custom-ui/app-button'
 
-// 4. Layout components
-import { PageContainer } from '@/components/layout/page-container'
+// Default button
+<Button>Click me</Button>
 
-// 5. Utilities and types
-import { cn } from '@/lib/utils'
-import type { PostData } from '@/types'
+// Custom styled button
+<Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+  Gradient Button
+</Button>
+
+// Loading state
+<Button disabled={isLoading} className="transition-all duration-200">
+  {isLoading ? (
+    <div className="flex items-center gap-2">
+      <div className="w-4 h-2 animate-dots bg-current opacity-60" />
+      Loading...
+    </div>
+  ) : (
+    "Submit"
+  )}
+</Button>
 ```
 
-### Code Organization
-- Keep components focused and single-purpose
-- Extract complex logic into custom hooks
-- Use proper TypeScript interfaces and types
-- Document complex components with JSDoc
+### Card Usage
+```tsx
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+<Card className="bg-card/80 backdrop-blur-sm border-border/30 hover:bg-card/90 transition-all duration-200">
+  <CardHeader>
+    <CardTitle className="text-foreground">Card Title</CardTitle>
+    <CardDescription className="text-muted-foreground">Card description</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p>Card content goes here</p>
+  </CardContent>
+</Card>
+```
+
+### Form Usage
+```tsx
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+<Form {...form}>
+  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <FormField
+      control={form.control}
+      name="email"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="font-medium text-foreground">Email</FormLabel>
+          <FormControl>
+            <Input 
+              placeholder="Enter your email" 
+              className="transition-all duration-200 focus-visible:shadow-lg"
+              {...field} 
+            />
+          </FormControl>
+          <FormMessage className="text-destructive" />
+        </FormItem>
+      )}
+    />
+  </form>
+</Form>
+```
+
+## Development Best Practices
+
+### 1. Component Import Strategy
+```tsx
+// Import what you need directly
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Form, FormField, FormItem, FormLabel } from '@/components/ui/form'
+```
+
+### 2. Styling Approach
+- **Use className prop** for all customizations
+- **Leverage CSS variables** through Tailwind classes
+- **Combine utilities** for complex effects
+- **Maintain consistency** with app-wide design patterns
+
+### 3. TypeScript Usage
+- Import proper types from shadcn components
+- Use `React.ComponentProps<typeof Component>` when extending
+- Maintain type safety throughout the application
+
+### 4. State Management
+- Handle loading states in parent components
+- Pass state through props to shadcn components
+- Use proper disabled states and loading indicators
+
+## Available shadcn/ui Components
+
+### Currently Installed
+- **Button**: Primary interactive element with variants
+- **Card**: Container component with header, content, footer
+- **Input**: Form input with proper styling and focus states
+- **Label**: Form labels with proper accessibility
+- **Form**: Complete form system with validation support
+- **Sonner**: Toast notifications with theme support
+
+### Adding New Components
+```bash
+# Add new shadcn components as needed
+bunx shadcn@latest add dialog
+bunx shadcn@latest add dropdown-menu
+bunx shadcn@latest add badge
+```
 
 ## Quality Standards
 
 ### Code Quality
-- All components must be TypeScript
-- Use ESLint and Prettier (configured)
-- Follow React best practices
-- Implement proper error boundaries
+- Use shadcn components directly without wrappers
+- Apply customizations through className prop
+- Follow TypeScript best practices
+- Implement proper error handling
 
 ### UX Standards
 - Loading states for all async operations
 - Error handling with user-friendly messages
 - Responsive design (mobile-first)
 - Fast page load times
-- Intuitive navigation patterns
+- Consistent animations and transitions
 
-### Testing Approach
-- Test component behavior, not implementation
-- Include accessibility testing
-- Test responsive layouts
-- Validate loading and error states
+### Performance
+- Leverage shadcn's optimized components
+- Use proper loading states
+- Optimize images and assets
+- Implement lazy loading where appropriate
 
-This ruleset ensures we maintain a consistent, high-quality frontend codebase that delivers an exceptional user experience for our AI-powered social media post creator app.
+### Accessibility
+- Maintain shadcn's built-in accessibility features
+- Use proper ARIA labels and roles
+- Ensure keyboard navigation works
+- Test with screen readers
+
+This streamlined approach ensures we leverage shadcn/ui components directly while maintaining a consistent, high-quality design system through CSS variables and Tailwind utilities.

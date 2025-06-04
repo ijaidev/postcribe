@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
 const auth = betterAuth({
+    trustedOrigins: [...(process.env.TRUSTED_ORIGINS?.split(",") || [])],
     database: prismaAdapter(db, {
         provider: "postgresql",
     }),
@@ -13,13 +14,14 @@ const auth = betterAuth({
     user: {
         additionalFields: {
             timeZone: {
-                type: "string",
-                required: true,
+                type: "string"
             },
         },
     },
     socialProviders: {
         google: {
+            enabled: true,
+            prompt: "select_account",
             clientId: process.env.GOOGLE_CLIENT_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
         },

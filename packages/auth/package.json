@@ -21,7 +21,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "better-auth": "^1.2.8",
-    "@repo/db": "workspace:*"
+    "@repo/db": "workspace:*",
+    "better-auth": "^1.2.8"
   }
 }

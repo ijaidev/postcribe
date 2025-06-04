@@ -1,7 +1,6 @@
 import { auth } from "@repo/auth";
 import factory from "../utils/factory";
 import postRouter from "./post.router";
-import { cors } from "hono/cors";
 import { authorizationMiddleware } from "../middlewares/authorization";
 import socialLoginRouter from "./social-login.router";
 import socialUploadRouter from "./social-upload.router";

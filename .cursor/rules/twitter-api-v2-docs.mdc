@@ -11,103 +11,103 @@ This is a comprehensive guide of all methods available for the Twitter API v2 on
 >
 > If you don't find the endpoint you want, don't panic! It probably hasn't been implemented yet.
 > You can make your request manually using generic requests handlers `.get`, `.post`, `.put`, `.patch` and `.delete` methods.
-> See the [HTTP wrappers](./http-wrappers.md) documentation.
+> See the [HTTP wrappers](mdc:http-wrappers.md) documentation.
 
 *Argument note*: Described arguments often refers to an interface name. Generally, argument type is a `Partial<>` (all properties are optionals) of the given interface.
 
 *Return type note*: All return types are wrapped inside `Promise`s.
 
 > Twitter API v2 intensively uses `includes` to efficiently attach data to items (medias, polls, users, ...) fetched through the API.
-> [An includes helper is available here](./helpers.md#helpers-for-includes-of-v2-api-responses) to help you browsing included metas in your response data.
+> [An includes helper is available here](mdc:helpers.md#helpers-for-includes-of-v2-api-responses) to help you browsing included metas in your response data.
 
-> For streaming API, see [Streaming part](./streaming.md).
+> For streaming API, see [Streaming part](mdc:streaming.md).
 
 <!-- vscode-markdown-toc -->
-- [API v2](#api-v2)
-  - [Tweet timelines](#tweet-timelines)
-    - [Search tweets (recent)](#search-tweets-recent)
-    - [Search tweets (all)](#search-tweets-all)
-    - [Home timeline](#home-timeline)
-    - [User timeline](#user-timeline)
-    - [User mention timeline](#user-mention-timeline)
-  - [Tweets](#tweets)
-    - [Create a tweet](#create-a-tweet)
-    - [Reply to a tweet](#reply-to-a-tweet)
-    - [Post a thread of tweets](#post-a-thread-of-tweets)
-    - [Delete a tweet](#delete-a-tweet)
-    - [Get a Single tweet](#get-a-single-tweet)
-    - [Lookup for tweets](#lookup-for-tweets)
-    - [Get users that liked a specific tweet](#get-users-that-liked-a-specific-tweet)
-    - [Like a tweet](#like-a-tweet)
-    - [Unlike a tweet](#unlike-a-tweet)
-    - [Get tweet counts for a search (recent tweet only)](#get-tweet-counts-for-a-search-recent-tweet-only)
-    - [Get tweet counts for a search (full archive)](#get-tweet-counts-for-a-search-full-archive)
-    - [Get users that retweeted a specific tweet](#get-users-that-retweeted-a-specific-tweet)
-    - [Retweet a tweet](#retweet-a-tweet)
-    - [Unretweet a tweet](#unretweet-a-tweet)
-    - [List quoted replies of a tweet](#list-quoted-replies-of-a-tweet)
-  - [Bookmarks](#bookmarks)
-    - [Bookmark a tweet](#bookmark-a-tweet)
-    - [Remove bookmark](#remove-bookmark)
-    - [List bookmarks](#list-bookmarks)
-  - [Users](#users)
-    - [Logged user](#logged-user)
-    - [Single user](#single-user)
-    - [Single user by username](#single-user-by-username)
-    - [Users by id](#users-by-id)
-    - [Users by usernames](#users-by-usernames)
-    - [Get likes of a user](#get-likes-of-a-user)
-    - [Followers](#followers)
-    - [Followings](#followings)
-    - [Follow someone](#follow-someone)
-    - [Unfollow someone](#unfollow-someone)
-    - [Block someone](#block-someone)
-    - [Unblock someone](#unblock-someone)
-    - [Get users that are blocked by you](#get-users-that-are-blocked-by-you)
-    - [Mute someone](#mute-someone)
-    - [Unmute someone](#unmute-someone)
-    - [Get users that are muted by you](#get-users-that-are-muted-by-you)
-  - [Upload medias](#upload-medias)
-    - [Upload media](#upload-media)
-    - [Upload media metadata](#upload-media-metadata)
-  - [Usage](#usage)
-    - [Get usage](#get-usage)
-  - [Lists](#lists)
-    - [Single list by id](#single-list-by-id)
-    - [Owned lists](#owned-lists)
-    - [Lists with user as member](#lists-with-user-as-member)
-    - [Lists followed by an user](#lists-followed-by-an-user)
-    - [Tweet timeline of list](#tweet-timeline-of-list)
-    - [Members of a list](#members-of-a-list)
-    - [Followers of a list](#followers-of-a-list)
-    - [Create a list](#create-a-list)
-    - [Update list metadata](#update-list-metadata)
-    - [Delete list](#delete-list)
-    - [Add list member](#add-list-member)
-    - [Remove list member](#remove-list-member)
-    - [Subscribe to a list](#subscribe-to-a-list)
-    - [Unsubscribe of a list](#unsubscribe-of-a-list)
-    - [Pin a list](#pin-a-list)
-    - [Unpin a list](#unpin-a-list)
-  - [Spaces](#spaces)
-    - [Space by id](#space-by-id)
-    - [Spaces by id](#spaces-by-id)
-    - [Spaces by their creator id](#spaces-by-their-creator-id)
-    - [Search spaces](#search-spaces)
-    - [Space buyers](#space-buyers)
-    - [Space tweets](#space-tweets)
-  - [Direct messages (DMs)](#direct-messages-dms)
-    - [Fetch direct message events (without filter)](#fetch-direct-message-events-without-filter)
-    - [Fetch direct message events by participant id](#fetch-direct-message-events-by-participant-id)
-    - [Fetch direct message events by conversation id](#fetch-direct-message-events-by-conversation-id)
-    - [Create a group conversation](#create-a-group-conversation)
-    - [Create a new one-to-one direct message (and the conversation if applicable)](#create-a-new-one-to-one-direct-message-and-the-conversation-if-applicable)
-    - [Create a new direct message in a known conversation](#create-a-new-direct-message-in-a-known-conversation)
-  - [Batch compliance](#batch-compliance)
-    - [Get a single compliance job](#get-a-single-compliance-job)
-    - [Search compliance jobs](#search-compliance-jobs)
-    - [Create a new compliance job](#create-a-new-compliance-job)
-    - [Get compliance job result](#get-compliance-job-result)
+- [API v2](mdc:#api-v2)
+  - [Tweet timelines](mdc:#tweet-timelines)
+    - [Search tweets (recent)](mdc:#search-tweets-recent)
+    - [Search tweets (all)](mdc:#search-tweets-all)
+    - [Home timeline](mdc:#home-timeline)
+    - [User timeline](mdc:#user-timeline)
+    - [User mention timeline](mdc:#user-mention-timeline)
+  - [Tweets](mdc:#tweets)
+    - [Create a tweet](mdc:#create-a-tweet)
+    - [Reply to a tweet](mdc:#reply-to-a-tweet)
+    - [Post a thread of tweets](mdc:#post-a-thread-of-tweets)
+    - [Delete a tweet](mdc:#delete-a-tweet)
+    - [Get a Single tweet](mdc:#get-a-single-tweet)
+    - [Lookup for tweets](mdc:#lookup-for-tweets)
+    - [Get users that liked a specific tweet](mdc:#get-users-that-liked-a-specific-tweet)
+    - [Like a tweet](mdc:#like-a-tweet)
+    - [Unlike a tweet](mdc:#unlike-a-tweet)
+    - [Get tweet counts for a search (recent tweet only)](mdc:#get-tweet-counts-for-a-search-recent-tweet-only)
+    - [Get tweet counts for a search (full archive)](mdc:#get-tweet-counts-for-a-search-full-archive)
+    - [Get users that retweeted a specific tweet](mdc:#get-users-that-retweeted-a-specific-tweet)
+    - [Retweet a tweet](mdc:#retweet-a-tweet)
+    - [Unretweet a tweet](mdc:#unretweet-a-tweet)
+    - [List quoted replies of a tweet](mdc:#list-quoted-replies-of-a-tweet)
+  - [Bookmarks](mdc:#bookmarks)
+    - [Bookmark a tweet](mdc:#bookmark-a-tweet)
+    - [Remove bookmark](mdc:#remove-bookmark)
+    - [List bookmarks](mdc:#list-bookmarks)
+  - [Users](mdc:#users)
+    - [Logged user](mdc:#logged-user)
+    - [Single user](mdc:#single-user)
+    - [Single user by username](mdc:#single-user-by-username)
+    - [Users by id](mdc:#users-by-id)
+    - [Users by usernames](mdc:#users-by-usernames)
+    - [Get likes of a user](mdc:#get-likes-of-a-user)
+    - [Followers](mdc:#followers)
+    - [Followings](mdc:#followings)
+    - [Follow someone](mdc:#follow-someone)
+    - [Unfollow someone](mdc:#unfollow-someone)
+    - [Block someone](mdc:#block-someone)
+    - [Unblock someone](mdc:#unblock-someone)
+    - [Get users that are blocked by you](mdc:#get-users-that-are-blocked-by-you)
+    - [Mute someone](mdc:#mute-someone)
+    - [Unmute someone](mdc:#unmute-someone)
+    - [Get users that are muted by you](mdc:#get-users-that-are-muted-by-you)
+  - [Upload medias](mdc:#upload-medias)
+    - [Upload media](mdc:#upload-media)
+    - [Upload media metadata](mdc:#upload-media-metadata)
+  - [Usage](mdc:#usage)
+    - [Get usage](mdc:#get-usage)
+  - [Lists](mdc:#lists)
+    - [Single list by id](mdc:#single-list-by-id)
+    - [Owned lists](mdc:#owned-lists)
+    - [Lists with user as member](mdc:#lists-with-user-as-member)
+    - [Lists followed by an user](mdc:#lists-followed-by-an-user)
+    - [Tweet timeline of list](mdc:#tweet-timeline-of-list)
+    - [Members of a list](mdc:#members-of-a-list)
+    - [Followers of a list](mdc:#followers-of-a-list)
+    - [Create a list](mdc:#create-a-list)
+    - [Update list metadata](mdc:#update-list-metadata)
+    - [Delete list](mdc:#delete-list)
+    - [Add list member](mdc:#add-list-member)
+    - [Remove list member](mdc:#remove-list-member)
+    - [Subscribe to a list](mdc:#subscribe-to-a-list)
+    - [Unsubscribe of a list](mdc:#unsubscribe-of-a-list)
+    - [Pin a list](mdc:#pin-a-list)
+    - [Unpin a list](mdc:#unpin-a-list)
+  - [Spaces](mdc:#spaces)
+    - [Space by id](mdc:#space-by-id)
+    - [Spaces by id](mdc:#spaces-by-id)
+    - [Spaces by their creator id](mdc:#spaces-by-their-creator-id)
+    - [Search spaces](mdc:#search-spaces)
+    - [Space buyers](mdc:#space-buyers)
+    - [Space tweets](mdc:#space-tweets)
+  - [Direct messages (DMs)](mdc:#direct-messages-dms)
+    - [Fetch direct message events (without filter)](mdc:#fetch-direct-message-events-without-filter)
+    - [Fetch direct message events by participant id](mdc:#fetch-direct-message-events-by-participant-id)
+    - [Fetch direct message events by conversation id](mdc:#fetch-direct-message-events-by-conversation-id)
+    - [Create a group conversation](mdc:#create-a-group-conversation)
+    - [Create a new one-to-one direct message (and the conversation if applicable)](mdc:#create-a-new-one-to-one-direct-message-and-the-conversation-if-applicable)
+    - [Create a new direct message in a known conversation](mdc:#create-a-new-direct-message-in-a-known-conversation)
+  - [Batch compliance](mdc:#batch-compliance)
+    - [Get a single compliance job](mdc:#get-a-single-compliance-job)
+    - [Search compliance jobs](mdc:#search-compliance-jobs)
+    - [Create a new compliance job](mdc:#create-a-new-compliance-job)
+    - [Get compliance job result](mdc:#get-compliance-job-result)
 
 <!-- vscode-markdown-toc-config
 	numbering=false
@@ -120,7 +120,7 @@ This is a comprehensive guide of all methods available for the Twitter API v2 on
 ### Search tweets (recent)
 
 Search tweets of the last 7 days with a text query.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.search()`
 
@@ -150,7 +150,7 @@ for await (const tweet of jsTweets) {
 ### Search tweets (all)
 
 Search tweets (from Twitter creation in 2006) with a text query.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.searchAll()`
 
@@ -177,7 +177,7 @@ for (const tweet of jsTweets) {
 ### Home timeline
 
 Get reverse chronological tweet timeline of logged user.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.homeTimeline()`
 
@@ -198,7 +198,7 @@ const homeTimeline = await client.v2.homeTimeline({ exclude: 'replies' });
 ### User timeline
 
 Get tweets of user `userId`.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.userTimeline()`
 
@@ -220,7 +220,7 @@ const tweetsOfJack = await client.v2.userTimeline('12', { exclude: 'replies' });
 ### User mention timeline
 
 Get mentions of user `userId`.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.userMentionTimeline()`
 
@@ -767,7 +767,7 @@ const users = await client.v2.usersByUsernames(['jack', 'plhery', 'alkihis']);
 ### Get likes of a user
 
 Return the last likes of a specific user.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.userLikedTweets()`
 
@@ -920,7 +920,7 @@ await client.v2.unblock('12', '1903892');
 ### Get users that are blocked by you
 
 Get users blocked by the authenticating user.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.userBlockingUsers()`
 
@@ -984,7 +984,7 @@ await client.v2.unmute('12', '1903892');
 ### Get users that are muted by you
 
 Get users muted by authenticated user.
-Get to know how [paginators work here](./paginators.md).
+Get to know how [paginators work here](mdc:paginators.md).
 
 **Method**: `.userMutingUsers()`
 
@@ -1785,16 +1785,16 @@ for (const tweetCompliance of jobResult) {
 This part will guide you through the multiple steps of Twitter API authentication process
 inside `twitter-api-v2` package.
 
-Please first see the [Basics](./basics.md) to know how to create a client with your application keys.
+Please first see the [Basics](mdc:basics.md) to know how to create a client with your application keys.
 
 ***First***, you must know which type of authentication you want to use.
 
-- User authentication (3-legged OAuth 1.0a flow, see [User-wide authentication flow](#user-wide-authentication-flow))
-- App-only authentication (Bearer token, see [Application-only authentication flow](#application-only-authentication-flow))
-- Basic authentication (couple of username+password, see [Basic authentication flow](#basic-authentication-flow))
-- User authentication, but with fine-grained scopes (3-legged OAuth 2 flow, see [User-wide authentication flow for OAuth2](#oauth2-user-wide-authentication-flow))
+- User authentication (3-legged OAuth 1.0a flow, see [User-wide authentication flow](mdc:#user-wide-authentication-flow))
+- App-only authentication (Bearer token, see [Application-only authentication flow](mdc:#application-only-authentication-flow))
+- Basic authentication (couple of username+password, see [Basic authentication flow](mdc:#basic-authentication-flow))
+- User authentication, but with fine-grained scopes (3-legged OAuth 2 flow, see [User-wide authentication flow for OAuth2](mdc:#oauth2-user-wide-authentication-flow))
 
-**Note**: You can find a [project real-life example of a 3-legged auth flow here](https://github.com/alkihis/twitter-api-v2-user-oauth-flow-example).
+**Note**: You can find a [project real-life example of a 3-legged auth flow here](mdc:https:/github.com/alkihis/twitter-api-v2-user-oauth-flow-example).
 
 ## User-wide authentication flow
 
