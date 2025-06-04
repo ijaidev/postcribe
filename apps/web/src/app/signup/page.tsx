@@ -19,6 +19,7 @@ import {
   FormLabel,
   FormMessage
 } from "@/components/ui/form"
+import { ThreeDotLoader } from "@/components/ui/loaders"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
@@ -26,16 +27,15 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { CLIENT_URL } from "@/config"
 
-// Schema
+// Schema for step 1 - only email and password
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(8, "Password must be at least 8 characters."),
 })
 
 type SignupFormData = z.infer<typeof formSchema>
 
-export default function SignupPage() {
+export default function SignupStepOnePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -45,7 +45,6 @@ export default function SignupPage() {
     // @ts-expect-error - zodResolver is not typed correctly
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
       email: "",
       password: "",
     },
@@ -58,13 +57,13 @@ export default function SignupPage() {
     authClient.signUp.email({
       email: values.email,
       password: values.password,
-      name: values.name,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      name: "Temporary", // Temporary name, will be updated in step 2
     }).then((res) => {
       if (res.error) {
         setError(res.error.message || "Failed to create account")
       } else {
-        router.push(redirect || `${CLIENT_URL}/dashboard`)
+        // Redirect to step 2 to complete profile
+        router.push("/signup/step/2")
       }
     }).catch((err) => {
       setError("Something went wrong. Please try again.")
@@ -81,7 +80,7 @@ export default function SignupPage() {
     try {
       const res = await authClient.signIn.social({
         provider: "google",
-        callbackURL: redirect || `${CLIENT_URL}/dashboard`,
+        callbackURL: "/signup/step/2", // Redirect to step 2 after Google auth
       })
       console.log(res)
 
@@ -111,7 +110,7 @@ export default function SignupPage() {
             <CardHeader>
               <CardTitle className="text-foreground">Create your account</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Sign up to start creating amazing social media posts
+                Step 1 of 2: Choose your sign up method
               </CardDescription>
             </CardHeader>
 
@@ -133,18 +132,7 @@ export default function SignupPage() {
                   >
                     {isLoading ? (
                       <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-2 animate-dots"
-                          style={{
-                            background: `
-                              radial-gradient(circle closest-side, currentColor 90%, transparent) 0% 50%,
-                              radial-gradient(circle closest-side, currentColor 90%, transparent) 50% 50%,
-                              radial-gradient(circle closest-side, currentColor 90%, transparent) 100% 50%
-                            `,
-                            backgroundSize: 'calc(100%/3) 50%',
-                            backgroundRepeat: 'no-repeat'
-                          }}
-                        />
+                        <ThreeDotLoader />
                         Loading...
                       </div>
                     ) : (
@@ -169,19 +157,6 @@ export default function SignupPage() {
 
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name<span className="text-destructive ml-1">*</span></FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your full name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <FormField
                       control={form.control}
                       name="email"
@@ -209,7 +184,14 @@ export default function SignupPage() {
                       )}
                     />
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Creating account..." : "Create Account"}
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <ThreeDotLoader />
+                          Creating account...
+                        </div>
+                      ) : (
+                        "Continue"
+                      )}
                     </Button>
                   </form>
                 </Form>
