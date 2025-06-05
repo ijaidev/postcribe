@@ -22,6 +22,9 @@
   },
   "dependencies": {
     "@repo/db": "workspace:*",
+    "@repo/mailer": "workspace:*",
+    "@repo/mail-templates": "workspace:*",
+    "@repo/logger": "workspace:*",
     "better-auth": "^1.2.8"
   }
 }

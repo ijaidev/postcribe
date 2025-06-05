@@ -1,7 +1,11 @@
 import db from "@repo/db";
+import { sendEmail } from "@repo/mailer";
 import { betterAuth } from "better-auth";
-
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import {
+    generateEmailVerificationEmail,
+    generatePasswordResetEmail,
+} from "@repo/mail-templates";
 
 const auth = betterAuth({
     session: {
@@ -16,6 +20,51 @@ const auth = betterAuth({
     }),
     emailAndPassword: {
         enabled: true,
+        requireEmailVerification: true,
+        sendResetPassword: async ({ user, url }) => {
+            await sendEmail({
+                to: [
+                    {
+                        email: user.email,
+                        name: user.name || "User",
+                    },
+                ],
+                sender: {
+                    name: "Postcribe",
+                    email: "noreply@postcribe.com",
+                },
+                subject: "Reset your password",
+                htmlContent: generatePasswordResetEmail({
+                    userName: user.name || "User",
+                    resetUrl: url,
+                    expiresIn: "1 hour",
+                }),
+            });
+        },
+    },
+    emailVerification: {
+        sendOnSignUp: true,
+        autoSignInAfterVerification: true,
+        sendVerificationEmail: async ({ user, url }) => {
+            await sendEmail({
+                to: [
+                    {
+                        email: user.email,
+                        name: user.name || "User",
+                    },
+                ],
+                sender: {
+                    name: "Postcribe",
+                    email: "noreply@postcribe.com",
+                },
+                subject: "Verify your email",
+                htmlContent: generateEmailVerificationEmail({
+                    userName: user.name || "User",
+                    verificationUrl: url,
+                    expiresIn: "24 hours",
+                }),
+            });
+        },
     },
     user: {
         additionalFields: {
@@ -32,6 +81,7 @@ const auth = betterAuth({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
         },
+        // Add more social providers as needed
     },
 });
 

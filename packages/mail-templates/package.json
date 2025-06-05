@@ -10,7 +10,8 @@
     "dev": "bun run --watch index.ts",
     "start": "bun run index.ts",
     "lint": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "preview": "bun run src/utils/test-template.ts"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
