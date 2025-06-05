@@ -1,5 +1,4 @@
 import factory from "./utils/factory";
-import postRouter from "./router/post.router";
 import mainRouter from "./router/main.router";
 import { auth } from "@repo/auth";
 import { cors } from "hono/cors";

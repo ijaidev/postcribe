@@ -42,7 +42,6 @@ export default function SignupStepOnePage() {
   const redirect = useSearchParams().get("redirect")
 
   const form = useForm<SignupFormData>({
-    // @ts-expect-error - zodResolver is not typed correctly
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
@@ -57,13 +56,12 @@ export default function SignupStepOnePage() {
     authClient.signUp.email({
       email: values.email,
       password: values.password,
-      name: "Temporary", // Temporary name, will be updated in step 2
+      name: ""
     }).then((res) => {
       if (res.error) {
         setError(res.error.message || "Failed to create account")
       } else {
-        // Redirect to step 2 to complete profile
-        router.push("/signup/step/2")
+        router.push(redirect ? redirect : "/dashboard")
       }
     }).catch((err) => {
       setError("Something went wrong. Please try again.")
@@ -80,9 +78,8 @@ export default function SignupStepOnePage() {
     try {
       const res = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/signup/step/2", // Redirect to step 2 after Google auth
+        callbackURL: (redirect ? redirect : CLIENT_URL + "/dashboard"),
       })
-      console.log(res)
 
       if (res.error) {
         setError(res.error.message || "Failed to sign up with Google")

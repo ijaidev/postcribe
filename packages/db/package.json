@@ -22,7 +22,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/bun": "latest",
-    "prisma": "^6.8.2"
+    "prisma": "^6.9.0"
   },
   "peerDependencies": {
     "typescript": "^5"

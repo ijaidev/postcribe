@@ -7,7 +7,3 @@ alwaysApply: true
 - We are using bun for run time and package manager
 - Typescript as a language
 - Turborepo as monorepo
-
-# Frontend
-- always use rules for frontend from [frontend-ui-guidelines.mdc](mdc:.cursor/rules/frontend-ui-guidelines.mdc)
-- also update frontend rules if you made any changes in ui

@@ -5,7 +5,10 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 
 const auth = betterAuth({
     session: {
-
+        cookieCache: {
+            enabled: true,
+            maxAge: 60 * 5, // 5 minutes
+        },
     },
     trustedOrigins: [...(process.env.TRUSTED_ORIGINS?.split(",") || [])],
     database: prismaAdapter(db, {
@@ -17,7 +20,8 @@ const auth = betterAuth({
     user: {
         additionalFields: {
             timeZone: {
-                type: "string"
+                type: "string",
+                required: false,
             },
         },
     },

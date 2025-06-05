@@ -1,6 +1,6 @@
 ---
 description: 
-globs: *.tsx
+globs: *.tsx,*.css,apps/web/*/**
 alwaysApply: false
 ---
 # Frontend UI Guidelines - Social Media Post Creator
