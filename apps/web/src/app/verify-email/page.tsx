@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThreeDotLoader } from "@/components/ui/loaders"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { ResendVerificationEmail } from "@/components/ui/resend-verification-email"
 
 export default function VerifyEmailPage() {
   const router = useRouter()
@@ -22,25 +23,25 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  const email = searchParams.get("email")
+  const token = searchParams.get("token")
 
   useEffect(() => {
     const verifyEmail = async () => {
+
+      if (!email || !token) {
+        setError("No email found. Please check your email link.")
+        setIsLoading(false)
+        return
+      }
+
       try {
         // First check if user is already signed in and verified
         const { data: session, error: sessionError } = await authClient.getSession()
-        
+
         if (session && session.user.emailVerified) {
           // User is already signed in and verified, redirect to dashboard
           router.push("/dashboard")
-          return
-        }
-
-        // Get token from URL
-        const token = searchParams.get("token")
-        
-        if (!token) {
-          setError("No verification token found. Please check your email link.")
-          setIsLoading(false)
           return
         }
 
@@ -78,33 +79,6 @@ export default function VerifyEmailPage() {
 
     verifyEmail()
   }, [router, searchParams])
-
-  const handleResendVerification = async () => {
-    try {
-      setIsLoading(true)
-      
-      // Get current session to get user email
-      const { data: session } = await authClient.getSession()
-      
-      if (!session) {
-        setError("You need to be signed in to resend verification email.")
-        return
-      }
-
-      await authClient.sendVerificationEmail({
-        email: session.user.email,
-        callbackURL: "/verify-email"
-      })
-
-      setError("")
-      setSuccess(true)
-      // Show success message instead of error for resend
-    } catch (err) {
-      setError("Failed to resend verification email. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   if (isLoading || isVerifying) {
     return (
@@ -161,7 +135,7 @@ export default function VerifyEmailPage() {
                 {success ? "Email Verified!" : "Verification Failed"}
               </CardTitle>
               <CardDescription className="text-muted-foreground">
-                {success 
+                {success
                   ? "Your email has been successfully verified."
                   : "We couldn't verify your email address."
                 }
@@ -184,45 +158,18 @@ export default function VerifyEmailPage() {
                       You'll be redirected to your dashboard in a moment.
                     </AlertDescription>
                   </Alert>
-                  
-                  <Button 
-                    onClick={() => router.push("/dashboard")} 
+
+                  <Button
+                    onClick={() => router.push("/dashboard")}
                     className="w-full"
                   >
                     Go to Dashboard
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={handleResendVerification}
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <ThreeDotLoader />
-                          Sending...
-                        </div>
-                      ) : (
-                        "Resend Verification Email"
-                      )}
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={() => router.push("/login")}
-                      className="w-full"
-                    >
-                      Back to Sign In
-                    </Button>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground text-center">
-                    If you continue to have issues, please contact support.
-                  </p>
-                </div>
+                <ResendVerificationEmail
+                  email={email!}
+                />
               )}
             </CardContent>
           </Card>

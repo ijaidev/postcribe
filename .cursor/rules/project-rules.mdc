@@ -3,8 +3,107 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Tech Stack
-- We are using bun for run time and package manager
-- Typescript as a language
-- Turborepo as monorepo
-- while searching for docs use short queries optimized for vector search. must use doc search tool multiple times with different queries for better results.
+# PostCribe Project Rules
+
+## Tech Stack
+- **Runtime & Package Manager**: Bun (version 1.2.13+)
+- **Language**: TypeScript (version 5.8.2+)
+- **Monorepo**: Turborepo with workspaces pattern
+- **Node Version**: >= 18
+- **Database**: Prisma ORM with PostgreSQL
+- **Frontend**: Next.js with React
+- **Styling**: Tailwind CSS with shadcn/ui components
+
+## Project Structure
+
+### Monorepo Layout
+- `apps/` - Application packages
+  - `api/` - Main backend API server
+  - `cron-handler/` - Cron job processing service
+  - `cron-sender/` - Cron job scheduling service  
+  - `schedule-handler/` - Schedule management service
+  - `web/` - Frontend Next.js application
+- `packages/` - Shared packages
+  - `ai/` - AI and LLM integration logic
+  - `auth/` - Authentication utilities
+  - `db/` - Database schema and migrations
+  - `linkedin/` - LinkedIn API integration
+  - `x/` - Twitter/X API integration
+  - `mailer/` - Email sending utilities
+  - `s3/` - AWS S3 file storage utilities
+  - `shared/` - Common utilities and types
+  - `template/` - Template processing
+  - `logger/` - Logging utilities
+
+### Key Configuration Files
+- [package.json](mdc:package.json) - Root package configuration
+- [turbo.json](mdc:turbo.json) - Turborepo task configuration
+- [docker-compose.yml](mdc:docker-compose.yml) - Docker services setup
+
+## Development Guidelines
+
+### Documentation Research
+- **ALWAYS** search Context7 MCP docs first for latest documentation
+- Use short, optimized queries for vector search
+- Search multiple times with different query variations for better results
+- Only use web search if Context7 docs don't have the information
+
+### Code Standards
+- **TypeScript**: Use strict mode, properly type all variables and functions
+- **Imports**: Use absolute imports with `@/` prefix where configured
+- **Formatting**: Use Prettier with existing configuration
+- **Linting**: Follow ESLint rules defined in packages
+
+### Database
+- **ORM**: Prisma is used for database operations
+- **Migrations**: Located in [packages/db/src/prisma/migrations/](mdc:packages/db/src/prisma/migrations)
+- **Schema**: Main schema in packages/db/src/prisma/
+
+### API Development
+- **Structure**: Controllers, middlewares, and routers in apps/api/src/
+- **Platform Controllers**: Located in [apps/api/src/controllers/platform-login-controllers/](mdc:apps/api/src/controllers/platform-login-controllers)
+- **Post Controllers**: Located in [apps/api/src/controllers/post-controllers/](mdc:apps/api/src/controllers/post-controllers)
+
+### Frontend Development
+- **Location**: All frontend code in apps/web/
+- **Components**: Use shadcn/ui components from [apps/web/src/components/ui/](mdc:apps/web/src/components/ui)
+- **Pages**: App router structure in [apps/web/src/app/](mdc:apps/web/src/app)
+- **Guidelines**: Follow [frontend-ui-guidelines.mdc](mdc:.cursor/rules/frontend-ui-guidelines.mdc) for UI work
+
+### Social Media Integration
+- **LinkedIn**: Use utilities from packages/linkedin/
+- **Twitter/X**: Use utilities from packages/x/
+- **API Docs**: Reference [linkedin-api-client-docs.mdc](mdc:.cursor/rules/linkedin-api-client-docs.mdc) and [twitter-api-v2-docs.mdc](mdc:.cursor/rules/twitter-api-v2-docs.mdc)
+
+## Build & Development Commands
+
+### Available Scripts
+- `bun dev` - Start development servers
+- `bun build` - Build all packages
+- `bun lint` - Run linting
+- `bun format` - Format code with Prettier
+- `bun check-types` - TypeScript type checking
+
+### Turborepo Tasks
+- **Build**: Runs with dependency graph resolution
+- **Dev**: Persistent, no cache for live development  
+- **Lint**: Cascades through all packages
+- **Check-types**: TypeScript validation across workspace
+
+## File Naming Conventions
+- **Components**: PascalCase (e.g., `UserProfile.tsx`)
+- **Utilities**: camelCase (e.g., `formatDate.ts`)
+- **Types**: PascalCase with `.types.ts` suffix
+- **Constants**: UPPER_SNAKE_CASE in separate files
+- **API Routes**: kebab-case for endpoints
+
+## Environment & Deployment
+- **Docker**: Use [docker-compose.yml](mdc:docker-compose.yml) for local development
+- **Deployment**: Reference [DEPLOYMENT.md](mdc:DEPLOYMENT.md) for deployment instructions
+- **Environment**: Configure environment variables per service
+
+## AI & LLM Integration
+- **Package**: All AI logic in packages/ai/
+- **Functions**: AI functions in [packages/ai/src/functions/](mdc:packages/ai/src/functions)
+- **Graphs**: AI workflows in [packages/ai/src/graphs/](mdc:packages/ai/src/graphs)
+- **Tools**: AI tools in [packages/ai/src/tools/](mdc:packages/ai/src/tools)

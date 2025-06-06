@@ -31,9 +31,10 @@ const checkEmailRateLimit = async (
 
     if (lastEmail) {
         const timeSinceLastEmail = now.getTime() - lastEmail.sentAt.getTime();
-        if (timeSinceLastEmail < 60 * 1000) {
+        if (lastEmail && timeSinceLastEmail < 60 * 1000) {
             throw new APIError("TOO_MANY_REQUESTS", {
                 message: `Please wait at least one minute before requesting another ${type} email.`,
+                code: "TOO_MANY_REQUESTS",
             });
         }
     }
@@ -53,6 +54,7 @@ const checkEmailRateLimit = async (
     if (recentDailyEmails >= 5) {
         throw new APIError("TOO_MANY_REQUESTS", {
             message: `You've reached the daily limit for ${type} emails. Please contact support if you need further assistance.`,
+            code: "TOO_MANY_REQUESTS",
         });
     }
 
@@ -71,6 +73,7 @@ const checkEmailRateLimit = async (
     if (recentHourlyEmails >= 3) {
         throw new APIError("TOO_MANY_REQUESTS", {
             message: `Too many ${type} emails sent recently. Please wait at least one hour before requesting another.`,
+            code: "TOO_MANY_REQUESTS",
         });
     }
 
@@ -87,6 +90,7 @@ const checkEmailRateLimit = async (
         logger.error(error as string);
         throw new APIError("INTERNAL_SERVER_ERROR", {
             message: "Failed to send email",
+            code: "INTERNAL_SERVER_ERROR",
         });
     }
 };
@@ -148,7 +152,7 @@ const auth = betterAuth({
                 subject: "Verify your email",
                 htmlContent: generateEmailVerificationEmail({
                     userName: user.name || "User",
-                    verificationUrl: `${CLIENT_URL}/verify-email?token=${token}`,
+                    verificationUrl: `${CLIENT_URL}/verify-email?token=${token}&email=${user.email}`,
                     expiresIn: "24 hours",
                 }),
             });

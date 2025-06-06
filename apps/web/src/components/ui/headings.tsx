@@ -115,43 +115,6 @@ export function H6({ className, children, ...props }: HeadingProps) {
   )
 }
 
-// Heading component with dynamic level
-interface DynamicHeadingProps extends HeadingProps {
-  level: 1 | 2 | 3 | 4 | 5 | 6
-}
-
-export function Heading({ level, ...props }: DynamicHeadingProps) {
-  const components = {
-    1: H1,
-    2: H2,
-    3: H3,
-    4: H4,
-    5: H5,
-    6: H6,
-  }
-  
-  const Component = components[level]
-  return <Component {...props} />
-}
-
-// Display heading for hero sections
-export function DisplayHeading({ className, children, ...props }: HeadingProps) {
-  return (
-    <h1
-      className={cn(
-        "font-montserrat font-bold text-5xl md:text-6xl lg:text-7xl xl:text-8xl",
-        "leading-none tracking-tighter",
-        "bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent",
-        "transition-all duration-300",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </h1>
-  )
-}
-
 // Subtitle component for supporting text
 export function Subtitle({ className, children, ...props }: HeadingProps) {
   return (
@@ -173,5 +136,4 @@ export function Subtitle({ className, children, ...props }: HeadingProps) {
 // Export all components
 export {
   type HeadingProps,
-  type DynamicHeadingProps,
 } 
