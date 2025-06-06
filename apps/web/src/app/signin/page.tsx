@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThreeDotLoader } from "@/components/ui/loaders"
-import { ResendVerificationEmail } from "@/components/ui/resend-verification-email"
+
 import { authClient } from "@/lib/auth-client"
 import { CLIENT_URL } from "@/config"
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
     email: "",
     password: "",
   })
-  const [showEmailVerificationError, setShowEmailVerificationError] = useState(false)
+
   const params = useSearchParams()
   const redirect = params.get("redirect")
   const isOAuthError = params.get("error") === "oauth_error"
@@ -37,10 +37,7 @@ export default function LoginPage() {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     // Clear error when user starts typing
-    if (error) {
-      setError(null)
-      setShowEmailVerificationError(false)
-    }
+    if (error) setError(null)
   }
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
@@ -57,14 +54,7 @@ export default function LoginPage() {
       })
 
       if (signInError) {
-        // Handle email verification required case
-        if (signInError.code === "EMAIL_NOT_VERIFIED") {
-          setError("Please check your email and verify your account before signing in.")
-          setShowEmailVerificationError(true)
-        } else {
-          setError(signInError.message || "Failed to sign in")
-          setShowEmailVerificationError(false)
-        }
+        setError(signInError.message || "Failed to sign in")
       } else if (data) {
         // Success - redirect will happen automatically via callbackURL
         router.push(redirect ? redirect : CLIENT_URL + "/dashboard")
@@ -108,12 +98,12 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <a href="/" className="flex items-center gap-2 self-center font-medium">
+        <Link href="/" className="flex items-center gap-2 self-center font-medium">
           <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
             <GalleryVerticalEnd className="size-4" />
           </div>
           PostCribe
-        </a>
+        </Link>
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader className="text-center">
@@ -126,19 +116,10 @@ export default function LoginPage() {
               <form onSubmit={handleEmailSignIn}>
                 <div className="grid gap-6">
                   {error && (
-                    <div className="space-y-3">
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-
-                      {showEmailVerificationError && formData.email && (
-                        <ResendVerificationEmail
-                          email={formData.email}
-                          callbackURL={redirect ? redirect : CLIENT_URL + "/dashboard"}
-                        />
-                      )}
-                    </div>
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
                   )}
                   <div className="flex flex-col gap-4">
                     <Button

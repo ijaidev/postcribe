@@ -115,12 +115,12 @@ export function ResendVerificationEmail({
       >
         {isResending ? (
           <div className="flex items-center gap-2">
+            <span>Sending</span>
             <ThreeDotLoader size="sm" />
-            <span>Sending...</span>
           </div>
         ) : cooldown > 0 ? (
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4 animate-spin [animation-duration:5s]" />
             <span>Resend in {cooldown}s</span>
           </div>
         ) : (

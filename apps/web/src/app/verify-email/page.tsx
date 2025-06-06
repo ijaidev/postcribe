@@ -23,7 +23,7 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
-  const email = searchParams.get("email")
+  const email = searchParams.get("mail")
   const token = searchParams.get("token")
 
   useEffect(() => {
