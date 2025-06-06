@@ -23,5 +23,17 @@ services:
       POSTGRES_DB: postcribe_ai
     ports:
       - "5433:5432"
+  
+  redis:
+    image: redis:7-alpine
+    container_name: postcribe_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
 volumes:
-  postgres_data: 
+  postgres_data:
+  redis_data: 

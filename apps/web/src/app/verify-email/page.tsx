@@ -60,6 +60,7 @@ export default function VerifyEmailPage() {
           } else {
             setError(result.error.message || "Failed to verify email. Please try again.")
           }
+          setSuccess(false)
         } else {
           // Email verified successfully
           setSuccess(true)

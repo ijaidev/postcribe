@@ -1,14 +1,26 @@
 import db from "@repo/db";
 import { sendEmail } from "@repo/mailer";
-import { betterAuth, logger } from "better-auth";
+import { betterAuth } from "better-auth";
+import { logger } from "@repo/logger";
 import { APIError } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import {
     generateEmailVerificationEmail,
     generatePasswordResetEmail,
 } from "@repo/mail-templates";
+import { getRedisClient } from "./redis-client";
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3001";
+
+// Get Redis client instance
+const redis = getRedisClient();
+
+// Connect to Redis with proper error handling
+if (redis) {
+    redis.connect().catch((err) => {
+        console.error("❌ Redis connection failed:", err);
+    });
+}
 
 // Custom email rate limiting helper
 const checkEmailRateLimit = async (
@@ -96,6 +108,58 @@ const checkEmailRateLimit = async (
 };
 
 const auth = betterAuth({
+    basePath: "/auth",
+    rateLimit: {
+        enabled: true,
+        window: 10, // 10 seconds for testing
+        max: 3, // 3 requests per window
+        customRules: {
+            "/auth/sign-in/email": {
+                window: 30,
+                max: 2, // 2 sign-in attempts per 30 seconds
+            },
+            "/auth/sign-up/email": {
+                window: 60,
+                max: 1, // 1 sign-up per minute
+            },
+        },
+        storage: redis ? "secondary-storage" : "memory",
+    },
+    secondaryStorage: redis ? {
+        get: async (key) => {
+            try {
+                console.log("🔍 Redis GET:", key);
+                const result = await redis.get(key);
+                console.log("✅ Redis GET result:", result);
+                return result;
+            } catch (error) {
+                console.error("❌ Redis GET error:", error);
+                return null;
+            }
+        },
+        set: async (key, value, ttl) => {
+            try {
+                console.log("💾 Redis SET:", key, value, "TTL:", ttl);
+                if (ttl) {
+                    await redis.set(key, value, "EX", ttl);
+                } else {
+                    await redis.set(key, value);
+                }
+                console.log("✅ Redis SET success");
+            } catch (error) {
+                console.error("❌ Redis SET error:", error);
+            }
+        },
+        delete: async (key) => {
+            try {
+                console.log("🗑️ Redis DEL:", key);
+                await redis.del(key);
+                console.log("✅ Redis DEL success");
+            } catch (error) {
+                console.error("❌ Redis DEL error:", error);
+            }
+        },
+    } : undefined,
     session: {
         cookieCache: {
             enabled: true,
@@ -108,10 +172,8 @@ const auth = betterAuth({
     }),
     emailAndPassword: {
         enabled: true,
-        requireEmailVerification: true,
         sendResetPassword: async ({ user, url, token }) => {
             await checkEmailRateLimit(user.email, "reset");
-
             await sendEmail({
                 to: [
                     {
@@ -137,7 +199,6 @@ const auth = betterAuth({
         autoSignInAfterVerification: true,
         sendVerificationEmail: async ({ user, url, token }) => {
             await checkEmailRateLimit(user.email, "verification");
-
             await sendEmail({
                 to: [
                     {
@@ -152,7 +213,7 @@ const auth = betterAuth({
                 subject: "Verify your email",
                 htmlContent: generateEmailVerificationEmail({
                     userName: user.name || "User",
-                    verificationUrl: `${CLIENT_URL}/verify-email?token=${token}&email=${user.email}`,
+                    verificationUrl: `${CLIENT_URL}/verify-email?email=${user.email}&token=${token}`,
                     expiresIn: "24 hours",
                 }),
             });
