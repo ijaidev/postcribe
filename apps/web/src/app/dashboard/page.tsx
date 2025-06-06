@@ -9,8 +9,11 @@ export default function DashboardPage() {
     const router = useRouter()
 
     useEffect(() => {
+        console.log("data", data)
+        console.log("error", error)
+        console.log("isPending", isPending)
         if (error || (!isPending && !data)) {
-            router.push(`/login`)
+            router.push(`/signin`)
         }
     }, [data, error, isPending])
 

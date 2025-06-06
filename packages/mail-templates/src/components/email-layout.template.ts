@@ -11,18 +11,18 @@ export interface EmailLayoutConfig {
 }
 
 export const defaultEmailConfig: EmailLayoutConfig = {
-    backgroundColor: "oklch(0.97 0 0)",
-    primaryColor: "oklch(0.205 0 0)",
-    foregroundColor: "oklch(0.145 0 0)",
-    mutedColor: "oklch(0.556 0 0)",
-    borderColor: "oklch(0.922 0 0)",
+    backgroundColor: "#f8f9fa",
+    primaryColor: "#1f2937",
+    foregroundColor: "#111827",
+    mutedColor: "#6b7280",
+    borderColor: "#e5e7eb",
     companyName: "PostCribe",
     companyUrl: "https://postcribe.com",
 };
 
 export const getEmailHeaderMjml = (config: EmailLayoutConfig = defaultEmailConfig) => `
 <!-- Header -->
-<mj-section background-color="oklch(1 0 0)" padding="20px 0">
+<mj-section background-color="#ffffff" padding="20px 0">
   <mj-column>
     <mj-text align="center" padding="0">
       <a href="${config.companyUrl}" class="header-logo">${config.companyName}</a>
@@ -33,14 +33,14 @@ export const getEmailHeaderMjml = (config: EmailLayoutConfig = defaultEmailConfi
 
 export const getEmailFooterMjml = (config: EmailLayoutConfig = defaultEmailConfig, customContent?: string) => `
 <!-- Divider -->
-<mj-section background-color="oklch(1 0 0)" padding="0">
+<mj-section background-color="#ffffff" padding="0">
   <mj-column>
     <mj-divider border-color="${config.borderColor}" border-width="1px" />
   </mj-column>
 </mj-section>
 
 <!-- Footer -->
-<mj-section background-color="oklch(1 0 0)" padding="32px 20px">
+<mj-section background-color="#ffffff" padding="32px 20px">
   <mj-column>
     ${customContent || `
     <mj-text align="center" font-size="14px" color="${config.mutedColor}" padding="0 0 16px 0">
@@ -48,7 +48,7 @@ export const getEmailFooterMjml = (config: EmailLayoutConfig = defaultEmailConfi
     </mj-text>
     `}
     
-    <mj-text align="center" font-size="13px" color="oklch(0.708 0 0)" padding="0">
+    <mj-text align="center" font-size="13px" color="#9ca3af" padding="0">
       Need help? <a href="#" class="footer-link">Contact Support</a> | 
       <a href="#" class="footer-link">Privacy Policy</a> |
       <a href="#" class="footer-link">Unsubscribe</a>
@@ -56,7 +56,7 @@ export const getEmailFooterMjml = (config: EmailLayoutConfig = defaultEmailConfi
     
     <mj-spacer height="16px" />
     
-    <mj-text align="center" font-size="12px" color="oklch(0.708 0 0)" padding="0">
+    <mj-text align="center" font-size="12px" color="#9ca3af" padding="0">
       © ${new Date().getFullYear()} ${config.companyName}. All rights reserved.
     </mj-text>
   </mj-column>
@@ -87,7 +87,7 @@ export const getEmailStylesMjml = (config: EmailLayoutConfig = defaultEmailConfi
   }
   
   .primary-button:hover {
-    background: oklch(0.175 0 0);
+    background: #374151;
     box-shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
   }
   
@@ -97,13 +97,13 @@ export const getEmailStylesMjml = (config: EmailLayoutConfig = defaultEmailConfi
   }
   
   .highlight-box {
-    background-color: oklch(0.97 0 0);
+    background-color: #f8f9fa;
     border-left: 4px solid ${config.primaryColor};
     border-radius: 6px;
   }
   
   .info-box {
-    background-color: oklch(0.985 0 0);
+    background-color: #f9fafb;
     border: 1px solid ${config.borderColor};
     border-radius: 8px;
   }
@@ -113,7 +113,7 @@ export const getEmailStylesMjml = (config: EmailLayoutConfig = defaultEmailConfi
 export const getEmailAttributesMjml = () => `
 <mj-attributes>
   <mj-all font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'" />
-  <mj-text font-size="16px" line-height="1.5" color="oklch(0.145 0 0)" />
+  <mj-text font-size="16px" line-height="1.5" color="#111827" />
   <mj-section padding="0" />
 </mj-attributes>
 `;
@@ -121,8 +121,8 @@ export const getEmailAttributesMjml = () => `
 export const createPrimaryButton = (href: string, text: string, extraClasses?: string) => `
 <mj-button 
   href="${href}"
-  background-color="oklch(0.205 0 0)"
-  color="oklch(0.985 0 0)"
+  background-color="#1f2937"
+  color="#f9fafb"
   font-size="16px"
   font-weight="600"
   border-radius="8px"
@@ -135,16 +135,16 @@ export const createPrimaryButton = (href: string, text: string, extraClasses?: s
 `;
 
 export const createAlternativeLink = (href: string, linkText: string) => `
-<mj-text align="center" font-size="14px" color="oklch(0.556 0 0)" padding="16px 0 24px 0">
+<mj-text align="center" font-size="14px" color="#6b7280" padding="16px 0 24px 0">
   Can't click the button? 
-  <a href="${href}" style="color: oklch(0.205 0 0); text-decoration: none;">
+  <a href="${href}" style="color: #1f2937; text-decoration: none;">
     ${linkText}
   </a>
 </mj-text>
 `;
 
 export const createGreeting = (userName: string) => `
-<mj-text font-size="18px" color="oklch(0.145 0 0)" padding="0 0 20px 0">
+<mj-text font-size="18px" color="#111827" padding="0 0 20px 0">
   Hi ${userName},
 </mj-text>
 `;
@@ -156,16 +156,18 @@ export const createMainTitle = (title: string, emoji?: string) => `
 `;
 
 export const createInfoBox = (title: string, content: string) => `
-<mj-section css-class="info-box" padding="20px" background-color="oklch(0.985 0 0)">
-  <mj-column>
-    <mj-text font-size="14px" color="oklch(0.556 0 0)" font-weight="600" text-transform="uppercase" letter-spacing="0.5px" padding="0 0 8px 0">
-      ${title}
-    </mj-text>
-    <mj-text font-size="14px" color="oklch(0.145 0 0)" padding="0">
-      ${content}
-    </mj-text>
-  </mj-column>
-</mj-section>
+<mj-table css-class="info-box" padding="20px">
+  <tr>
+    <td style="padding: 20px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <div style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; font-size: 14px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+        ${title}
+      </div>
+      <div style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; font-size: 14px; color: #111827; line-height: 1.5;">
+        ${content}
+      </div>
+    </td>
+  </tr>
+</mj-table>
 `;
 
 export interface FeatureItem {
@@ -175,9 +177,9 @@ export interface FeatureItem {
 }
 
 export const createFeaturesSection = (sectionTitle: string, features: FeatureItem[]) => `
-<mj-section background-color="oklch(0.985 0 0)" padding="32px 20px">
+<mj-section background-color="#f9fafb" padding="32px 20px">
   <mj-column>
-    <mj-text align="center" font-size="18px" font-weight="600" color="oklch(0.145 0 0)" padding="0 0 24px 0">
+    <mj-text align="center" font-size="18px" font-weight="600" color="#111827" padding="0 0 24px 0">
       ${sectionTitle}
     </mj-text>
   </mj-column>
@@ -185,10 +187,10 @@ export const createFeaturesSection = (sectionTitle: string, features: FeatureIte
   ${features.map(feature => `
   <mj-column width="${100 / features.length}%">
     <mj-text align="center" font-size="40px" padding="0 0 12px 0">${feature.emoji}</mj-text>
-    <mj-text align="center" font-size="14px" font-weight="600" color="oklch(0.145 0 0)" padding="0 0 8px 0">
+    <mj-text align="center" font-size="14px" font-weight="600" color="#111827" padding="0 0 8px 0">
       ${feature.title}
     </mj-text>
-    <mj-text align="center" font-size="13px" color="oklch(0.556 0 0)" padding="0">
+    <mj-text align="center" font-size="13px" color="#6b7280" padding="0">
       ${feature.description}
     </mj-text>
   </mj-column>
@@ -197,15 +199,17 @@ export const createFeaturesSection = (sectionTitle: string, features: FeatureIte
 `;
 
 export const createHighlightBox = (title: string, content: string, additionalContent?: string) => `
-<mj-section css-class="highlight-box" padding="20px" background-color="oklch(0.97 0 0)">
-  <mj-column>
-    <mj-text font-size="14px" color="oklch(0.556 0 0)" font-weight="600" text-transform="uppercase" letter-spacing="0.5px" padding="0 0 8px 0">
-      ${title}
-    </mj-text>
-    <mj-text font-size="18px" color="oklch(0.145 0 0)" font-weight="600" padding="0 0 16px 0">
-      ${content}
-    </mj-text>
-    ${additionalContent || ''}
-  </mj-column>
-</mj-section>
+<mj-table css-class="highlight-box" padding="20px">
+  <tr>
+    <td style="padding: 20px; background-color: #f8f9fa; border-left: 4px solid #1f2937; border-radius: 6px;">
+      <div style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; font-size: 14px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+        ${title}
+      </div>
+      <div style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; font-size: 18px; color: #111827; font-weight: 600; margin-bottom: 16px;">
+        ${content}
+      </div>
+      ${additionalContent || ''}
+    </td>
+  </tr>
+</mj-table>
 `; 

@@ -41,10 +41,10 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => {
     ];
 
     const previewContent = data.previewText ? `
-    <mj-text font-size="14px" color="oklch(0.556 0 0)" font-weight="600" text-transform="uppercase" letter-spacing="0.5px" padding="0 0 8px 0">
+    <mj-text font-size="14px" color="#6b7280" font-weight="600" text-transform="uppercase" letter-spacing="0.5px" padding="0 0 8px 0">
       Preview
     </mj-text>
-    <mj-text font-size="16px" color="oklch(0.145 0 0)" padding="0">
+    <mj-text font-size="16px" color="#111827" padding="0">
       ${data.previewText}
     </mj-text>
     ` : '';
@@ -63,7 +63,7 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => {
     ${getEmailHeaderMjml()}
     
     <!-- Main Content -->
-    <mj-section background-color="oklch(1 0 0)" padding="40px 20px">
+    <mj-section background-color="#ffffff" padding="40px 20px">
       <mj-column>
         ${createGreeting(data.userName)}
         
@@ -72,7 +72,7 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => {
         ${createHighlightBox("Post Title", data.postTitle, previewContent)}
         
         <!-- Description -->
-        <mj-text font-size="16px" color="oklch(0.145 0 0)" padding="24px 0">
+        <mj-text font-size="16px" color="#111827" padding="24px 0">
           Your AI-generated post content has been created based on your requirements. Please review the content, make any necessary edits, and publish when you're ready.
         </mj-text>
         
@@ -85,7 +85,7 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => {
     ${createFeaturesSection("What you can do in the editor:", features)}
     
     ${getEmailFooterMjml(defaultEmailConfig, `
-    <mj-text align="center" font-size="14px" color="oklch(0.556 0 0)" padding="0 0 16px 0">
+    <mj-text align="center" font-size="14px" color="#6b7280" padding="0 0 16px 0">
       This email was sent by your PostCribe scheduling system.
     </mj-text>
     `)}

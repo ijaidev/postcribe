@@ -1,6 +1,6 @@
 "use client"
 
-import { GalleryVerticalEnd } from "lucide-react"
+import { GalleryVerticalEnd, AlertTriangle } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +19,7 @@ import {
   FormLabel,
   FormMessage
 } from "@/components/ui/form"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThreeDotLoader } from "@/components/ui/loaders"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -27,7 +28,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { CLIENT_URL } from "@/config"
 
-// Schema for step 1 - only email and password
+// Schema for signup - only email and password
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(8, "Password must be at least 8 characters."),
@@ -35,7 +36,7 @@ const formSchema = z.object({
 
 type SignupFormData = z.infer<typeof formSchema>
 
-export default function SignupStepOnePage() {
+export default function SignupPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -49,6 +50,20 @@ export default function SignupStepOnePage() {
     },
   })
 
+  // Better error message mapping based on better-auth error codes
+  const getErrorMessage = (errorCode: string, defaultMessage: string) => {
+    const errorMessages: Record<string, string> = {
+      USER_ALREADY_EXISTS: "An account with this email already exists. Please sign in instead.",
+      INVALID_EMAIL: "Please enter a valid email address.",
+      WEAK_PASSWORD: "Password is too weak. Please choose a stronger password.",
+      EMAIL_NOT_VERIFIED: "Please verify your email address before signing in.",
+      RATE_LIMITED: "Too many attempts. Please wait before trying again.",
+      CREDENTIAL_INVALID: "Invalid credentials. Please check your email and password.",
+    }
+    
+    return errorMessages[errorCode] || defaultMessage
+  }
+
   function onSubmit(values: SignupFormData) {
     setIsLoading(true)
     setError("")
@@ -56,11 +71,15 @@ export default function SignupStepOnePage() {
     authClient.signUp.email({
       email: values.email,
       password: values.password,
-      name: ""
+      name: "",
     }).then((res) => {
       if (res.error) {
-        setError(res.error.message || "Failed to create account")
+        const errorMessage = res.error.code 
+          ? getErrorMessage(res.error.code, res.error.message || "Failed to create account")
+          : res.error.message || "Failed to create account"
+        setError(errorMessage)
       } else {
+        // Account created successfully, redirect to dashboard
         router.push(redirect ? redirect : "/dashboard")
       }
     }).catch((err) => {
@@ -78,22 +97,25 @@ export default function SignupStepOnePage() {
     try {
       const res = await authClient.signIn.social({
         provider: "google",
-        callbackURL: (redirect ? redirect : CLIENT_URL + "/dashboard"),
+        callbackURL: redirect ? redirect : (CLIENT_URL + "/dashboard"),
       })
 
       if (res.error) {
-        setError(res.error.message || "Failed to sign up with Google")
+        const errorMessage = res.error.code 
+          ? getErrorMessage(res.error.code, res.error.message || "Failed to sign up with Google")
+          : res.error.message || "Failed to sign up with Google"
+        setError(errorMessage)
         setIsLoading(false)
       }
     } catch (err) {
-      setError("Failed to sign up with Google")
+      setError("Failed to sign up with Google. Please try again.")
       setIsLoading(false)
       console.error("Google signup error:", err)
     }
   }
 
   return (
-    <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href="#" className="flex items-center gap-2 self-center font-medium">
           <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
@@ -107,15 +129,16 @@ export default function SignupStepOnePage() {
             <CardHeader>
               <CardTitle className="text-foreground">Create your account</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Step 1 of 2: Choose your sign up method
+                Get started with PostCribe today
               </CardDescription>
             </CardHeader>
 
             <CardContent>
               {error && (
-                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm mb-4">
-                  {error}
-                </div>
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
               <div className="grid gap-6">
@@ -130,7 +153,6 @@ export default function SignupStepOnePage() {
                     {isLoading ? (
                       <div className="flex items-center gap-2">
                         <ThreeDotLoader />
-                        Loading...
                       </div>
                     ) : (
                       <>
@@ -184,10 +206,9 @@ export default function SignupStepOnePage() {
                       {isLoading ? (
                         <div className="flex items-center gap-2">
                           <ThreeDotLoader />
-                          Creating account...
                         </div>
                       ) : (
-                        "Continue"
+                        "Create Account"
                       )}
                     </Button>
                   </form>

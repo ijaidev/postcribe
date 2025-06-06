@@ -33,14 +33,14 @@ const getMjmlTemplate = (data: PasswordResetData) => {
     ${getEmailHeaderMjml()}
     
     <!-- Main Content -->
-    <mj-section background-color="oklch(1 0 0)" padding="40px 20px">
+    <mj-section background-color="#ffffff" padding="40px 20px">
       <mj-column>
         ${createGreeting(data.userName)}
         
         ${createMainTitle("Reset your password", "🔐")}
         
         <!-- Reset Message -->
-        <mj-text font-size="16px" color="oklch(0.145 0 0)" padding="0 0 24px 0">
+        <mj-text font-size="16px" color="#111827" padding="0 0 24px 0">
           You requested to reset your password for your PostCribe account. Click the button below to create a new password.
         </mj-text>
         
@@ -54,14 +54,14 @@ const getMjmlTemplate = (data: PasswordResetData) => {
         )}
         
         <!-- Additional Security Info -->
-        <mj-text font-size="14px" color="oklch(0.556 0 0)" padding="24px 0 0 0">
+        <mj-text font-size="14px" color="#6b7280" padding="24px 0 0 0">
           For security reasons, this link can only be used once. If you need to reset your password again, please request a new reset link.
         </mj-text>
       </mj-column>
     </mj-section>
     
     ${getEmailFooterMjml(defaultEmailConfig, `
-    <mj-text align="center" font-size="14px" color="oklch(0.556 0 0)" padding="0 0 16px 0">
+    <mj-text align="center" font-size="14px" color="#6b7280" padding="0 0 16px 0">
       This email was sent from your PostCribe account security system.
     </mj-text>
     `)}

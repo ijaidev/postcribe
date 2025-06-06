@@ -7,3 +7,4 @@ alwaysApply: true
 - We are using bun for run time and package manager
 - Typescript as a language
 - Turborepo as monorepo
+- while searching for docs use short queries optimized for vector search. must use doc search tool multiple times with different queries for better results.

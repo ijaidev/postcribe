@@ -219,3 +219,18 @@ enum LoginProvider {
   X
   LINKEDIN
 }
+
+// Email Rate Limiting
+model EmailLog {
+  id     String         @id @default(uuid())
+  email  String
+  type   EmailLogType
+  sentAt DateTime       @default(now())
+
+  @@map("email_log")
+}
+
+enum EmailLogType {
+  verification
+  reset
+}
