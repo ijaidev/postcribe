@@ -6,7 +6,7 @@ import { Mail, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ResendVerificationEmail } from "@/components/ui/resend-verification-email"
+import { SendEmail } from "@/components/ui/send-email"
 import { authClient } from "@/lib/auth-client"
 import { CLIENT_URL } from "@/config"
 import { ThreeDotLoader } from "@/components/ui/loaders/three-dot-loader"
@@ -65,14 +65,11 @@ export function LoginChecker({ children }: LoginCheckerProps) {
                                 </Alert>
 
                                 {user?.email && (
-                                    <ResendVerificationEmail
+                                    <SendEmail
                                         size="lg"
                                         email={user.email}
-                                        callbackURL={CLIENT_URL + "/dashboard"}
-                                        helperText="Didn't receive the verification email?"
-                                        onSuccess={() => {
-                                            // Show success message
-                                        }}
+                                        type="verification"
+                                        buttonText="Resend verification email"
                                     />
                                 )}
 

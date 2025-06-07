@@ -166,6 +166,7 @@ const auth = betterAuth({
     }),
     emailAndPassword: {
         enabled: true,
+        resetPasswordTokenExpiresIn: 3600, // 1 hour
         sendResetPassword: async ({ user, url, token }) => {
             await checkEmailRateLimit(user.email, "reset");
             await sendEmail({
@@ -191,6 +192,7 @@ const auth = betterAuth({
     emailVerification: {
         sendOnSignUp: true,
         autoSignInAfterVerification: true,
+        expiresIn: 86400, // 24 hours
         sendVerificationEmail: async ({ user, url, token }) => {
             await checkEmailRateLimit(user.email, "verification");
             await sendEmail({

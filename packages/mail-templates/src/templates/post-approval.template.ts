@@ -85,9 +85,9 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => {
     ${createFeaturesSection("What you can do in the editor:", features)}
     
     ${getEmailFooterMjml(defaultEmailConfig, `
-    <mj-text align="center" font-size="14px" color="#6b7280" padding="0 0 16px 0">
-      This email was sent by your PostCribe scheduling system.
-    </mj-text>
+        <mj-text align="center" font-size="14px" color="#6b7280" padding="0 0 16px 0">
+          This email was sent by your PostCribe scheduling system.
+        </mj-text>
     `)}
   </mj-body>
 </mjml>

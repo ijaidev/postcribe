@@ -121,8 +121,8 @@ export default function SettingsPage() {
       } else {
         setConnectedAccounts([])
       }
-    } catch (error) {
-      console.error("Failed to load connected accounts:", error)
+    } catch {
+      console.error("Failed to load connected accounts")
       toast.error("Failed to load connected accounts")
       setConnectedAccounts([])
     } finally {
@@ -138,8 +138,8 @@ export default function SettingsPage() {
         provider: "google",
         callbackURL: CLIENT_URL + "/settings"
       })
-    } catch (error) {
-      console.error("Failed to link Google account:", error)
+    } catch {
+      console.error("Failed to link Google account")
       toast.error("Failed to link Google account")
     } finally {
       setIsLoading(prev => ({ ...prev, accounts: false }))
@@ -162,8 +162,8 @@ export default function SettingsPage() {
       }
       toast.success("Account unlinked successfully")
       loadConnectedAccounts() // Refresh the list
-    } catch (error) {
-      console.error("Failed to unlink account:", error)
+    } catch {
+      console.error("Failed to unlink account")
       toast.error("Failed to unlink account")
     } finally {
       setIsLoading(prev => ({ ...prev, unlinkAccount: false }))
@@ -202,7 +202,7 @@ export default function SettingsPage() {
         // Refresh user data from context
         await refreshUser()
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred while updating your profile")
     } finally {
       setIsLoading(prev => ({ ...prev, profile: false }))
@@ -225,7 +225,7 @@ export default function SettingsPage() {
         toast.success("Password changed successfully")
         passwordForm.reset()
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred while changing your password")
     } finally {
       setIsLoading(prev => ({ ...prev, password: false }))
@@ -238,7 +238,7 @@ export default function SettingsPage() {
       setIsLoading(prev => ({ ...prev, signOut: true }))
       await authClient.signOut()
       router.push("/signin")
-    } catch (error) {
+    } catch {
       toast.error("Failed to sign out")
       setIsLoading(prev => ({ ...prev, signOut: false }))
     }
@@ -419,7 +419,7 @@ export default function SettingsPage() {
                             />
                           </FormControl>
                           <Link
-                            href={"/forgot-password"}
+                            href={"/reset-password"}
                             className="text-xs font-bold hover:text-primary/80 hover:underline transition-colors duration-200 text-right"
                           >
                             Forgot password?
