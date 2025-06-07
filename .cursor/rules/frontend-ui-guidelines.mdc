@@ -30,88 +30,90 @@ This is an AI-powered social media post creator app built with Next.js, React, a
 ### 1. Component Discovery Process
 **ALWAYS follow this order to maintain consistency and avoid code duplication:**
 
-1. **Check [components/](mdc:apps/web/src/components)** - Look for existing components first
-2. **Check [components/layout/](mdc:apps/web/src/components/layout)** - Reuse layout patterns
-3. **Check [components/ui/](mdc:apps/web/src/components/ui)** - See what shadcn components are installed
-4. **Read component documentation** - Understand props and usage before implementing
-5. **Install missing shadcn components** if needed: `bunx shadcn@latest add component-name`
-6. **Create new components** only if truly unique functionality is needed
+1. **Check [components/ui/](mdc:apps/web/src/components/ui)** - Look for existing components first (all custom components are now in ui/)
+2. **Read component documentation** - Understand props and usage before implementing
+3. **Check existing patterns** - Look at `headings.tsx`, `loaders/`, `resend-verification-email.tsx`, `timezone.tsx` for examples
+4. **Install missing shadcn components** if needed: `bunx shadcn@latest add component-name`
+5. **Create new components** only if truly unique functionality is needed
 
 ### 2. Before Using Any Component
 ```bash
 # Read the component file to understand its props and usage
-# For custom components:
-cat apps/web/src/components/layout/component-name.tsx
-
-# For shadcn components:
+# All components are now in ui/ directory:
 cat apps/web/src/components/ui/component-name.tsx
+
+# Check for existing patterns:
+cat apps/web/src/components/ui/headings.tsx        # Typography components
+cat apps/web/src/components/ui/loaders/three-dot-loader.tsx  # Loading states
+cat apps/web/src/components/ui/resend-verification-email.tsx # Email verification
+cat apps/web/src/components/ui/timezone.tsx        # Timezone selection
 ```
 
 ## Folder Structure & Component Organization
 
-### Components Architecture
+### Components Architecture (Current Implementation)
 ```
 components/
-├── ui/                    # shadcn/ui components (USE DIRECTLY)
-│   ├── accordion.tsx      # Collapsible content sections
-│   ├── alert.tsx          # Alert messages and notifications
-│   ├── alert-dialog.tsx   # Modal confirmation dialogs
-│   ├── aspect-ratio.tsx   # Responsive aspect ratios
-│   ├── avatar.tsx         # User profile pictures
-│   ├── badge.tsx          # Status indicators and labels
-│   ├── breadcrumb.tsx     # Navigation breadcrumbs
-│   ├── button.tsx         # Interactive buttons
-│   ├── calendar.tsx       # Date selection
-│   ├── card.tsx           # Content containers
-│   ├── carousel.tsx       # Image/content sliders
-│   ├── chart.tsx          # Data visualization
-│   ├── checkbox.tsx       # Boolean input controls
-│   ├── collapsible.tsx    # Expandable content
-│   ├── combobox.tsx       # Searchable select input
-│   ├── command.tsx        # Command palette interface
-│   ├── context-menu.tsx   # Right-click menus
-│   ├── data-table.tsx     # Sortable data tables
-│   ├── date-picker.tsx    # Date input with calendar
-│   ├── dialog.tsx         # Modal overlays
-│   ├── drawer.tsx         # Side panel overlays
-│   ├── dropdown-menu.tsx  # Dropdown action menus
-│   ├── form.tsx           # Form validation system
-│   ├── hover-card.tsx     # Hover preview cards
-│   ├── input.tsx          # Text input fields
-│   ├── input-otp.tsx      # OTP verification input
-│   ├── label.tsx          # Form field labels
-│   ├── menubar.tsx        # Application menu bar
-│   ├── navigation-menu.tsx # Site navigation
-│   ├── pagination.tsx     # Page navigation
-│   ├── popover.tsx        # Floating content panels
-│   ├── progress.tsx       # Progress indicators
-│   ├── radio-group.tsx    # Single-choice selection
-│   ├── resizable.tsx      # Resizable panels
-│   ├── scroll-area.tsx    # Custom scrollbars
-│   ├── select.tsx         # Dropdown selection
-│   ├── separator.tsx      # Visual dividers
-│   ├── sheet.tsx          # Side panel overlays
-│   ├── sidebar.tsx        # App navigation sidebar
-│   ├── skeleton.tsx       # Loading placeholders
-│   ├── slider.tsx         # Range input controls
-│   ├── sonner.tsx         # Toast notifications
-│   ├── switch.tsx         # Toggle switches
-│   ├── table.tsx          # Data tables
-│   ├── tabs.tsx           # Tabbed interfaces
-│   ├── textarea.tsx       # Multi-line text input
-│   ├── toast.tsx          # Notification messages
-│   ├── toggle.tsx         # Toggle buttons
-│   ├── toggle-group.tsx   # Multiple toggle options
-│   ├── tooltip.tsx        # Hover help text
-│   ├── typography.tsx     # Text styling utilities
-│   └── ...
-├── layout/               # Custom layout components
-│   ├── headings.tsx      # H1, H2, H3, Subtitle components
-│   ├── resend-verification-email.tsx # Email verification UI
-│   └── ...
-└── providers/           # Context providers
-    ├── theme-provider.tsx
-    └── ...
+├── ui/                              # All components (shadcn + custom)
+│   ├── alert.tsx                    # ✅ Alert messages and notifications
+│   ├── badge.tsx                    # ✅ Status indicators and labels
+│   ├── button.tsx                   # ✅ Interactive buttons
+│   ├── card.tsx                     # ✅ Content containers
+│   ├── command.tsx                  # ✅ Command palette interface
+│   ├── dialog.tsx                   # ✅ Modal overlays
+│   ├── form.tsx                     # ✅ Form validation system
+│   ├── headings.tsx                 # ✅ H1, H2, H3, Subtitle components
+│   ├── input.tsx                    # ✅ Text input fields
+│   ├── label.tsx                    # ✅ Form field labels
+│   ├── login-checker.tsx            # ✅ Auth route protection
+│   ├── popover.tsx                  # ✅ Floating content panels
+│   ├── resend-verification-email.tsx # ✅ Email verification UI
+│   ├── select.tsx                   # ✅ Dropdown selection
+│   ├── separator.tsx                # ✅ Visual dividers
+│   ├── sonner.tsx                   # ✅ Toast notifications
+│   ├── timezone.tsx                 # ✅ Timezone selection component
+│   ├── loaders/                     # ✅ Loading components
+│   │   ├── three-dot-loader.tsx     # ✅ Three-dot loading animation
+│   │   └── index.ts                 # ✅ Loader exports
+│   └── [install as needed]/        # 🔄 Available shadcn components:
+│       ├── accordion.tsx            # Collapsible content sections
+│       ├── alert-dialog.tsx         # Modal confirmation dialogs
+│       ├── aspect-ratio.tsx         # Responsive aspect ratios
+│       ├── avatar.tsx               # User profile pictures
+│       ├── breadcrumb.tsx           # Navigation breadcrumbs
+│       ├── calendar.tsx             # Date selection
+│       ├── carousel.tsx             # Image/content sliders
+│       ├── checkbox.tsx             # Boolean input controls
+│       ├── collapsible.tsx          # Expandable content
+│       ├── combobox.tsx             # Searchable select input
+│       ├── context-menu.tsx         # Right-click menus
+│       ├── data-table.tsx           # Sortable data tables
+│       ├── date-picker.tsx          # Date input with calendar
+│       ├── drawer.tsx               # Side panel overlays
+│       ├── dropdown-menu.tsx        # Dropdown action menus
+│       ├── hover-card.tsx           # Hover preview cards
+│       ├── input-otp.tsx            # OTP verification input
+│       ├── menubar.tsx              # Application menu bar
+│       ├── navigation-menu.tsx      # Site navigation
+│       ├── pagination.tsx           # Page navigation
+│       ├── progress.tsx             # Progress indicators
+│       ├── radio-group.tsx          # Single-choice selection
+│       ├── resizable.tsx            # Resizable panels
+│       ├── scroll-area.tsx          # Custom scrollbars
+│       ├── sheet.tsx                # Side panel overlays
+│       ├── sidebar.tsx              # App navigation sidebar
+│       ├── skeleton.tsx             # Loading placeholders
+│       ├── slider.tsx               # Range input controls
+│       ├── switch.tsx               # Toggle switches
+│       ├── table.tsx                # Data tables
+│       ├── tabs.tsx                 # Tabbed interfaces
+│       ├── textarea.tsx             # Multi-line text input
+│       ├── toggle.tsx               # Toggle buttons
+│       ├── toggle-group.tsx         # Multiple toggle options
+│       └── tooltip.tsx              # Hover help text
+└── providers/                       # Context providers
+    ├── theme-provider.tsx           # ✅ Dark/light theme support
+    └── providers.tsx                # ✅ Combined providers wrapper
 ```
 
 ## Component Usage Rules
@@ -121,21 +123,29 @@ components/
 
 ```tsx
 // ✅ CORRECT: Check and use existing components
-import { H1, H2, Subtitle } from '@/components/layout/headings'
+import { H1, H2, Subtitle } from '@/components/ui/headings'
 import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
+import { ThreeDotLoader } from '@/components/ui/loaders'
+import TimezoneSelect from '@/components/ui/timezone'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 function MyPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [timezone, setTimezone] = useState("")
+
   return (
     <Card>
       <CardHeader>
         <H1>Main Title</H1>
         <Subtitle>Supporting text</Subtitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <TimezoneSelect value={timezone} onValueChange={setTimezone} />
         <ResendVerificationEmail email="user@example.com" />
-        <Button>Action</Button>
+        <Button disabled={isLoading}>
+          {isLoading ? <ThreeDotLoader size="sm" /> : 'Action'}
+        </Button>
       </CardContent>
     </Card>
   )
@@ -586,10 +596,94 @@ import { Progress } from '@/components/ui/progress'
 - **Ensure keyboard navigation works**
 - **Test with screen readers**
 
-## Error Alert Component Usage
+## Authentication Patterns
 
-Since we have a custom [ResendVerificationEmail](mdc:apps/web/src/components/ui/resend-verification-email.tsx) component available, use it for email verification flows:
+### Better-Auth Integration
+```tsx
+import { authClient } from '@/lib/auth-client'
+import { LoginChecker } from '@/components/ui/login-checker'
+import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
+import TimezoneSelect from '@/components/ui/timezone'
 
+// Route protection (already implemented in (authorized) layout)
+<LoginChecker>
+  {children}
+</LoginChecker>
+
+// Get current user session
+const { data: session, error, isPending } = authClient.useSession()
+
+// Sign up with email/password
+const handleSignup = async (values: { email: string; password: string; name: string }) => {
+  const { data, error } = await authClient.signUp.email({
+    email: values.email,
+    password: values.password,
+    name: values.name,
+    timeZone: "", // Set in step 2
+  })
+}
+
+// Sign in with email/password
+const handleSignin = async (values: { email: string; password: string }) => {
+  const { data, error } = await authClient.signIn.email({
+    email: values.email,
+    password: values.password,
+  })
+}
+
+// Google OAuth
+const handleGoogleAuth = async () => {
+  const { data, error } = await authClient.signIn.social({
+    provider: "google",
+    callbackURL: "/signup/step/2"
+  })
+}
+
+// Sign out
+const handleSignOut = async () => {
+  await authClient.signOut()
+  router.push('/signin')
+}
+
+// Update user profile
+const updateProfile = async (data: { name: string; timeZone: string }) => {
+  const { error } = await authClient.updateUser({
+    name: data.name,
+    timeZone: data.timeZone,
+  })
+}
+```
+
+### Authentication Error Handling
+```tsx
+// Error mapping for Better-Auth error codes
+const getErrorMessage = (errorCode: string, defaultMessage: string) => {
+  const errorMessages = {
+    'USER_ALREADY_EXISTS': 'An account with this email already exists',
+    'INVALID_EMAIL': 'Please enter a valid email address',
+    'WEAK_PASSWORD': 'Password must be at least 8 characters long',
+    'INVALID_CREDENTIALS': 'Invalid email or password',
+    'EMAIL_NOT_VERIFIED': 'Please verify your email address',
+    'ACCOUNT_LOCKED': 'Account temporarily locked. Try again later',
+  }
+  return errorMessages[errorCode] || defaultMessage
+}
+
+// Usage in form submission
+try {
+  const { data, error } = await authClient.signUp.email(values)
+  if (error) {
+    const message = getErrorMessage(error.code, error.message)
+    toast.error(message)
+  }
+} catch (err: any) {
+  toast.error("Something went wrong. Please try again.")
+}
+```
+
+### Custom Components Usage
+
+#### Email Verification Component
 ```tsx
 import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
 
@@ -608,4 +702,44 @@ import { ResendVerificationEmail } from '@/components/ui/resend-verification-ema
 />
 ```
 
-This comprehensive approach ensures we leverage all available shadcn/ui components while maintaining design consistency and following DRY principles throughout the application.
+#### Timezone Selection Component
+```tsx
+import TimezoneSelect from '@/components/ui/timezone'
+
+const [timezone, setTimezone] = useState("")
+
+<TimezoneSelect
+  value={timezone}
+  onValueChange={setTimezone}
+  className="w-full"
+/>
+```
+
+#### Loading States
+```tsx
+import { ThreeDotLoader } from '@/components/ui/loaders'
+
+// In buttons
+<Button disabled={isLoading}>
+  {isLoading ? <ThreeDotLoader size="sm" /> : 'Submit'}
+</Button>
+
+// Standalone loading
+<div className="flex items-center justify-center py-8">
+  <ThreeDotLoader size="lg" />
+</div>
+```
+
+#### Typography Components
+```tsx
+import { H1, H2, H3, Subtitle } from '@/components/ui/headings'
+
+<div className="space-y-4">
+  <H1>Main Page Title</H1>
+  <Subtitle>Supporting description text</Subtitle>
+  <H2>Section Title</H2>
+  <H3>Subsection Title</H3>
+</div>
+```
+
+This comprehensive approach ensures we leverage all available components while maintaining design consistency and following DRY principles throughout the application.

@@ -1,0 +1,226 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Web App Implementation Guide
+
+## Current Implementation Status
+
+### ✅ Completed Features
+- **Authentication System**: Better-Auth v1.2.8 with Google OAuth integration
+- **Route Protection**: `LoginChecker` component for protected routes
+- **Form Validation**: react-hook-form + Zod schemas
+- **UI Components**: Core shadcn/ui components installed and configured
+- **Theme System**: Dark/light mode with next-themes
+- **Email Verification**: Complete flow with resend functionality
+- **Timezone Selection**: Full timezone support with Luxon integration
+- **Loading States**: Reusable `ThreeDotLoader` component
+- **Typography**: H1, H2, H3, Subtitle heading components
+- **Settings Page**: User profile and password management
+
+### ⚠️ Partial Implementation
+- **Navigation**: Basic structure exists but needs enhancement
+- **Dashboard**: Basic page exists but lacks main functionality
+- **Error Handling**: Core patterns exist but need consistency
+
+### ❌ Not Yet Implemented
+- **Social Media Integration**: Backend packages exist but not connected to frontend
+- **Post Creation**: Main application features
+- **Media Management**: File upload and management
+- **Scheduling**: Post scheduling interface
+- **Analytics**: Performance tracking and analytics
+
+## Current File Structure
+
+### App Router Pages
+```
+app/
+├── (authorized)/           # Protected routes group
+│   ├── dashboard/         # ✅ Basic dashboard (needs features)
+│   ├── settings/          # ✅ Complete settings page
+│   └── layout.tsx         # ✅ Auth protection wrapper
+├── signin/                # ✅ Complete login page
+├── signup/                # ✅ Complete registration flow
+├── verify-email/          # ✅ Email verification page
+├── globals.css           # ✅ Tailwind v4 + custom animations
+├── layout.tsx            # ✅ Root layout with providers
+└── page.tsx              # ⚠️ Basic landing page
+```
+
+### Component Library
+```
+components/ui/
+├── alert.tsx             # ✅ shadcn Alert component
+├── badge.tsx             # ✅ shadcn Badge component
+├── button.tsx            # ✅ shadcn Button component
+├── card.tsx              # ✅ shadcn Card component
+├── command.tsx           # ✅ shadcn Command component
+├── dialog.tsx            # ✅ shadcn Dialog component
+├── form.tsx              # ✅ shadcn Form component
+├── headings.tsx          # ✅ Custom H1, H2, H3, Subtitle
+├── input.tsx             # ✅ shadcn Input component
+├── label.tsx             # ✅ shadcn Label component
+├── login-checker.tsx     # ✅ Custom auth protection
+├── popover.tsx           # ✅ shadcn Popover component
+├── resend-verification-email.tsx  # ✅ Custom email verification
+├── select.tsx            # ✅ shadcn Select component
+├── separator.tsx         # ✅ shadcn Separator component
+├── sonner.tsx            # ✅ Toast notifications
+├── timezone.tsx          # ✅ Custom timezone selector
+└── loaders/
+    ├── three-dot-loader.tsx  # ✅ Custom loading animation
+    └── index.ts              # ✅ Loader exports
+```
+
+## Implementation Patterns
+
+### Authentication Flow
+1. **Signup**: Email/password OR Google OAuth → Step 2 (name + timezone)
+2. **Email Verification**: Automatic email + resend component
+3. **Login**: Email/password OR Google OAuth → Dashboard
+4. **Route Protection**: Automatic redirect to signin if not authenticated
+
+### Form Patterns
+```tsx
+// Standard form with Zod validation
+const schema = z.object({
+  name: z.string().min(1, "Required"),
+  email: z.string().email("Invalid email"),
+})
+
+const form = useForm<z.infer<typeof schema>>({
+  resolver: zodResolver(schema),
+  defaultValues: { name: "", email: "" }
+})
+
+const onSubmit = async (values: z.infer<typeof schema>) => {
+  setIsLoading(true)
+  try {
+    // API call
+    toast.success("Success!")
+  } catch (error) {
+    toast.error("Error occurred")
+  } finally {
+    setIsLoading(false)
+  }
+}
+```
+
+### Loading State Patterns
+```tsx
+// Button loading state
+<Button disabled={isLoading}>
+  {isLoading ? <ThreeDotLoader size="sm" /> : 'Submit'}
+</Button>
+
+// Page loading state
+if (isPending) {
+  return (
+    <div className="flex min-h-svh items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <ThreeDotLoader size="lg" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  )
+}
+```
+
+### Error Handling Patterns
+```tsx
+// Better-Auth error mapping
+const getErrorMessage = (errorCode: string, defaultMessage: string) => {
+  const errorMessages = {
+    'USER_ALREADY_EXISTS': 'Account already exists',
+    'INVALID_CREDENTIALS': 'Invalid email or password',
+    'EMAIL_NOT_VERIFIED': 'Please verify your email',
+  }
+  return errorMessages[errorCode] || defaultMessage
+}
+
+// Toast error display
+try {
+  const { data, error } = await authClient.signIn.email(values)
+  if (error) {
+    toast.error(getErrorMessage(error.code, error.message))
+    return
+  }
+} catch (err: any) {
+  toast.error("Something went wrong. Please try again.")
+}
+```
+
+## Next Implementation Priorities
+
+### 1. Navigation Enhancement
+- [ ] Add main navigation component
+- [ ] Implement breadcrumb navigation
+- [ ] Add mobile navigation drawer
+- [ ] User menu dropdown
+
+### 2. Dashboard Features
+- [ ] Post creation interface
+- [ ] Social media account connection
+- [ ] Scheduled posts overview
+- [ ] Analytics widgets
+
+### 3. Social Media Integration
+- [ ] Connect LinkedIn package to frontend
+- [ ] Connect Twitter/X package to frontend
+- [ ] Account connection flow
+- [ ] Post preview components
+
+### 4. Post Management
+- [ ] Post creation form
+- [ ] Media upload component
+- [ ] Scheduling interface
+- [ ] Template system integration
+
+## Development Guidelines
+
+### Component Creation Process
+1. **Check existing components** in [apps/web/src/components/ui/](mdc:apps/web/src/components/ui)
+2. **Check shadcn documentation** for available components
+3. **Install shadcn component** if needed: `bunx shadcn@latest add component-name`
+4. **Create custom component** only if unique functionality required
+5. **Place in ui/ directory** for consistency
+
+### Styling Standards
+- **Use Tailwind v4** CSS-first configuration
+- **Follow shadcn patterns** for component styling
+- **Maintain design system** consistency
+- **Use existing color palette** and spacing
+- **Implement responsive design** mobile-first
+
+### TypeScript Standards
+- **Use strict typing** for all props and state
+- **Extend Better-Auth types** for user objects
+- **Create interfaces** for component props
+- **Use Zod schemas** for form validation
+- **Import types properly** from packages
+
+### File Organization
+- **All components in ui/** - No separate layout/ directory
+- **Use index files** for clean imports
+- **Group related files** (loaders/, etc.)
+- **Follow kebab-case** for file names
+- **Use PascalCase** for component names
+
+## Environment Configuration
+
+### Development URLs
+- **Frontend**: `http://localhost:3001`
+- **API**: `http://localhost:30011`
+- **Better-Auth**: `http://localhost:3000/v1/auth`
+
+### Key Dependencies
+- **Next.js**: 15.3.2 with App Router
+- **React**: 19.0.0
+- **Better-Auth**: 1.2.8
+- **Tailwind CSS**: v4 with PostCSS
+- **Luxon**: 3.6.1 for timezone handling
+- **Sonner**: 2.0.5 for toast notifications
+- **react-hook-form**: 7.57.0 with Zod validation
+
+This guide serves as the current state reference for the PostCribe web application, ensuring consistent development patterns and helping identify next implementation steps.

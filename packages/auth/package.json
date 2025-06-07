@@ -13,9 +13,10 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@repo/eslint-config": "workspace:*"
+    "@types/bun": "latest",
+    "@types/luxon": "^3.6.2"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -26,6 +27,7 @@
     "@repo/mail-templates": "workspace:*",
     "@repo/mailer": "workspace:*",
     "better-auth": "^1.2.8",
-    "ioredis": "^5.6.1"
+    "ioredis": "^5.6.1",
+    "luxon": "^3.6.1"
   }
 }

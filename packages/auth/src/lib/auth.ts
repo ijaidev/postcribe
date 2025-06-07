@@ -1,6 +1,6 @@
 import db from "@repo/db";
 import { sendEmail } from "@repo/mailer";
-import { betterAuth } from "better-auth";
+import { betterAuth, type User } from "better-auth";
 import { logger } from "@repo/logger";
 import { APIError } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -9,6 +9,7 @@ import {
     generatePasswordResetEmail,
 } from "@repo/mail-templates";
 import { getRedisClient } from "./redis-client";
+import { IANAZone } from "luxon";
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3001";
 
@@ -228,6 +229,38 @@ const auth = betterAuth({
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
         },
         // Add more social providers as needed
+    },
+    databaseHooks: {
+        user: {
+            create: {
+                before: async (user: User & { timeZone?: string }) => {
+                    // Validate timezone if provided
+                    if (user.timeZone && user.timeZone.trim() !== "") {
+                        if (!IANAZone.isValidZone(user.timeZone)) {
+                            throw new APIError("BAD_REQUEST", {
+                                message: `Invalid timezone: ${user.timeZone}. Please provide a valid IANA timezone identifier (e.g., 'America/New_York', 'Europe/London').`,
+                                code: "INVALID_TIMEZONE",
+                            });
+                        }
+                    }
+                    return { data: user };
+                },
+            },
+            update: {
+                before: async (userData: Partial<User> & { timeZone?: string }) => {
+                    // Validate timezone if being updated
+                    if (userData.timeZone !== undefined && userData.timeZone && userData.timeZone.trim() !== "") {
+                        if (!IANAZone.isValidZone(userData.timeZone)) {
+                            throw new APIError("BAD_REQUEST", {
+                                message: `Invalid timezone: ${userData.timeZone}. Please provide a valid IANA timezone identifier (e.g., 'America/New_York', 'Europe/London').`,
+                                code: "INVALID_TIMEZONE",
+                            });
+                        }
+                    }
+                    return { data: userData };
+                },
+            },
+        },
     },
 });
 

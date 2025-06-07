@@ -11,8 +11,9 @@ alwaysApply: true
 - **Monorepo**: Turborepo with workspaces pattern
 - **Node Version**: >= 18
 - **Database**: Prisma ORM with PostgreSQL
-- **Frontend**: Next.js with React
-- **Styling**: Tailwind CSS with shadcn/ui components
+- **Frontend**: Next.js 15 with React 19
+- **Styling**: Tailwind CSS v4 with shadcn/ui components
+- **Authentication**: Better-Auth with Google OAuth integration
 
 ## Project Structure
 
@@ -25,7 +26,7 @@ alwaysApply: true
   - `web/` - Frontend Next.js application
 - `packages/` - Shared packages
   - `ai/` - AI and LLM integration logic
-  - `auth/` - Authentication utilities
+  - `auth/` - Authentication utilities and Better-Auth configuration
   - `db/` - Database schema and migrations
   - `linkedin/` - LinkedIn API integration
   - `x/` - Twitter/X API integration
@@ -53,6 +54,7 @@ alwaysApply: true
 - **Imports**: Use absolute imports with `@/` prefix where configured
 - **Formatting**: Use Prettier with existing configuration
 - **Linting**: Follow ESLint rules defined in packages
+- **React**: Use React 19 features, hooks pattern, and functional components
 
 ### Database
 - **ORM**: Prisma is used for database operations
@@ -65,10 +67,62 @@ alwaysApply: true
 - **Post Controllers**: Located in [apps/api/src/controllers/post-controllers/](mdc:apps/api/src/controllers/post-controllers)
 
 ### Frontend Development
-- **Location**: All frontend code in apps/web/
+- **Location**: All frontend code in [apps/web/](mdc:apps/web)
+- **Framework**: Next.js 15 with App Router pattern
+- **Port**: Development server runs on port 3001 (`bun dev`)
 - **Components**: Use shadcn/ui components from [apps/web/src/components/ui/](mdc:apps/web/src/components/ui)
 - **Pages**: App router structure in [apps/web/src/app/](mdc:apps/web/src/app)
-- **Guidelines**: Follow [frontend-ui-guidelines.mdc](mdc:.cursor/rules/frontend-ui-guidelines.mdc) for UI work
+- **Config**: Environment configuration in [apps/web/src/config.ts](mdc:apps/web/src/config.ts)
+- **Guidelines**: 
+  - UI/UX patterns: [frontend-ui-guidelines.mdc](mdc:.cursor/rules/frontend-ui-guidelines.mdc)
+  - Current implementation: [web-app-implementation.mdc](mdc:.cursor/rules/web-app-implementation.mdc)
+
+#### Current Frontend Architecture
+```
+apps/web/src/
+├── app/                           # Next.js 15 App Router
+│   ├── (authorized)/             # Protected routes group
+│   │   ├── dashboard/            # Main dashboard
+│   │   ├── settings/             # User settings page
+│   │   └── layout.tsx            # Auth wrapper layout
+│   ├── signin/                   # Login page
+│   ├── signup/                   # Registration page
+│   ├── verify-email/             # Email verification
+│   ├── globals.css               # Global styles with Tailwind v4
+│   ├── layout.tsx                # Root layout with providers
+│   └── page.tsx                  # Landing page
+├── components/
+│   ├── ui/                       # shadcn/ui components
+│   │   ├── loaders/              # Loading components
+│   │   │   ├── three-dot-loader.tsx
+│   │   │   └── index.ts
+│   │   ├── headings.tsx          # H1, H2, H3, Subtitle components
+│   │   ├── login-checker.tsx     # Auth route protection
+│   │   ├── resend-verification-email.tsx # Email verification UI
+│   │   ├── timezone.tsx          # Timezone selection component
+│   │   └── [other shadcn components]
+│   └── providers/                # React context providers
+│       ├── theme-provider.tsx    # Dark/light theme
+│       └── providers.tsx         # Combined providers
+├── lib/
+│   ├── auth-client.ts            # Better-Auth client setup
+│   ├── timezones.json            # Timezone data (1451 entries)
+│   └── utils.ts                  # Utility functions (cn, etc.)
+└── config.ts                     # Environment variables
+```
+
+#### Authentication System
+- **Provider**: Better-Auth v1.2.8 with Google OAuth
+- **Client**: [apps/web/src/lib/auth-client.ts](mdc:apps/web/src/lib/auth-client.ts)
+- **Package**: [@repo/auth](mdc:packages/auth) workspace package
+- **Route Protection**: [login-checker.tsx](mdc:apps/web/src/components/ui/login-checker.tsx)
+- **Features**: Email/password signup, Google OAuth, email verification, timezone selection
+
+#### Component Usage Priority
+1. **Check existing components first** - Always look in `components/ui/` before creating new ones
+2. **Use shadcn/ui directly** - Import components from `@/components/ui/`
+3. **Reuse patterns** - Check `headings.tsx`, `loaders/`, `resend-verification-email.tsx` for examples
+4. **Follow typing** - Use proper TypeScript interfaces and Better-Auth types
 
 ### Social Media Integration
 - **LinkedIn**: Use utilities from packages/linkedin/
@@ -84,6 +138,12 @@ alwaysApply: true
 - `bun format` - Format code with Prettier
 - `bun check-types` - TypeScript type checking
 
+### Web App Specific (apps/web)
+- `bun dev` - Next.js dev server on port 3001 with Turbopack
+- `bun build` - Production build
+- `bun start` - Production server
+- `bun lint` - ESLint validation
+
 ### Turborepo Tasks
 - **Build**: Runs with dependency graph resolution
 - **Dev**: Persistent, no cache for live development  
@@ -96,14 +156,32 @@ alwaysApply: true
 - **Types**: PascalCase with `.types.ts` suffix
 - **Constants**: UPPER_SNAKE_CASE in separate files
 - **API Routes**: kebab-case for endpoints
+- **Pages**: lowercase (e.g., `page.tsx`, `layout.tsx`)
 
 ## Environment & Deployment
 - **Docker**: Use [docker-compose.yml](mdc:docker-compose.yml) for local development
 - **Deployment**: Reference [DEPLOYMENT.md](mdc:DEPLOYMENT.md) for deployment instructions
 - **Environment**: Configure environment variables per service
+- **Frontend URLs**: 
+  - CLIENT_URL: `http://localhost:3001` (dev)
+  - API_URL: `http://localhost:30011` (dev)
+  - BETTER_AUTH_URL: `http://localhost:3000/v1/auth` (dev)
 
 ## AI & LLM Integration
 - **Package**: All AI logic in packages/ai/
 - **Functions**: AI functions in [packages/ai/src/functions/](mdc:packages/ai/src/functions)
 - **Graphs**: AI workflows in [packages/ai/src/graphs/](mdc:packages/ai/src/graphs)
 - **Tools**: AI tools in [packages/ai/src/tools/](mdc:packages/ai/src/tools)
+
+## Current Implementation Status
+- ✅ **Authentication**: Complete with Better-Auth, Google OAuth, email verification
+- ✅ **Routing**: App Router with protected routes
+- ✅ **UI Components**: Core shadcn/ui components installed
+- ✅ **Theming**: Dark/light mode support with next-themes
+- ✅ **Timezone**: Full timezone selection with Luxon
+- ✅ **Error Handling**: Toast notifications with Sonner
+- ✅ **Form Validation**: react-hook-form with Zod schemas
+- ⚠️ **Navigation**: Basic structure, needs enhancement
+- ⚠️ **Dashboard**: Basic implementation, needs features
+- ❌ **Social Media Integration**: Not yet connected to frontend
+- ❌ **Post Creation**: Main features not yet implemented
