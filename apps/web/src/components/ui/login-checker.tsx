@@ -53,6 +53,12 @@ export function LoginChecker({ children }: LoginCheckerProps) {
         checkAuthStatus()
     }, [router])
 
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            router.push(CLIENT_URL + "/signin")
+        }
+    }, [isAuthenticated, isLoading])
+
     if (isLoading) {
         return (
             <div className="flex min-h-svh items-center justify-center">
@@ -92,7 +98,7 @@ export function LoginChecker({ children }: LoginCheckerProps) {
 
                                 {user?.email && (
                                     <ResendVerificationEmail
-                                    size="lg"
+                                        size="lg"
                                         email={user.email}
                                         callbackURL={CLIENT_URL + "/dashboard"}
                                         helperText="Didn't receive the verification email?"
