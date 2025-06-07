@@ -9,7 +9,7 @@ import { z } from "zod"
 import { toast } from "sonner"
 import { User as UserIcon, Key, Save, LogOut, Shield, Clock, Mail, Settings, Link2, Plus, Trash2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -17,9 +17,21 @@ import { Separator } from "@/components/ui/separator"
 import { ThreeDotLoader } from "@/components/ui/loaders"
 import { H1 } from "@/components/ui/headings"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { authClient } from "@/lib/auth-client"
 import TimezoneSelect from "@/components/ui/timezone"
 import { CLIENT_URL } from "@/config"
+import Link from "next/link"
+import { useUser } from "@/components/providers/user-provider"
 
 // Form schemas
 const profileSchema = z.object({
@@ -51,16 +63,25 @@ type ConnectedAccount = {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const { user, refreshUser } = useUser()
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([])
-  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false)
+  const [accountToUnlink, setAccountToUnlink] = useState<{ provider: string; accountId: string } | null>(null)
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false)
   const [originalProfileData, setOriginalProfileData] = useState<ProfileFormData>({
     name: "",
     email: "",
     timeZone: "",
   })
+  const [isLoading, setIsLoading] = useState({
+    profile: false,
+    password: false,
+    accounts: false,
+    unlinkAccount: false, 
+    signOut: false,
+  })
+
+
+
   // Profile form
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -90,7 +111,7 @@ export default function SettingsPage() {
   // Load connected accounts
   const loadConnectedAccounts = async () => {
     try {
-      setIsLoadingAccounts(true)
+      setIsLoading(prev => ({ ...prev, accounts: true }))
       const accounts = await authClient.listAccounts()
       // Handle the response - it might be wrapped or direct
       if (Array.isArray(accounts)) {
@@ -105,13 +126,14 @@ export default function SettingsPage() {
       toast.error("Failed to load connected accounts")
       setConnectedAccounts([])
     } finally {
-      setIsLoadingAccounts(false)
+      setIsLoading(prev => ({ ...prev, accounts: false }))
     }
   }
 
   // Link Google account
   const handleLinkGoogle = async () => {
     try {
+      setIsLoading(prev => ({ ...prev, accounts: true }))
       await authClient.linkSocial({
         provider: "google",
         callbackURL: CLIENT_URL + "/settings"
@@ -119,15 +141,20 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Failed to link Google account:", error)
       toast.error("Failed to link Google account")
+    } finally {
+      setIsLoading(prev => ({ ...prev, accounts: false }))
     }
   }
 
   // Unlink account
-  const handleUnlinkAccount = async (provider: string, accountId: string) => {
+  const handleUnlinkAccount = async () => {
+    if (!accountToUnlink) return
+
     try {
+      setIsLoading(prev => ({ ...prev, unlinkAccount: true }))
       const res = await authClient.unlinkAccount({
-        providerId: provider,
-        accountId
+        providerId: accountToUnlink.provider,
+        accountId: accountToUnlink.accountId
       })
       if (res.error) {
         toast.error(res.error.message || "Failed to unlink account")
@@ -138,38 +165,29 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Failed to unlink account:", error)
       toast.error("Failed to unlink account")
+    } finally {
+      setIsLoading(prev => ({ ...prev, unlinkAccount: false }))
+      setAccountToUnlink(null)
     }
   }
 
-  // Load user data
+  // Load user data from context
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const { data: session } = await authClient.getSession()
-        if (session?.user) {
-          const profileData = {
-            name: session.user.name || "",
-            email: session.user.email || "",
-            timeZone: session.user.timeZone || "",
-          }
-          setOriginalProfileData(profileData)
-          profileForm.reset(profileData)
-        }
-      } catch (error) {
-        console.error("Failed to load user data:", error)
-        toast.error("Failed to load user data")
-      } finally {
-        setIsLoading(false)
+    if (user) {
+      const profileData = {
+        name: user.name || "",
+        email: user.email || "",
+        timeZone: user.timeZone || "",
       }
+      setOriginalProfileData(profileData)
+      profileForm.reset(profileData)
     }
-
-    loadUser()
     loadConnectedAccounts()
-  }, [profileForm])
+  }, [user, profileForm])
 
   // Update profile
   const onUpdateProfile = async (data: ProfileFormData) => {
-    setIsUpdatingProfile(true)
+    setIsLoading(prev => ({ ...prev, profile: true }))
     try {
       const { error } = await authClient.updateUser({
         name: data.name,
@@ -181,28 +199,19 @@ export default function SettingsPage() {
         toast.error(error.message || "Failed to update profile")
       } else {
         toast.success("Profile updated successfully")
-        // Refresh user data
-        const { data: session } = await authClient.getSession()
-        if (session?.user) {
-          const updatedProfileData = {
-            name: session.user.name || "",
-            email: session.user.email || "",
-            timeZone: session.user.timeZone || "",
-          }
-          setOriginalProfileData(updatedProfileData)
-          profileForm.reset(updatedProfileData)
-        }
+        // Refresh user data from context
+        await refreshUser()
       }
     } catch (error) {
       toast.error("An error occurred while updating your profile")
     } finally {
-      setIsUpdatingProfile(false)
+      setIsLoading(prev => ({ ...prev, profile: false }))
     }
   }
 
   // Change password
   const onChangePassword = async (data: PasswordFormData) => {
-    setIsUpdatingPassword(true)
+    setIsLoading(prev => ({ ...prev, password: true }))
     try {
       const { error } = await authClient.changePassword({
         currentPassword: data.currentPassword,
@@ -219,21 +228,23 @@ export default function SettingsPage() {
     } catch (error) {
       toast.error("An error occurred while changing your password")
     } finally {
-      setIsUpdatingPassword(false)
+      setIsLoading(prev => ({ ...prev, password: false }))
     }
   }
 
   // Sign out
   const handleSignOut = async () => {
     try {
+      setIsLoading(prev => ({ ...prev, signOut: true }))
       await authClient.signOut()
       router.push("/signin")
     } catch (error) {
       toast.error("Failed to sign out")
+      setIsLoading(prev => ({ ...prev, signOut: false }))
     }
   }
 
-  if (isLoading) {
+  if (!user) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -357,11 +368,11 @@ export default function SettingsPage() {
 
                     <Button
                       type="submit"
-                      disabled={isUpdatingProfile || !profileForm.formState.isValid || !hasProfileChanged}
+                      disabled={isLoading.profile || !profileForm.formState.isValid || !hasProfileChanged}
                       size="default"
                       className="w-full h-10 font-medium transition-all duration-200 hover:scale-[1.02]"
                     >
-                      {isUpdatingProfile ? (
+                      {isLoading.profile ? (
                         <ThreeDotLoader size="sm" />
                       ) : (
                         <>
@@ -407,6 +418,12 @@ export default function SettingsPage() {
                               {...field}
                             />
                           </FormControl>
+                          <Link
+                            href={"/forgot-password"}
+                            className="text-xs font-bold hover:text-primary/80 hover:underline transition-colors duration-200 text-right"
+                          >
+                            Forgot password?
+                          </Link>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -457,11 +474,11 @@ export default function SettingsPage() {
 
                     <Button
                       type="submit"
-                      disabled={isUpdatingPassword}
+                      disabled={isLoading.password}
                       size="default"
                       className="w-full h-10 font-medium transition-all duration-200 hover:scale-[1.02]"
                     >
-                      {isUpdatingPassword ? (
+                      {isLoading.password ? (
                         <ThreeDotLoader size="sm" />
                       ) : (
                         <>
@@ -493,17 +510,24 @@ export default function SettingsPage() {
                 </div>
                 <Button
                   onClick={handleLinkGoogle}
+                  disabled={isLoading.accounts}
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2"
                 >
-                  <Plus className="h-4 w-4" />
-                  Link Google
+                  {isLoading.accounts ? (
+                    <ThreeDotLoader size="sm" />
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Link Google
+                    </>
+                  )}
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isLoadingAccounts ? (
+              {isLoading.accounts ? (
                 <div className="flex items-center justify-center py-8">
                   <ThreeDotLoader size="sm" />
                   <span className="ml-2 text-sm text-muted-foreground">Loading accounts...</span>
@@ -519,12 +543,19 @@ export default function SettingsPage() {
                   </p>
                   <Button
                     onClick={handleLinkGoogle}
+                    disabled={isLoading.accounts}
                     variant="outline"
                     size="sm"
                     className="flex items-center gap-2"
                   >
-                    <Plus className="h-4 w-4" />
-                    Connect Google Account
+                    {isLoading.accounts ? (
+                      <ThreeDotLoader size="sm" />
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Connect Google Account
+                      </>
+                    )}
                   </Button>
                 </div>
               ) : (
@@ -569,12 +600,17 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Button
-                        onClick={() => handleUnlinkAccount(account.provider, account.accountId)}
+                        onClick={() => setAccountToUnlink({ provider: account.provider, accountId: account.accountId })}
+                        disabled={isLoading.unlinkAccount}
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {isLoading.unlinkAccount ? (
+                          <ThreeDotLoader size="sm" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   ))}
@@ -587,16 +623,80 @@ export default function SettingsPage() {
           <div className="flex justify-center">
             <Button
               variant="destructive"
-              onClick={handleSignOut}
+              onClick={() => setShowSignOutDialog(true)}
+              disabled={isLoading.signOut}
               size="default"
               className="w-full max-w-md h-10 font-medium transition-all duration-200 hover:scale-[1.02]"
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out of Account
+              {isLoading.signOut ? (
+                <ThreeDotLoader size="sm" />
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out of Account
+                </>
+              )}
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Unlink Account Confirmation Dialog */}
+      <AlertDialog open={!!accountToUnlink} onOpenChange={(open) => !open && setAccountToUnlink(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unlink your {accountToUnlink?.provider === "credential" ? "email" : accountToUnlink?.provider} account?
+              This action cannot be undone and you may lose access to certain features.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAccountToUnlink(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnlinkAccount}
+              disabled={isLoading.unlinkAccount}
+              className={buttonVariants({ variant: "destructive" })}
+            >
+              {isLoading.unlinkAccount ? (
+                <ThreeDotLoader size="sm" />
+              ) : (
+                "Unlink Account"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Sign Out Confirmation Dialog */}
+      <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign Out</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out? You will need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowSignOutDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSignOut}
+              disabled={isLoading.signOut}
+              className={buttonVariants({ variant: "destructive" })}
+            >
+              {isLoading.signOut ? (
+                <ThreeDotLoader size="sm" />
+              ) : (
+                "Sign Out"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 } 

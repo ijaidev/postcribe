@@ -1,4 +1,5 @@
 import ThemeProvider from "./theme-provider"
+import { UserProvider } from "./user-provider"
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
@@ -8,7 +9,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             enableSystem
             disableTransitionOnChange
         >
-            {children}
+            <UserProvider>
+                {children}
+            </UserProvider>
         </ThemeProvider>
     )
 }

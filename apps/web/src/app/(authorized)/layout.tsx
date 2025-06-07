@@ -5,5 +5,7 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    return <><LoginChecker>{children}</LoginChecker></>
+    return (
+        <LoginChecker>{children}</LoginChecker>
+    )
 }

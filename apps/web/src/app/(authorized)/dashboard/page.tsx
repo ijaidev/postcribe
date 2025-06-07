@@ -1,33 +1,22 @@
 "use client"
 
-import { authClient } from "@/lib/auth-client"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useUser } from "@/components/providers/user-provider"
 
 export default function DashboardPage() {
-    const { data, error, isPending } = authClient.useSession()
-    const router = useRouter()
+    const { user, isLoading } = useUser()
 
-    useEffect(() => {
-        console.log("data", data)
-        console.log("error", error)
-        console.log("isPending", isPending)
-        if (error || (!isPending && !data)) {
-            router.push(`/signin`)
-        }
-    }, [data, error, isPending])
-
-    if (isPending) {
+    if (isLoading) {
         return <div>Loading...</div>
     }
 
     return (
         <div>
             <h1>Dashboard</h1>
-            <p>Welcome {data?.user?.name}</p>
-            <p>Email: {data?.user?.email}</p>
-            <p>ID: {data?.user?.id}</p>
-            <p>Session: {JSON.stringify(data?.user)}</p>
+            <p>Welcome {user?.name}</p>
+            <p>Email: {user?.email}</p>
+            <p>ID: {user?.id}</p>
+            <p>Timezone: {user?.timeZone}</p>
+            <p>Email Verified: {user?.emailVerified ? 'Yes' : 'No'}</p>
         </div>
     )
 }

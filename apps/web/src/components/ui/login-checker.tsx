@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Mail, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { ResendVerificationEmail } from "@/components/ui/resend-verification-ema
 import { authClient } from "@/lib/auth-client"
 import { CLIENT_URL } from "@/config"
 import { ThreeDotLoader } from "@/components/ui/loaders/three-dot-loader"
+import { useUser } from "@/components/providers/user-provider"
 
 interface LoginCheckerProps {
     children: React.ReactNode
@@ -17,54 +18,21 @@ interface LoginCheckerProps {
 
 export function LoginChecker({ children }: LoginCheckerProps) {
     const router = useRouter()
-    const [isLoading, setIsLoading] = useState(true)
-    const [user, setUser] = useState<{ email: string; emailVerified: boolean } | null>(null)
-    const [isAuthenticated, setIsAuthenticated] = useState(false)
-    const [emailVerified, setEmailVerified] = useState(false)
-
+    const { user, isLoading, isAuthenticated, emailVerified, error, refreshUser } = useUser()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
-        const checkAuthStatus = async () => {
-            try {
-                const { data: session, error } = await authClient.getSession()
-
-                if (error || !session) {
-                    // Not authenticated
-                    setIsAuthenticated(false)
-                    setUser(null)
-                    setEmailVerified(false)
-
-                } else {
-                    // Authenticated
-                    setIsAuthenticated(true)
-                    setUser(session.user)
-                    setEmailVerified(session.user.emailVerified || false)
-                }
-            } catch (err) {
-                console.error("Auth check error:", err)
-                setIsAuthenticated(false)
-                setUser(null)
-                setEmailVerified(false)
-            } finally {
-                setIsLoading(false)
-            }
+        const redirect = searchParams.get("redirect")
+        if (!isLoading && !isAuthenticated && !error) {
+            router.push(CLIENT_URL + "/signin" + (redirect ? "?redirect=" + redirect : ""))
         }
-
-        checkAuthStatus()
-    }, [router])
-
-    useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
-            router.push(CLIENT_URL + "/signin")
-        }
-    }, [isAuthenticated, isLoading])
+    }, [isAuthenticated, isLoading, error, router, searchParams])
 
     if (isLoading) {
         return (
-            <div className="flex min-h-svh items-center justify-center">
+            <div className="fixed inset-0 z-50 flex min-h-svh items-center justify-center">
                 <ThreeDotLoader
                     size="lg"
-                    className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                 />
             </div>
         )
@@ -123,7 +91,7 @@ export function LoginChecker({ children }: LoginCheckerProps) {
                                         className="flex-1"
                                         onClick={() => {
                                             // Refresh auth status
-                                            window.location.reload()
+                                            refreshUser()
                                         }}
                                     >
                                         I&apos;ve verified
@@ -137,6 +105,47 @@ export function LoginChecker({ children }: LoginCheckerProps) {
         )
     }
 
+    if (error) {
+        return (
+            <div className="fixed inset-0 z-50 flex min-h-svh items-center justify-center">
+                <Card>
+                    <CardHeader className="text-center">
+                        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+                            <AlertTriangle className="size-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <CardTitle className="text-xl">Error</CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                                {error}
+                            </AlertDescription>
+                        </Alert>
+
+                        <div className="flex gap-2 pt-2">
+                            <Button
+                                className="flex-1"
+                                onClick={() => {
+                                    window.location.reload()
+                                }}
+                            >
+                                Try again
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
     // If authenticated and email verified, show normal content
-    return <>{children}</>
+    return isAuthenticated && emailVerified ? <>{children}</> : (
+        <div className="flex min-h-svh items-center justify-center">
+            <ThreeDotLoader
+                size="lg"
+            />
+        </div>
+    )
 } 
