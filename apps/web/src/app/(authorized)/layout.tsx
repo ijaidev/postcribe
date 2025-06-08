@@ -1,4 +1,3 @@
-import { LoginChecker } from "@/components/ui/login-checker";
 
 export default function RootLayout({
     children,
@@ -6,6 +5,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <LoginChecker>{children}</LoginChecker>
+        <>
+            {children}
+        </>
     )
 }

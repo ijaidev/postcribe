@@ -15,6 +15,8 @@ This is an AI-powered social media post creator app built with Next.js, React, a
 - **Font**: Poppins (set via CSS variables in globals.css)
 - **Animations**: Lightweight, smooth animations using CSS transitions and Tailwind utilities
 - **Package Manager**: Bun (as specified in project setup)
+- **State Management**: React Context with custom UserProvider
+- **Authentication**: Better-Auth v1.2.8 with Google OAuth
 
 ## Design Philosophy
 - **DRY Principle**: Don't Repeat Yourself - always check existing components first
@@ -49,6 +51,117 @@ cat apps/web/src/components/ui/resend-verification-email.tsx # Email verificatio
 cat apps/web/src/components/ui/timezone.tsx        # Timezone selection
 ```
 
+## User Management & Authentication
+
+### UserProvider Context (ALWAYS USE THIS)
+**The app uses a centralized user management system. ALWAYS use the useUser hook instead of direct auth calls.**
+
+```tsx
+import { useUser } from '@/components/providers/user-provider'
+
+function MyComponent() {
+  const { 
+    user,           // User | null - current user data
+    isLoading,      // boolean - loading state for user data
+    isAuthenticated, // boolean - whether user is authenticated
+    emailVerified,  // boolean - whether user's email is verified
+    error,          // string | null - error message if any
+    refreshUser     // () => Promise<void> - refresh user data
+  } = useUser()
+
+  // Loading state - ALWAYS handle this first
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <ThreeDotLoader size="lg" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  // Not authenticated
+  if (!isAuthenticated || !user) {
+    return <div>Please sign in to continue</div>
+  }
+
+  // Email not verified (if required)
+  if (!emailVerified) {
+    return (
+      <div className="space-y-4">
+        <Alert>
+          <AlertDescription>Please verify your email address</AlertDescription>
+        </Alert>
+        <ResendVerificationEmail email={user.email} />
+      </div>
+    )
+  }
+
+  // Authenticated user with verified email
+  return (
+    <div>
+      <H1>Welcome, {user.name || 'User'}!</H1>
+      <p>Email: {user.email}</p>
+      <p>Timezone: {user.timeZone || 'Not set'}</p>
+      <Button onClick={refreshUser}>Refresh User Data</Button>
+    </div>
+  )
+}
+```
+
+### User Data Interface
+```tsx
+interface User {
+  id: string
+  email: string
+  name?: string | null
+  timeZone?: string | null
+  emailVerified: boolean
+  image?: string | null
+}
+
+interface UserContextType {
+  user: User | null
+  isLoading: boolean
+  isAuthenticated: boolean
+  emailVerified: boolean
+  error: string | null
+  refreshUser: () => Promise<void>
+}
+```
+
+### Provider Setup (Already Configured)
+The UserProvider is already set up in [providers.tsx](mdc:apps/web/src/components/providers/providers.tsx):
+
+```tsx
+// Already configured - DO NOT MODIFY
+<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+  <UserProvider>
+    {children}
+  </UserProvider>
+</ThemeProvider>
+```
+
+### Route Protection Pattern
+Protected routes use the [LoginChecker](mdc:apps/web/src/components/ui/login-checker.tsx) component:
+
+```tsx
+// Already implemented in (authorized) layout
+import { LoginChecker } from '@/components/ui/login-checker'
+
+export default function AuthorizedLayout({ children }: { children: React.ReactNode }) {
+  return <LoginChecker>{children}</LoginChecker>
+}
+```
+
 ## Folder Structure & Component Organization
 
 ### Components Architecture (Current Implementation)
@@ -56,6 +169,7 @@ cat apps/web/src/components/ui/timezone.tsx        # Timezone selection
 components/
 ├── ui/                              # All components (shadcn + custom)
 │   ├── alert.tsx                    # ✅ Alert messages and notifications
+│   ├── alert-dialog.tsx             # ✅ Modal confirmation dialogs
 │   ├── badge.tsx                    # ✅ Status indicators and labels
 │   ├── button.tsx                   # ✅ Interactive buttons
 │   ├── card.tsx                     # ✅ Content containers
@@ -77,7 +191,6 @@ components/
 │   │   └── index.ts                 # ✅ Loader exports
 │   └── [install as needed]/        # 🔄 Available shadcn components:
 │       ├── accordion.tsx            # Collapsible content sections
-│       ├── alert-dialog.tsx         # Modal confirmation dialogs
 │       ├── aspect-ratio.tsx         # Responsive aspect ratios
 │       ├── avatar.tsx               # User profile pictures
 │       ├── breadcrumb.tsx           # Navigation breadcrumbs
@@ -113,6 +226,7 @@ components/
 │       └── tooltip.tsx              # Hover help text
 └── providers/                       # Context providers
     ├── theme-provider.tsx           # ✅ Dark/light theme support
+    ├── user-provider.tsx            # ✅ User context and authentication state
     └── providers.tsx                # ✅ Combined providers wrapper
 ```
 
@@ -122,7 +236,8 @@ components/
 **ALWAYS check existing components before creating anything new**
 
 ```tsx
-// ✅ CORRECT: Check and use existing components
+// ✅ CORRECT: Check and use existing components with user context
+import { useUser } from '@/components/providers/user-provider'
 import { H1, H2, Subtitle } from '@/components/ui/headings'
 import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
 import { ThreeDotLoader } from '@/components/ui/loaders'
@@ -131,28 +246,43 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 function MyPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [timezone, setTimezone] = useState("")
+  const { user, isLoading, isAuthenticated, emailVerified } = useUser()
+  const [timezone, setTimezone] = useState(user?.timeZone || "")
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <ThreeDotLoader size="lg" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <div>Please sign in</div>
+  }
 
   return (
     <Card>
       <CardHeader>
-        <H1>Main Title</H1>
-        <Subtitle>Supporting text</Subtitle>
+        <H1>Welcome, {user?.name}!</H1>
+        <Subtitle>Manage your account settings</Subtitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!emailVerified && (
+          <ResendVerificationEmail email={user?.email || ""} />
+        )}
         <TimezoneSelect value={timezone} onValueChange={setTimezone} />
-        <ResendVerificationEmail email="user@example.com" />
-        <Button disabled={isLoading}>
-          {isLoading ? <ThreeDotLoader size="sm" /> : 'Action'}
-        </Button>
+        <Button>Save Changes</Button>
       </CardContent>
     </Card>
   )
 }
 
-// ❌ WRONG: Creating duplicates of existing functionality
+// ❌ WRONG: Creating duplicates or not using user context
 function MyPage() {
+  // Don't use authClient directly - use useUser hook instead
+  const { data: session } = authClient.useSession()
+  
   return (
     <div className="border rounded-lg p-4">  {/* Don't recreate Card */}
       <h1 className="text-4xl font-bold">Title</h1>  {/* Don't recreate H1 */}
@@ -260,7 +390,7 @@ import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, Pagi
 ```bash
 # List all available components
 ls apps/web/src/components/ui/
-ls apps/web/src/components/layout/
+ls apps/web/src/components/providers/
 ```
 
 #### Step 2: Read Component Documentation
@@ -269,9 +399,10 @@ ls apps/web/src/components/layout/
 cat apps/web/src/components/ui/button.tsx
 cat apps/web/src/components/ui/card.tsx
 
-# Read custom layout components
-cat apps/web/src/components/layout/headings.tsx
+# Read custom components
+cat apps/web/src/components/ui/headings.tsx
 cat apps/web/src/components/ui/resend-verification-email.tsx
+cat apps/web/src/components/providers/user-provider.tsx
 ```
 
 #### Step 3: Install Missing Components
@@ -351,77 +482,171 @@ From [globals.css](mdc:apps/web/src/app/globals.css):
 
 ## Component Usage Examples
 
-### Layout Components (Check These First!)
+### User-Aware Components (ALWAYS USE)
 ```tsx
-// Use existing heading components from layout
-import { H1, H2, H3, Subtitle } from '@/components/layout/headings'
-
-// Use existing utility components
+// Use existing components with user context
+import { useUser } from '@/components/providers/user-provider'
+import { H1, H2, H3, Subtitle } from '@/components/ui/headings'
 import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
+import { ThreeDotLoader } from '@/components/ui/loaders'
+import TimezoneSelect from '@/components/ui/timezone'
 
-function MyPage() {
+function UserProfileCard() {
+  const { user, isLoading, isAuthenticated, emailVerified, refreshUser } = useUser()
+
+  if (isLoading) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardContent className="flex items-center justify-center py-8">
+          <ThreeDotLoader size="lg" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardContent className="py-8 text-center">
+          <H3>Please sign in</H3>
+          <Subtitle>Access your account to continue</Subtitle>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
-    <div>
-      <H1>Page Title</H1>
-      <Subtitle>Page description</Subtitle>
-      <ResendVerificationEmail email="user@example.com" />
-    </div>
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <H2>Profile</H2>
+        <Subtitle>Manage your account information</Subtitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label>Name</Label>
+          <p className="text-sm font-medium">{user.name || 'Not set'}</p>
+        </div>
+        <div>
+          <Label>Email</Label>
+          <p className="text-sm font-medium">{user.email}</p>
+          {!emailVerified && (
+            <Badge variant="destructive" className="mt-1">Not verified</Badge>
+          )}
+        </div>
+        <div>
+          <Label>Timezone</Label>
+          <p className="text-sm font-medium">{user.timeZone || 'Not set'}</p>
+        </div>
+        
+        {!emailVerified && (
+          <ResendVerificationEmail 
+            email={user.email} 
+            variant="outline"
+            className="w-full"
+          />
+        )}
+        
+        <Button onClick={refreshUser} variant="outline" className="w-full">
+          Refresh Profile
+        </Button>
+      </CardContent>
+    </Card>
   )
 }
 ```
 
-### Form Examples
+### Form Examples with User Context
 ```tsx
+import { useUser } from '@/components/providers/user-provider'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
+import TimezoneSelect from '@/components/ui/timezone'
 
-<Form {...form}>
-  <form className="space-y-6">
-    <FormField
-      control={form.control}
-      name="email"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Email</FormLabel>
-          <FormControl>
-            <Input placeholder="Enter email" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    
-    <FormField
-      control={form.control}
-      name="category"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Category</FormLabel>
-          <Select onValueChange={field.onChange} defaultValue={field.value}>
-            <FormControl>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              <SelectItem value="tech">Technology</SelectItem>
-              <SelectItem value="design">Design</SelectItem>
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    
-    <Button type="submit">Submit</Button>
-  </form>
-</Form>
+function UserSettingsForm() {
+  const { user, isLoading, refreshUser } = useUser()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const form = useForm({
+    defaultValues: {
+      name: user?.name || "",
+      timeZone: user?.timeZone || "",
+    },
+  })
+
+  // Update form when user data changes
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.name || "",
+        timeZone: user.timeZone || "",
+      })
+    }
+  }, [user, form])
+
+  const onSubmit = async (values: { name: string; timeZone: string }) => {
+    setIsSubmitting(true)
+    try {
+      const { error } = await authClient.updateUser(values)
+      if (error) {
+        toast.error(error.message)
+      } else {
+        toast.success("Profile updated successfully")
+        await refreshUser() // Refresh user data after update
+      }
+    } catch (err) {
+      toast.error("Failed to update profile")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading) {
+    return <ThreeDotLoader size="lg" />
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter your name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="timeZone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Timezone</FormLabel>
+              <FormControl>
+                <TimezoneSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="w-full"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? <ThreeDotLoader size="sm" /> : 'Save Changes'}
+        </Button>
+      </form>
+    </Form>
+  )
+}
 ```
 
 ### Navigation Examples
@@ -570,6 +795,7 @@ import { Progress } from '@/components/ui/progress'
 ## Quality Standards
 
 ### Code Quality (DRY Principles)
+- **Always use useUser hook** instead of direct authClient calls
 - **Always check existing components first** before creating new ones
 - **Read component documentation** before using any component
 - **Use shadcn components directly** without custom wrappers
@@ -578,17 +804,19 @@ import { Progress } from '@/components/ui/progress'
 - **Implement proper error handling**
 
 ### UX Standards
-- **Loading states** for all async operations using existing loader components
+- **Loading states** for all async operations using existing ThreeDotLoader
 - **Error handling** with user-friendly messages using Alert components
 - **Responsive design** (mobile-first) using existing responsive patterns
 - **Fast page load times**
 - **Consistent animations and transitions**
+- **User context awareness** - always consider user state and authentication
 
 ### Performance
 - **Leverage shadcn's optimized components**
 - **Use proper loading states** with existing ThreeDotLoader
 - **Optimize images and assets**
 - **Implement lazy loading** where appropriate
+- **Use UserProvider efficiently** - avoid unnecessary refreshUser calls
 
 ### Accessibility
 - **Maintain shadcn's built-in accessibility features**
@@ -598,22 +826,23 @@ import { Progress } from '@/components/ui/progress'
 
 ## Authentication Patterns
 
-### Better-Auth Integration
+### Better-Auth Integration (Use Through UserProvider)
 ```tsx
-import { authClient } from '@/lib/auth-client'
+import { useUser } from '@/components/providers/user-provider'
 import { LoginChecker } from '@/components/ui/login-checker'
 import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
 import TimezoneSelect from '@/components/ui/timezone'
+import { authClient } from '@/lib/auth-client'
 
 // Route protection (already implemented in (authorized) layout)
 <LoginChecker>
   {children}
 </LoginChecker>
 
-// Get current user session
-const { data: session, error, isPending } = authClient.useSession()
+// Get current user data - ALWAYS USE THIS
+const { user, isLoading, isAuthenticated, emailVerified, error, refreshUser } = useUser()
 
-// Sign up with email/password
+// Sign up with email/password (in signup pages)
 const handleSignup = async (values: { email: string; password: string; name: string }) => {
   const { data, error } = await authClient.signUp.email({
     email: values.email,
@@ -621,17 +850,27 @@ const handleSignup = async (values: { email: string; password: string; name: str
     name: values.name,
     timeZone: "", // Set in step 2
   })
+  
+  if (!error) {
+    // Refresh user context after successful signup
+    await refreshUser()
+  }
 }
 
-// Sign in with email/password
+// Sign in with email/password (in signin pages)
 const handleSignin = async (values: { email: string; password: string }) => {
   const { data, error } = await authClient.signIn.email({
     email: values.email,
     password: values.password,
   })
+  
+  if (!error) {
+    // Refresh user context after successful signin
+    await refreshUser()
+  }
 }
 
-// Google OAuth
+// Google OAuth (in auth pages)
 const handleGoogleAuth = async () => {
   const { data, error } = await authClient.signIn.social({
     provider: "google",
@@ -642,15 +881,21 @@ const handleGoogleAuth = async () => {
 // Sign out
 const handleSignOut = async () => {
   await authClient.signOut()
+  // User context will automatically update
   router.push('/signin')
 }
 
-// Update user profile
+// Update user profile - ALWAYS refresh context after
 const updateProfile = async (data: { name: string; timeZone: string }) => {
   const { error } = await authClient.updateUser({
     name: data.name,
     timeZone: data.timeZone,
   })
+  
+  if (!error) {
+    // Refresh user context after successful update
+    await refreshUser()
+  }
 }
 ```
 
@@ -675,6 +920,9 @@ try {
   if (error) {
     const message = getErrorMessage(error.code, error.message)
     toast.error(message)
+  } else {
+    toast.success("Account created successfully")
+    await refreshUser() // Always refresh after auth actions
   }
 } catch (err: any) {
   toast.error("Something went wrong. Please try again.")
@@ -697,22 +945,35 @@ import { ResendVerificationEmail } from '@/components/ui/resend-verification-ema
   variant="default"
   size="default"
   helperText="Need a new verification email?"
-  onSuccess={() => console.log('Email sent!')}
-  onError={(err) => console.error('Failed:', err)}
+  onSuccess={() => {
+    toast.success('Verification email sent!')
+    // Optionally refresh user data
+    refreshUser()
+  }}
+  onError={(err) => {
+    console.error('Failed:', err)
+    toast.error('Failed to send verification email')
+  }}
 />
 ```
 
 #### Timezone Selection Component
 ```tsx
 import TimezoneSelect from '@/components/ui/timezone'
+import { useUser } from '@/components/providers/user-provider'
 
-const [timezone, setTimezone] = useState("")
+function TimezoneForm() {
+  const { user } = useUser()
+  const [timezone, setTimezone] = useState(user?.timeZone || "")
 
-<TimezoneSelect
-  value={timezone}
-  onValueChange={setTimezone}
-  className="w-full"
-/>
+  return (
+    <TimezoneSelect
+      value={timezone}
+      onValueChange={setTimezone}
+      className="w-full"
+    />
+  )
+}
 ```
 
 #### Loading States
@@ -724,22 +985,87 @@ import { ThreeDotLoader } from '@/components/ui/loaders'
   {isLoading ? <ThreeDotLoader size="sm" /> : 'Submit'}
 </Button>
 
-// Standalone loading
-<div className="flex items-center justify-center py-8">
-  <ThreeDotLoader size="lg" />
-</div>
+// Standalone loading with user context
+const { isLoading } = useUser()
+
+if (isLoading) {
+  return (
+    <div className="flex items-center justify-center py-8">
+      <ThreeDotLoader size="lg" />
+      <span className="ml-2 text-sm text-muted-foreground">Loading user data...</span>
+    </div>
+  )
+}
 ```
 
 #### Typography Components
 ```tsx
 import { H1, H2, H3, Subtitle } from '@/components/ui/headings'
+import { useUser } from '@/components/providers/user-provider'
 
-<div className="space-y-4">
-  <H1>Main Page Title</H1>
-  <Subtitle>Supporting description text</Subtitle>
-  <H2>Section Title</H2>
-  <H3>Subsection Title</H3>
-</div>
+function WelcomePage() {
+  const { user, isAuthenticated } = useUser()
+
+  return (
+    <div className="space-y-4">
+      <H1>Welcome{isAuthenticated && user?.name ? `, ${user.name}` : ''}!</H1>
+      <Subtitle>Start creating amazing social media content</Subtitle>
+      <H2>Getting Started</H2>
+      <H3>Step 1: Set up your profile</H3>
+    </div>
+  )
+}
 ```
 
-This comprehensive approach ensures we leverage all available components while maintaining design consistency and following DRY principles throughout the application.
+## Route Protection & Navigation
+
+### Protected Route Pattern
+```tsx
+// Already implemented in (authorized) layout - use this pattern for new protected routes
+import { LoginChecker } from '@/components/ui/login-checker'
+
+export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  return <LoginChecker>{children}</LoginChecker>
+}
+
+// LoginChecker automatically handles:
+// - Loading states
+// - Redirecting unauthenticated users
+// - Email verification checks
+// - Error handling
+```
+
+### User-Aware Navigation
+```tsx
+import { useUser } from '@/components/providers/user-provider'
+
+function Navigation() {
+  const { user, isAuthenticated, isLoading } = useUser()
+
+  if (isLoading) {
+    return <ThreeDotLoader size="sm" />
+  }
+
+  return (
+    <nav className="flex items-center gap-4">
+      {isAuthenticated ? (
+        <>
+          <span>Welcome, {user?.name || 'User'}!</span>
+          <Button onClick={handleSignOut}>Sign Out</Button>
+        </>
+      ) : (
+        <>
+          <Button asChild variant="ghost">
+            <Link href="/signin">Sign In</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/signup">Sign Up</Link>
+          </Button>
+        </>
+      )}
+    </nav>
+  )
+}
+```
+
+This comprehensive approach ensures we leverage all available components while maintaining design consistency, following DRY principles, and properly integrating user context throughout the application.

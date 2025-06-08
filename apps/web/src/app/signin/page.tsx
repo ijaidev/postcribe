@@ -53,15 +53,16 @@ export default function LoginPage() {
         password: formData.password,
       })
 
-      if (signInError) {
-        setError(signInError.message || "Failed to sign in")
+      if (signInError || !data) {
+        setError(signInError?.message || "Failed to sign in")
       } else if (data) {
         // Success - redirect will happen automatically via callbackURL
         router.push(redirect ? redirect : CLIENT_URL + "/dashboard")
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.")
-    } finally {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred. Please try again."
+      setError(errorMessage)
+    } finally { 
       setIsLoading(false)
     }
   }
@@ -78,8 +79,9 @@ export default function LoginPage() {
         callbackURL: redirect ? redirect : CLIENT_URL + "/dashboard",
         errorCallbackURL: "/signin?error=oauth_error",
       })
-    } catch (err) {
-      setError("Failed to sign in with Google. Please try again.")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred. Please try again."
+      setError(errorMessage)
       setIsLoading(false)
     }
   }

@@ -25,7 +25,7 @@ interface ResendVerificationEmailProps {
   /** Callback fired when email is successfully sent */
   onSuccess?: () => void
   /** Callback fired when email sending fails */
-  onError?: (error: any) => void
+  onError?: (error: unknown) => void
 }
 
 export function ResendVerificationEmail({
@@ -48,27 +48,24 @@ export function ResendVerificationEmail({
     setIsResending(true)
 
     try {
-      await authClient.sendVerificationEmail({
+      const response = await authClient.sendVerificationEmail({
         email,
         ...(callbackURL && { callbackURL }),
       })
 
-      toast.success("Verification email sent!", {
-        description: "Please check your email and click the verification link.",
-        icon: <Mail className="h-4 w-4" />,
-      })
-
-      // Start 1-minute cooldown
-      setCooldown(60)
-      onSuccess?.()
-
-    } catch (err: any) {
-      const errorMessage = err.message || "Something went wrong. Please try again."
-      
-      toast.error("Failed to send verification email", {
-        description: errorMessage,
-      })
-      
+      if (response.error || !response.data.status) {
+        toast.error(response.error?.message || "Failed to send verification email")
+      } else {
+        toast.success("Verification email sent!", {
+          description: "Please check your email and click the verification link.",
+          icon: <Mail className="h-4 w-4" />,
+        })
+        setCooldown(60)
+        onSuccess?.()
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong. Please try again."
+      toast.error(errorMessage)
       onError?.(err)
     } finally {
       setIsResending(false)
@@ -77,7 +74,7 @@ export function ResendVerificationEmail({
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
-    
+
     if (cooldown > 0) {
       interval = setInterval(() => {
         setCooldown((prev) => {
@@ -104,7 +101,7 @@ export function ResendVerificationEmail({
           <span>{helperText}</span>
         </div>
       )}
-      
+
       <Button
         type="button"
         variant={variant}

@@ -268,6 +268,17 @@
         "typescript": "^5",
       },
     },
+    "packages/redis": {
+      "name": "@repo/redis",
+      "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "packages/s3": {
       "name": "@repo/s3",
       "dependencies": {
@@ -682,6 +693,8 @@
     "@repo/mail-templates": ["@repo/mail-templates@workspace:packages/mail-templates"],
 
     "@repo/mailer": ["@repo/mailer@workspace:packages/mailer"],
+
+    "@repo/redis": ["@repo/redis@workspace:packages/redis"],
 
     "@repo/s3": ["@repo/s3@workspace:packages/s3"],
 

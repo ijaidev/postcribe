@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Mail, Key, AlertTriangle, ArrowLeft } from "lucide-react"
+import { Mail, Key, AlertTriangle, ArrowLeft, Clock } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThreeDotLoader } from "@/components/ui/loaders"
-import { H1, Subtitle } from "@/components/ui/headings"
+import { Subtitle } from "@/components/ui/headings"
 import { authClient } from "@/lib/auth-client"
 import { useUser } from "@/components/providers/user-provider"
-import { SendEmail } from "@/components/ui/send-email"
 
 // Form schemas
 const emailSchema = z.object({
@@ -36,18 +35,21 @@ const resetPasswordSchema = z.object({
 type EmailFormData = z.infer<typeof emailSchema>
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
-  const { user } = useUser()
-  
+  const { user, isLoading: userLoading } = useUser()
+
   const [isLoading, setIsLoading] = useState({
     sendEmail: false,
     resetPassword: false,
   })
   const [resetError, setResetError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
   const [showResendSection, setShowResendSection] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
 
   // Email form for sending reset link
   const emailForm = useForm<EmailFormData>({
@@ -73,6 +75,51 @@ export default function ForgotPasswordPage() {
     }
   }, [user, emailForm])
 
+  // Cooldown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (cooldownSeconds > 0) {
+      interval = setInterval(() => {
+        setCooldownSeconds(prev => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [cooldownSeconds])
+
+  // Start cooldown timer
+  const startCooldown = () => {
+    setCooldownSeconds(60)
+  }
+
+  // Send reset email
+  const onSendResetEmail = async (data: EmailFormData) => {
+    setIsLoading(prev => ({ ...prev, sendEmail: true }))
+    setEmailError(null)
+
+    try {
+      const response = await authClient.forgetPassword({
+        email: data.email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (response.error || !response.data.status) {
+        const errorMessage = response.error?.message || "Failed to send reset email"
+        setEmailError(errorMessage)
+        toast.error(errorMessage)
+      } else {
+        setEmailSent(true)
+        setEmailError(null)
+        startCooldown()
+        toast.success("Reset link sent! Check your email.")
+      }
+    } catch {
+      const errorMessage = "Network error. Please check your connection and try again."
+      setEmailError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(prev => ({ ...prev, sendEmail: false }))
+    }
+  }
 
   // Reset password with token
   const onResetPassword = async (data: ResetPasswordFormData) => {
@@ -82,17 +129,17 @@ export default function ForgotPasswordPage() {
     setResetError(null)
 
     try {
-      const { error } = await authClient.resetPassword({
+      const response = await authClient.resetPassword({
         newPassword: data.newPassword,
         token,
       })
 
-      if (error) {
-        if (error.code === "INVALID_TOKEN") {
-          setResetError("The reset link has expired. Please request a new one.")
+      if (response.error || !response.data.status) {
+        if (response.error?.code === "INVALID_TOKEN" || response.error?.code === "TOKEN_EXPIRED") {
+          setResetError("The reset link has expired or is invalid. Please request a new one.")
           setShowResendSection(true)
         } else {
-          setResetError(error.message || "Failed to reset password")
+          setResetError(response.error?.message || "Failed to reset password. Please try again.")
           setShowResendSection(true)
         }
       } else {
@@ -100,11 +147,24 @@ export default function ForgotPasswordPage() {
         router.push("/signin")
       }
     } catch {
-      setResetError("Failed to reset password. The reset link may have expired.")
+      setResetError("Network error. Please check your connection and try again. If the problem persists, the reset link may have expired.")
       setShowResendSection(true)
     } finally {
       setIsLoading(prev => ({ ...prev, resetPassword: false }))
     }
+  }
+
+
+  // Show loading state while checking user
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <ThreeDotLoader size="lg" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   // Reset password form (when token is present)
@@ -112,15 +172,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              <div className="p-2 rounded-full bg-primary/10">
-                <Key className="h-6 w-6 text-primary" />
-              </div>
-              <H1 className="font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Reset Password
-              </H1>
-            </div>
+          <div className="text-center space-y-3 flex flex-col items-center justify-center">
             <Subtitle className="text-muted-foreground max-w-xl mx-auto">
               Enter your new password below
             </Subtitle>
@@ -203,10 +255,18 @@ export default function ForgotPasswordPage() {
                     <p className="text-sm text-muted-foreground mb-3">
                       Need a new reset link?
                     </p>
-          </div>
+                  </div>
 
                   <Form {...emailForm}>
-                    <form className="space-y-3">
+                    <form onSubmit={emailForm.handleSubmit(onSendResetEmail)} className="space-y-3">
+                      {/* Error Alert for resend */}
+                      {emailError && (
+                        <Alert variant="destructive">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription>{emailError}</AlertDescription>
+                        </Alert>
+                      )}
+
                       <FormField
                         control={emailForm.control}
                         name="email"
@@ -225,40 +285,57 @@ export default function ForgotPasswordPage() {
                           </FormItem>
                         )}
                       />
-                      <SendEmail
-                        email={emailForm.getValues("email")}
-                      />
+
+                      <Button
+                        type="submit"
+                        disabled={isLoading.sendEmail || cooldownSeconds > 0}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        {isLoading.sendEmail ? (
+                          <ThreeDotLoader size="sm" />
+                        ) : cooldownSeconds > 0 ? (
+                          <>
+                            <Clock className="h-4 w-4 mr-2 animate-spin duration-1000" />
+                            Resend in {cooldownSeconds}s
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Send New Reset Link
+                          </>
+                        )}
+                      </Button>
                     </form>
                   </Form>
                 </div>
               )}
 
               <div className="text-center pt-2">
-                  <Link href="/signin" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    <ArrowLeft className="h-3 w-3 inline mr-1" />
-                    Back to Sign In
-                  </Link>
+                <Link href="/signin" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <ArrowLeft className="h-3 w-3 inline mr-1" />
+                  Back to Sign In
+                </Link>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-    ) 
+    )
   }
 
-  // Email input form (default state)
+  // Email input form (default state - no token)
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-8">
           <div className="flex items-center justify-center gap-3">
             <div className="p-3 rounded-full bg-primary/10 ring-8 ring-primary/5">
               <Mail className="h-8 w-8 text-primary" />
             </div>
           </div>
           <div className="space-y-2">
-            <H1 className="font-bold text-3xl">Forgot Password</H1>
             <Subtitle className="text-muted-foreground">
               Enter your email address and we&apos;ll send you a link to reset your password
             </Subtitle>
@@ -268,51 +345,109 @@ export default function ForgotPasswordPage() {
         {/* Form Card */}
         <Card className="shadow-xl border-0 bg-card/60 backdrop-blur-md">
           <CardContent className="p-8">
-            <Form {...emailForm}>
-              <form className="space-y-6">
-                <FormField
-                  control={emailForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-medium flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Email Address
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter your email address"
-                          className="h-14 text-base bg-background border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            {emailSent ? (
+              <div className="text-center space-y-4">
+                <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30 w-fit mx-auto">
+                  <Mail className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Check your email</h3>
+                  <p className="text-sm text-muted-foreground">
+                    We&apos;ve sent a password reset link to <br />
+                    <span className="font-medium text-foreground">{emailForm.getValues("email")}</span>
+                  </p>
+                </div>
+
+                {/* Error Alert for resend failures */}
+                {emailError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{emailError}</AlertDescription>
+                  </Alert>
+                )}
 
                 <Button
-                  type="submit"
-                  disabled={isLoading.sendEmail}
-                  size="lg"
-                  className="w-full h-14 text-base font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  onClick={() => {
+                    setEmailError(null)
+                    setEmailSent(false)
+                  }}
+                  disabled={cooldownSeconds > 0}
+                  variant="outline"
+                  className="w-full"
                 >
-                  {isLoading.sendEmail ? (
-                    <ThreeDotLoader size="sm" />
+                  {cooldownSeconds > 0 ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin duration-1000" />
+                      Send another in {cooldownSeconds}s
+                    </>
                   ) : (
                     <>
-                      <Mail className="h-5 w-5 mr-2" />
-                      Send Reset Link
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send another email
                     </>
                   )}
                 </Button>
-              </form>
-            </Form>
+              </div>
+            ) : (
+              <Form {...emailForm}>
+                <form onSubmit={emailForm.handleSubmit(onSendResetEmail)} className="space-y-6">
+                  {/* Error Alert */}
+                  {emailError && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{emailError}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <FormField
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Email Address
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="Enter your email address"
+                            className="h-14 text-base bg-background border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading.sendEmail || cooldownSeconds > 0}
+                    size="lg"
+                    className="w-full h-14 text-base font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    {isLoading.sendEmail ? (
+                      <ThreeDotLoader size="sm" />
+                    ) : cooldownSeconds > 0 ? (
+                      <>
+                        <Clock className="h-5 w-5 mr-2 animate-spin duration-1000" />
+                        Send again in {cooldownSeconds}s
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-5 w-5 mr-2" />
+                        Send Reset Link
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            )}
 
             <div className="mt-8 text-center">
-              <Link 
-                href="/signin" 
+              <Link
+                href="/signin"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 hover:underline"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -323,7 +458,7 @@ export default function ForgotPasswordPage() {
         </Card>
 
         {/* Helper text */}
-        {user?.email && (
+        {user?.email && !emailSent && (
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
               Signed in as <span className="font-medium text-foreground">{user.email}</span>

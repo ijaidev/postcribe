@@ -134,13 +134,19 @@ export default function SettingsPage() {
   const handleLinkGoogle = async () => {
     try {
       setIsLoading(prev => ({ ...prev, accounts: true }))
-      await authClient.linkSocial({
+      const res = await authClient.linkSocial({
         provider: "google",
         callbackURL: CLIENT_URL + "/settings"
       })
-    } catch {
-      console.error("Failed to link Google account")
-      toast.error("Failed to link Google account")
+      if (res.error || !res.data) {
+        toast.error(res.error?.message || "Failed to link Google account")
+      } else {
+        toast.success("Google account linked successfully")
+        loadConnectedAccounts() // Refresh the list
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred. Please try again."
+      toast.error(errorMessage)
     } finally {
       setIsLoading(prev => ({ ...prev, accounts: false }))
     }
@@ -242,17 +248,6 @@ export default function SettingsPage() {
       toast.error("Failed to sign out")
       setIsLoading(prev => ({ ...prev, signOut: false }))
     }
-  }
-
-  if (!user) {
-    return (
-      <div className="flex min-h-svh items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <ThreeDotLoader size="lg" />
-          <p className="text-sm text-muted-foreground">Loading your settings...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
