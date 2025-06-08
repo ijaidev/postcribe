@@ -17,8 +17,6 @@ const publicRoutes = ["/", "/reset-password", "/verify-email"]
 
 
 export function LoginChecker() {
-
-
     const [isChecking, setIsChecking] = useState(true)
     const router = useRouter()
     const { user, isLoading, isAuthenticated, emailVerified, error, refreshUser } = useUser()
@@ -88,7 +86,7 @@ export function LoginChecker() {
         )
     }
 
-    if ((!isAuthRoute && !user) || isChecking) {
+    if ((!isAuthRoute && !user) || (user && isAuthRoute) || isChecking  ) {
         return (
             <div className="fixed inset-0 z-50 flex min-h-svh items-center justify-center overflow-hidden bg-background">
                 <ThreeDotLoader
