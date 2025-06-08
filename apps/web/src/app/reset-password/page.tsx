@@ -247,6 +247,7 @@ export default function ResetPasswordPage() {
                 disabled={isLoading.sendEmail || cooldownSeconds > 0}
                 variant="outline"
                 className="w-full"
+                size="lg"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Send New Reset Link
@@ -286,99 +287,62 @@ export default function ResetPasswordPage() {
         {/* Form Card */}
         <Card className="shadow-xl border-0 bg-card/60 backdrop-blur-md">
           <CardContent className="p-8">
-            {emailSent ? (
-              <div className="text-center space-y-4">
-                <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30 w-fit mx-auto">
-                  <Mail className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Check your email</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We&apos;ve sent a password reset link to <br />
-                    <span className="font-medium text-foreground">{emailForm.getValues("email")}</span>
-                  </p>
-                </div>
+            <Form {...emailForm}>
+              <form onSubmit={emailForm.handleSubmit(onSendResetEmail)} className="space-y-6">
+                <FormField
+                  control={emailForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Email Address
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="Enter your email address"
+                          className="h-14 text-base bg-background border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <Button
-                  onClick={() => {
-                    setEmailSent(false)
-                  }}
-                  disabled={cooldownSeconds > 0}
-                  variant="outline"
-                  className="w-full"
+                  type="submit"
+                  disabled={isLoading.sendEmail || cooldownSeconds > 0}
+                  size="lg"
+                  className="w-full h-14 text-base font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {cooldownSeconds > 0 ? (
+                  {isLoading.sendEmail ? (
+                    <ThreeDotLoader size="sm" />
+                  ) : cooldownSeconds > 0 ? (
                     <>
-                      <Clock className="h-4 w-4 mr-2 animate-spin duration-1000" />
-                      Send another in {cooldownSeconds}s
+                      <Clock className="h-5 w-5 mr-2 animate-spin duration-1000" />
+                      Send again in {cooldownSeconds}s
                     </>
                   ) : (
                     <>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Send another email
+                      <Mail className="h-5 w-5 mr-2" />
+                      Send Reset Link
                     </>
                   )}
                 </Button>
-              </div>
-            ) : (
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(onSendResetEmail)} className="space-y-6">
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-medium flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          Email Address
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="Enter your email address"
-                            className="h-14 text-base bg-background border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button
-                    type="submit"
-                    disabled={isLoading.sendEmail || cooldownSeconds > 0}
-                    size="lg"
-                    className="w-full h-14 text-base font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    {isLoading.sendEmail ? (
-                      <ThreeDotLoader size="sm" />
-                    ) : cooldownSeconds > 0 ? (
-                      <>
-                        <Clock className="h-5 w-5 mr-2 animate-spin duration-1000" />
-                        Send again in {cooldownSeconds}s
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-5 w-5 mr-2" />
-                        Send Reset Link
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            )}
-
-            <div className="mt-8 text-center">
-              <Link
-                href="/signin"
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 hover:underline"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Sign In
-              </Link>
-            </div>
+              </form>
+            </Form>
           </CardContent>
+          <div className="mt-4 text-center">
+            <Link
+              href="/signin"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 hover:underline"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sign In
+            </Link>
+          </div>
         </Card>
 
         {/* Helper text */}

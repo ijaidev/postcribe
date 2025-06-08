@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -35,7 +34,7 @@ import { useUser } from "@/components/providers/user-provider"
 
 // Form schemas
 const profileSchema = z.object({
-  name: z.string().min(1, "Name is required").max(50, "Name must be less than 50 characters"),
+  name: z.string().max(50, "Name must be less than 50 characters"),
   email: z.string().email("Please enter a valid email address"),
   timeZone: z.string().min(1, "Please select a timezone"),
 })
@@ -62,21 +61,16 @@ type ConnectedAccount = {
 }
 
 export default function SettingsPage() {
-  const router = useRouter()
   const { user, refreshUser } = useUser()
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([])
   const [accountToUnlink, setAccountToUnlink] = useState<{ provider: string; accountId: string } | null>(null)
   const [showSignOutDialog, setShowSignOutDialog] = useState(false)
-  const [originalProfileData, setOriginalProfileData] = useState<ProfileFormData>({
-    name: "",
-    email: "",
-    timeZone: "",
-  })
+
   const [isLoading, setIsLoading] = useState({
     profile: false,
     password: false,
     accounts: false,
-    unlinkAccount: false, 
+    unlinkAccount: false,
     signOut: false,
   })
 
@@ -106,7 +100,7 @@ export default function SettingsPage() {
   const watchedValues = profileForm.watch()
 
   // Check if profile data has changed
-  const hasProfileChanged = watchedValues.name !== originalProfileData.name || watchedValues.timeZone !== originalProfileData.timeZone
+  const hasProfileChanged = watchedValues.name !== (user?.name || "") || watchedValues.timeZone !== (user?.timeZone || "")
 
   // Load connected accounts
   const loadConnectedAccounts = async () => {
@@ -133,22 +127,16 @@ export default function SettingsPage() {
   // Link Google account
   const handleLinkGoogle = async () => {
     try {
-      setIsLoading(prev => ({ ...prev, accounts: true }))
       const res = await authClient.linkSocial({
         provider: "google",
         callbackURL: CLIENT_URL + "/settings"
       })
       if (res.error || !res.data) {
         toast.error(res.error?.message || "Failed to link Google account")
-      } else {
-        toast.success("Google account linked successfully")
-        loadConnectedAccounts() // Refresh the list
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred. Please try again."
       toast.error(errorMessage)
-    } finally {
-      setIsLoading(prev => ({ ...prev, accounts: false }))
     }
   }
 
@@ -185,11 +173,13 @@ export default function SettingsPage() {
         email: user.email || "",
         timeZone: user.timeZone || "",
       }
-      setOriginalProfileData(profileData)
       profileForm.reset(profileData)
     }
-    loadConnectedAccounts()
   }, [user, profileForm])
+
+  useEffect(() => {
+    loadConnectedAccounts()
+  }, [])
 
   // Update profile
   const onUpdateProfile = async (data: ProfileFormData) => {
@@ -243,7 +233,7 @@ export default function SettingsPage() {
     try {
       setIsLoading(prev => ({ ...prev, signOut: true }))
       await authClient.signOut()
-      router.push("/signin")
+      refreshUser()
     } catch {
       toast.error("Failed to sign out")
       setIsLoading(prev => ({ ...prev, signOut: false }))

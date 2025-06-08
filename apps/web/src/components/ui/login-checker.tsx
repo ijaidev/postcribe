@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Mail, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -29,32 +29,25 @@ export function LoginChecker() {
     const isAuthRoute = authRoutes.includes(pathname)
     const isPublicRoute = publicRoutes.includes(pathname)
 
+
     useEffect(() => {
-        (async () => {
-            setIsChecking(true)
-            if (isPublicRoute) {
-                return
-            }
-            if (isLoading || error) {
-                return
-            }
+        const checkAuth = async () => {
+            if (isPublicRoute) return
+            if (isLoading || error) return
             const redirect = searchParams.get("redirect")
             if (isAuthRoute) {
-                if (!isAuthenticated) {
-                    return
-                }
+                if (!isAuthenticated) return
                 router.push(redirect ? redirect : CLIENT_URL + "/dashboard")
-                return
             }
-            if (!isAuthenticated) {
-                router.push(CLIENT_URL + "/signin" + (redirect ? "?redirect=" + redirect : ""))
-                return
-            }
-        })()
+            if (!isAuthenticated) router.push(CLIENT_URL + "/signin" + (redirect ? "?redirect=" + redirect : ""))
+        }
+        checkAuth()
         setIsChecking(false)
-    }, [isAuthenticated, isLoading, error, router, searchParams, isAuthRoute, isPublicRoute])
+    }, [user, isAuthenticated, isLoading, pathname, isPublicRoute, error, searchParams, isAuthRoute, router])
 
-
+    useLayoutEffect(() => {
+        setIsChecking(true)
+    }, [pathname])
 
     if (isPublicRoute) {
         return null
@@ -95,7 +88,7 @@ export function LoginChecker() {
         )
     }
 
-    if (isLoading || (!isAuthRoute && !user) || isChecking) {
+    if ((!isAuthRoute && !user) || isChecking) {
         return (
             <div className="fixed inset-0 z-50 flex min-h-svh items-center justify-center overflow-hidden bg-background">
                 <ThreeDotLoader

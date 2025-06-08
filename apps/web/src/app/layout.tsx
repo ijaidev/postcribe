@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "@/components/providers/providers";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "PostCribe",
