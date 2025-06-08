@@ -2,7 +2,7 @@
 
 import { GalleryVerticalEnd, CheckCircle, AlertTriangle } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -15,71 +15,72 @@ import { ThreeDotLoader } from "@/components/ui/loaders"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ResendVerificationEmail } from "@/components/ui/resend-verification-email"
+import { useUser } from "@/components/providers/user-provider"
+import { z } from "zod"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 export default function VerifyEmailPage() {
+  const { refreshUser, user, isLoading } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [isLoading, setIsLoading] = useState(true)
+
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
-  const email = searchParams.get("mail")
+
+  const emailParam = searchParams.get("mail")
   const token = searchParams.get("token")
+
+  const emailSchema = z.string().email()
+  const parsedEmail = emailSchema.safeParse(emailParam)
+  const email = parsedEmail.data
 
   useEffect(() => {
     const verifyEmail = async () => {
 
+      if (isLoading) return
+
+      if (user && user.emailVerified) {
+        setSuccess(true)
+        return
+      }
+
       if (!email || !token) {
         setError("No email found. Please check your email link.")
-        setIsLoading(false)
         return
       }
 
       try {
-        // First check if user is already signed in and verified
-        const { data: session, error: sessionError } = await authClient.getSession()
 
-        if (session && session.user.emailVerified) {
-          // User is already signed in and verified, redirect to dashboard
-          router.push("/dashboard")
-          return
-        }
-
-        // If we have a token, proceed with verification
         setIsVerifying(true)
-        const result = await authClient.verifyEmail({
+        const { error, data } = await authClient.verifyEmail({
           query: {
             token: token
           }
         })
 
-        if (result.error) {
-          // Handle specific error cases
-          if (result.error.message?.includes("invalid") || result.error.message?.includes("expired")) {
+        if (error || !data?.status) {
+          if (error?.code === "INVALID_TOKEN" || error?.code === "TOKEN_EXPIRED") {
             setError("This verification link is invalid or has expired. Please request a new verification email.")
           } else {
-            setError(result.error.message || "Failed to verify email. Please try again.")
+            setError(error?.message || "Failed to verify email. Please try again.")
           }
           setSuccess(false)
         } else {
-          // Email verified successfully
+          await refreshUser()
           setSuccess(true)
-          // Auto-redirect to dashboard after 2 seconds
-          setTimeout(() => {
-            router.push("/dashboard")
-          }, 2000)
         }
       } catch (err) {
         console.error("Email verification error:", err)
         setError("Something went wrong during email verification. Please try again.")
       } finally {
-        setIsLoading(false)
         setIsVerifying(false)
       }
     }
 
     verifyEmail()
-  }, [router, searchParams])
+  }, [router, searchParams, user, refreshUser, email, token, isLoading])
 
   if (isLoading || isVerifying) {
     return (
@@ -156,16 +157,16 @@ export default function VerifyEmailPage() {
                   <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/50">
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <AlertDescription className="text-green-800 dark:text-green-200">
-                      You'll be redirected to your dashboard in a moment.
+                      You&apos;ll be redirected to your dashboard in a moment.
                     </AlertDescription>
                   </Alert>
 
-                  <Button
-                    onClick={() => router.push("/dashboard")}
-                    className="w-full"
+                  <Link
+                    href="/dashboard"
+                    className={cn(buttonVariants(), "w-full")}
                   >
                     Go to Dashboard
-                  </Button>
+                  </Link>
                 </div>
               ) : (
                 <ResendVerificationEmail

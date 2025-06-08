@@ -46,8 +46,6 @@ export default function ResetPasswordPage() {
     resetPassword: false,
   })
   const [resetError, setResetError] = useState<string | null>(null)
-  const [emailError, setEmailError] = useState<string | null>(null)
-  const [showResendSection, setShowResendSection] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
 
@@ -94,27 +92,22 @@ export default function ResetPasswordPage() {
   // Send reset email
   const onSendResetEmail = async (data: EmailFormData) => {
     setIsLoading(prev => ({ ...prev, sendEmail: true }))
-    setEmailError(null)
 
     try {
-      const response = await authClient.forgetPassword({
+      const { data: response, error } = await authClient.forgetPassword({
         email: data.email,
-        redirectTo: `${window.location.origin}/reset-password`,
       })
 
-      if (response.error || !response.data.status) {
-        const errorMessage = response.error?.message || "Failed to send reset email"
-        setEmailError(errorMessage)
+      if (error || !response?.status) {
+        const errorMessage = error?.message || "Failed to send reset email"
         toast.error(errorMessage)
       } else {
         setEmailSent(true)
-        setEmailError(null)
         startCooldown()
         toast.success("Reset link sent! Check your email.")
       }
     } catch {
       const errorMessage = "Network error. Please check your connection and try again."
-      setEmailError(errorMessage)
       toast.error(errorMessage)
     } finally {
       setIsLoading(prev => ({ ...prev, sendEmail: false }))
@@ -137,10 +130,8 @@ export default function ResetPasswordPage() {
       if (response.error || !response.data.status) {
         if (response.error?.code === "INVALID_TOKEN" || response.error?.code === "TOKEN_EXPIRED") {
           setResetError("The reset link has expired or is invalid. Please request a new one.")
-          setShowResendSection(true)
         } else {
           setResetError(response.error?.message || "Failed to reset password. Please try again.")
-          setShowResendSection(true)
         }
       } else {
         toast.success("Password reset successfully! You can now sign in.")
@@ -148,7 +139,6 @@ export default function ResetPasswordPage() {
       }
     } catch {
       setResetError("Network error. Please check your connection and try again. If the problem persists, the reset link may have expired.")
-      setShowResendSection(true)
     } finally {
       setIsLoading(prev => ({ ...prev, resetPassword: false }))
     }
@@ -178,7 +168,7 @@ export default function ResetPasswordPage() {
             </Subtitle>
           </div>
 
-          <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+          <Card className="shadow-lg border-0 bg-card backdrop-blur-sm">
             <CardContent className="pt-6 space-y-4">
               {/* Error Alert */}
               {resetError && (
@@ -249,67 +239,18 @@ export default function ResetPasswordPage() {
               </Form>
 
               {/* Resend Section - Only show if there was an error */}
-              {showResendSection && (
-                <div className="pt-4 border-t space-y-4">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Need a new reset link?
-                    </p>
-                  </div>
-
-                  <Form {...emailForm}>
-                    <form onSubmit={emailForm.handleSubmit(onSendResetEmail)} className="space-y-3">
-                      {/* Error Alert for resend */}
-                      {emailError && (
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>{emailError}</AlertDescription>
-                        </Alert>
-                      )}
-
-                      <FormField
-                        control={emailForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">Email Address</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="email"
-                                placeholder="Enter your email address"
-                                className="h-10 text-sm bg-background/50 border-2 focus:bg-background transition-all duration-200"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button
-                        type="submit"
-                        disabled={isLoading.sendEmail || cooldownSeconds > 0}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        {isLoading.sendEmail ? (
-                          <ThreeDotLoader size="sm" />
-                        ) : cooldownSeconds > 0 ? (
-                          <>
-                            <Clock className="h-4 w-4 mr-2 animate-spin duration-1000" />
-                            Resend in {cooldownSeconds}s
-                          </>
-                        ) : (
-                          <>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Send New Reset Link
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
-                </div>
-              )}
+              {resetError && <Button
+                onClick={() => {
+                  router.push("/reset-password")
+                }}
+                type="submit"
+                disabled={isLoading.sendEmail || cooldownSeconds > 0}
+                variant="outline"
+                className="w-full"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send New Reset Link
+              </Button>}
 
               <div className="text-center pt-2">
                 <Link href="/signin" className="text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -358,17 +299,8 @@ export default function ResetPasswordPage() {
                   </p>
                 </div>
 
-                {/* Error Alert for resend failures */}
-                {emailError && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{emailError}</AlertDescription>
-                  </Alert>
-                )}
-
                 <Button
                   onClick={() => {
-                    setEmailError(null)
                     setEmailSent(false)
                   }}
                   disabled={cooldownSeconds > 0}
@@ -391,14 +323,6 @@ export default function ResetPasswordPage() {
             ) : (
               <Form {...emailForm}>
                 <form onSubmit={emailForm.handleSubmit(onSendResetEmail)} className="space-y-6">
-                  {/* Error Alert */}
-                  {emailError && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>{emailError}</AlertDescription>
-                    </Alert>
-                  )}
-
                   <FormField
                     control={emailForm.control}
                     name="email"

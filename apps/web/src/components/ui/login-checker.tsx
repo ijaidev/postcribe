@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Mail, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,10 +13,13 @@ import { useUser } from "@/components/providers/user-provider"
 import { ResendVerificationEmail } from "./resend-verification-email"
 
 const authRoutes = ["/signin", "/signup"]
-const publicRoutes = ["/", "/reset-password"]
+const publicRoutes = ["/", "/reset-password", "/verify-email"]
 
 
 export function LoginChecker() {
+
+
+    const [isChecking, setIsChecking] = useState(true)
     const router = useRouter()
     const { user, isLoading, isAuthenticated, emailVerified, error, refreshUser } = useUser()
     const searchParams = useSearchParams()
@@ -28,16 +31,27 @@ export function LoginChecker() {
 
     useEffect(() => {
         (async () => {
-            if (isPublicRoute) return
-            if (isLoading || error) return
+            setIsChecking(true)
+            if (isPublicRoute) {
+                return
+            }
+            if (isLoading || error) {
+                return
+            }
             const redirect = searchParams.get("redirect")
-            if (isAuthRoute && isAuthenticated) {
+            if (isAuthRoute) {
+                if (!isAuthenticated) {
+                    return
+                }
                 router.push(redirect ? redirect : CLIENT_URL + "/dashboard")
+                return
             }
             if (!isAuthenticated) {
                 router.push(CLIENT_URL + "/signin" + (redirect ? "?redirect=" + redirect : ""))
+                return
             }
         })()
+        setIsChecking(false)
     }, [isAuthenticated, isLoading, error, router, searchParams, isAuthRoute, isPublicRoute])
 
 
@@ -81,7 +95,7 @@ export function LoginChecker() {
         )
     }
 
-    if (isLoading || (!isAuthRoute && !user)) {
+    if (isLoading || (!isAuthRoute && !user) || isChecking) {
         return (
             <div className="fixed inset-0 z-50 flex min-h-svh items-center justify-center overflow-hidden bg-background">
                 <ThreeDotLoader
@@ -131,7 +145,7 @@ export function LoginChecker() {
                                         className="flex-1"
                                         onClick={async () => {
                                             await authClient.signOut()
-                                            router.push('/signin')
+                                            await refreshUser()
                                         }}
                                     >
                                         Sign out

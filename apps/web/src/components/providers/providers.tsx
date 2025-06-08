@@ -11,10 +11,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             enableSystem
             disableTransitionOnChange
         >
+            <Toaster />
             <UserProvider>
                 <LoginChecker />
                 {children}
-                <Toaster />
             </UserProvider>
         </ThemeProvider>
     )

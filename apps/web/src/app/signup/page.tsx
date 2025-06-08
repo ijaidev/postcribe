@@ -28,6 +28,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { CLIENT_URL } from "@/config"
+import { useUser } from "@/components/providers/user-provider"
 
 // Schema for signup - only email and password
 const formSchema = z.object({
@@ -42,6 +43,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const redirect = useSearchParams().get("redirect")
+  const { refreshUser } = useUser()
 
   const form = useForm<SignupFormData>({
     resolver: zodResolver(formSchema),
@@ -51,63 +53,43 @@ export default function SignupPage() {
     },
   })
 
-  // Better error message mapping based on better-auth error codes
-  const getErrorMessage = (errorCode: string, defaultMessage: string) => {
-    const errorMessages: Record<string, string> = {
-      USER_ALREADY_EXISTS: "An account with this email already exists. Please sign in instead.",
-      INVALID_EMAIL: "Please enter a valid email address.",
-      WEAK_PASSWORD: "Password is too weak. Please choose a stronger password.",
-      EMAIL_NOT_VERIFIED: "Please verify your email address before signing in.",
-      RATE_LIMITED: "Too many attempts. Please wait before trying again.",
-      CREDENTIAL_INVALID: "Invalid credentials. Please check your email and password.",
-    }
-    
-    return errorMessages[errorCode] || defaultMessage
-  }
 
-  function onSubmit(values: SignupFormData) {
+  async function onSubmit(values: SignupFormData) {
     setIsLoading(true)
     setError("")
 
-    authClient.signUp.email({
+    const { data, error } = await authClient.signUp.email({
       email: values.email,
       password: values.password,
       name: "",
-    }).then((res) => {
-      if (res.error) {
-        const errorMessage = res.error.code 
-          ? getErrorMessage(res.error.code, res.error.message || "Failed to create account")
-          : res.error.message || "Failed to create account"
-        setError(errorMessage)
-      } else {
-        // Account created successfully, redirect to dashboard
-        router.push(redirect ? redirect : "/dashboard")
-      }
-    }).catch((err) => {
-      setError("Something went wrong. Please try again.")
-      console.error("Signup error:", err)
-    }).finally(() => {
-      setIsLoading(false)
     })
+    if (error || !data?.user) {
+      if (!error) {
+        setError("Failed to create account. Please try again.")
+        return
+      }
+      setError(error.message || "Failed to create account")
+      return
+    }
+    await refreshUser()
+    setIsLoading(false)
   }
 
   const handleGoogleSignup = async () => {
     setIsLoading(true)
     setError("")
-
     try {
-      const res = await authClient.signIn.social({
+      const { error: signInError } = await authClient.signIn.social({
         provider: "google",
         callbackURL: redirect ? redirect : (CLIENT_URL + "/dashboard"),
       })
 
-      if (res.error) {
-        const errorMessage = res.error.code 
-          ? getErrorMessage(res.error.code, res.error.message || "Failed to sign up with Google")
-          : res.error.message || "Failed to sign up with Google"
-        setError(errorMessage)
+      if (signInError) {
+        setError(signInError.message || "Failed to sign up with Google")
         setIsLoading(false)
+        return
       }
+      await refreshUser()
     } catch (err) {
       setError("Failed to sign up with Google. Please try again.")
       setIsLoading(false)
