@@ -4,12 +4,11 @@ import linkedinCallbackController from "../controllers/platform-login-controller
 import linkedinLoginController from "../controllers/platform-login-controllers/linkedin-login.controller";
 import factory from "../utils/factory";
 
-
-const socialLoginRouter = factory.createApp()
-
-socialLoginRouter.get("/x", ...xLoginController);
-socialLoginRouter.get("/x/callback", ...xCallbackController);
-socialLoginRouter.get("/linkedin", ...linkedinLoginController);
-socialLoginRouter.get("/linkedin/callback", ...linkedinCallbackController);
+const socialLoginRouter = factory
+    .createApp()
+    .get("/x", ...xLoginController)
+    .get("/x/callback", ...xCallbackController)
+    .get("/linkedin", ...linkedinLoginController)
+    .get("/linkedin/callback", ...linkedinCallbackController);
 
 export default socialLoginRouter;

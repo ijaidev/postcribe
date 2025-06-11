@@ -1,12 +1,8 @@
 import { hc } from "hono/client";
 import type { AppType } from "@repo/api";
+import { API_URL } from "@/config";
 
-const clientUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const client = hc<AppType>(API_URL);
 
-// Pre-compile types to avoid infinite recursion - this calculates the type when compiling
-export type Client = ReturnType<typeof hc<AppType>>;
 
-export const hcWithType = (...args: Parameters<typeof hc>): Client =>
-  hc<AppType>(...args);
 
-export const client = hcWithType(clientUrl);

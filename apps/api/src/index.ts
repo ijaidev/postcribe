@@ -2,19 +2,21 @@ import factory from "./utils/factory";
 import mainRouter from "./router/main.router";
 import { auth } from "@repo/auth";
 import { cors } from "hono/cors";
-const app = factory.createApp();
 
-app.use(
-    "*",
-    cors({
-        origin: "http://localhost:3001",
-        allowHeaders: ["Content-Type", "Authorization"],
-        allowMethods: ["POST", "GET", "OPTIONS"],
-        exposeHeaders: ["Content-Length"],
-        maxAge: 600,
-        credentials: true,
-    }),
-)
+const app = factory
+    .createApp()
+    .get("/v1", c => c.json({ message: "Hello, world!" }))
+    .use(
+        "*",
+        cors({
+            origin: "http://localhost:3001",
+            allowHeaders: ["Content-Type", "Authorization"],
+            allowMethods: ["POST", "GET", "OPTIONS"],
+            exposeHeaders: ["Content-Length"],
+            maxAge: 600,
+            credentials: true,
+        }),
+    )
     .use("*", async (c, next) => {
         const session = await auth.api.getSession({
             headers: c.req.raw.headers,
