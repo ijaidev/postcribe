@@ -3,7 +3,6 @@ import ApiResponse from "../../utils/api-response";
 import {
     uploadMediaBuffer,
     getValidAccessToken,
-    type MediaUploadResult,
 } from "@repo/x";
 import { HTTPException } from "hono/http-exception";
 import db from "@repo/db";
@@ -66,17 +65,17 @@ const postDraftHandler = factory.createHandlers(validate, async c => {
                 ? new Date(scheduleDate).getTime() - new Date().getTime()
                 : undefined;
 
-        const uploadResult = await uploadMediaBuffer(
-            mediaBuffer,
-            file.type,
-            tokenResult.accessToken,
-            altText,
-            expiresAfterSecs,
-        );
+        // Get the first social login for X platform
+        const xSocialLogin = socialLoginId.find(login => login.platform === "X");
+        if (!xSocialLogin) {
+            throw new HTTPException(400, {
+                message: "No X social login provided",
+            });
+        }
 
         const socialLogin = await db.socialLogin.findUnique({
             where: {
-                id: socialLoginId.id,
+                id: xSocialLogin.id,
             },
         });
 
@@ -85,12 +84,23 @@ const postDraftHandler = factory.createHandlers(validate, async c => {
                 message: "Social account not found",
             });
         }
+
+        const tokenResult = await getValidAccessToken(socialLogin.id);
+
+        const uploadResult = await uploadMediaBuffer(
+            mediaBuffer,
+            file.type,
+            tokenResult.accessToken,
+            altText,
+            expiresAfterSecs,
+        );
+
         const draft = await db.draft.findUnique({
             where: {
                 id: draftId,
             },
             include: {
-                Post: true,
+                posts: true,
             },
         });
 
@@ -99,7 +109,7 @@ const postDraftHandler = factory.createHandlers(validate, async c => {
                 message: "Draft not found",
             });
         }
-        const postId = draft?.Post.find(post => post.postType === "X")?.id;
+        const postId = draft?.posts.find(post => post.postType === "X")?.id;
 
         const post = await db.post.upsert({
             where: {
@@ -113,6 +123,7 @@ const postDraftHandler = factory.createHandlers(validate, async c => {
                 mediaIds: [uploadResult.media_id_string],
                 postType: "X",
                 draftId: draftId,
+                socialLoginId: socialLogin.id,
             },
         });
 

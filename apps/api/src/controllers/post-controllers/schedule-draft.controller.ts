@@ -62,7 +62,7 @@ const scheduleDraftController = factory.createHandlers(
                 include: {
                     draft: {
                         include: {
-                            Post: {
+                            posts: {
                                 select: {
                                     id: true,
                                     post: true,

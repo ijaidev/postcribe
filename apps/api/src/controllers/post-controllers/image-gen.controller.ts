@@ -106,8 +106,8 @@ const imageGenController = factory.createHandlers(
 
         if (platform === "all") {
             const [xResult, linkedinResult] = await Promise.allSettled([
-                imageGen(options, "x"),
-                imageGen(options, "linkedin"),  
+                imageGen(options, "X"),
+                imageGen(options, "LINKEDIN"),  
             ]);
             
             // Log any failures for debugging
@@ -145,7 +145,7 @@ const imageGenController = factory.createHandlers(
         }
 
         try {
-            const result = await imageGen(options, platform);
+            const result = await imageGen(options, platform.toUpperCase() as "X" | "LINKEDIN");
             return c.json(
                 new ApiResponse<ImageGenResponse>({
                     statusCode: 200,

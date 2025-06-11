@@ -1,6 +1,10 @@
 {
-    "name": "api",
+    "name": "@repo/api",
+    "main": "src/index.ts",
+    "types": "dist/index.d.ts",
     "scripts": {
+        "build": "tsc",
+        "build:types": "tsc --emitDeclarationOnly",
         "dev": "bun run --hot src/index.ts",
         "start": "bun run index.ts",
         "lint": "eslint --max-warnings 0",

@@ -99,6 +99,9 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
                     scheduledAt: new Date(data.scheduledAt),
                     userId: user.id,
                     postCronDataId: postCronData.id,
+                    repeatInterval: 1,
+                    repeatIntervalUnit: "DAY",
+                    nextRunAt: new Date(data.scheduledAt),
                 },
                 omit: {
                     userId: true,

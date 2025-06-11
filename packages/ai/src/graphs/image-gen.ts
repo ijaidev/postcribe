@@ -64,7 +64,7 @@ const modelCallNode = async (
     const threadId = config.configurable?.thread_id;
     if (!platform || !threadId)
         throw new Error("Platform and threadId are required");
-    const graph = platform === "x" ? xPostGraph : linkedInPostGraph;
+    const graph = platform === "X" ? xPostGraph : linkedInPostGraph;
     const postGraphState = await graph.getState({
         configurable: {
             thread_id: threadId,
@@ -72,7 +72,7 @@ const modelCallNode = async (
     });
     const context = postGraphState?.values?.messages;
     if (!context) throw new Error("No post found to generate image for");
-    const systemPrompt = getImagePrompt(platform, JSON.stringify(context));
+    const systemPrompt = getImagePrompt(platform.toLowerCase() as "x" | "linkedin", JSON.stringify(context));
     const response = await modelWithTools.invoke([
         new SystemMessage(systemPrompt),
         ...messages,

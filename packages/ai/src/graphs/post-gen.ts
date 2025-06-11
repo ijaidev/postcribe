@@ -75,7 +75,7 @@ const modelCallNode = async (
     const { messages } = state;
     const platform = config.configurable?.platform;
     if (!platform) throw new Error("Platform is required");
-    const systemPrompt = getPostPrompt(platform);
+    const systemPrompt = getPostPrompt(platform.toLowerCase() as "x" | "linkedin");
     const utcDate = new Date().toISOString();
     const response = await modelWithTools.invoke([
         new SystemMessage(systemPrompt),

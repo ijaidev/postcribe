@@ -68,7 +68,7 @@ const xMediaUploadHandler = factory.createHandlers(validate, async c => {
                 id: draftId,
             },
             include: {
-                Post: true,
+                posts: true,
             },
         });
 
@@ -77,11 +77,11 @@ const xMediaUploadHandler = factory.createHandlers(validate, async c => {
                 message: "Draft not found",
             });
         }
-        const postId = draft?.Post.find(post => post.postType === "X")?.id;
+        const postId = draft?.posts.find(post => post.postType === "X")?.id;
 
         const post = await db.post.upsert({
             where: {
-                id: postId,
+                id: postId || "new",
             },
             update: {
                 mediaIds: [uploadResult.media_id_string],
@@ -91,6 +91,7 @@ const xMediaUploadHandler = factory.createHandlers(validate, async c => {
                 mediaIds: [uploadResult.media_id_string],
                 postType: "X",
                 draftId: draftId,
+                socialLoginId: socialLogin.id,
             },
         });
 

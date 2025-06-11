@@ -99,6 +99,7 @@ const postGenController = factory.createHandlers(
             draft = await db.draft.create({
                 data: {
                     userId: user.id,
+                    title: "Generated Post Draft",
                 },
             });
         } else {
@@ -131,8 +132,8 @@ const postGenController = factory.createHandlers(
             if (platform === "all") {
                 const [xPostGenResult, linkedinPostGenResult] =
                     await Promise.all([
-                        postGen(options, "x"),
-                        postGen(options, "linkedin"),
+                        postGen(options, "X"),
+                        postGen(options, "LINKEDIN"),
                     ]);
 
                 return stream(c, async stream => {
@@ -165,7 +166,7 @@ const postGenController = factory.createHandlers(
                     stream.close();
                 });
             }
-            const postGenResult = await postGen(options, platform);
+            const postGenResult = await postGen(options, platform.toUpperCase() as "X" | "LINKEDIN");
 
             return stream(c, async stream => {
                 for await (const chunk of postGenResult.stream()) {

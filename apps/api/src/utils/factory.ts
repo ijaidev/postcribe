@@ -1,12 +1,12 @@
 import type { auth } from "@repo/auth";
 import { createFactory } from "hono/factory";
 
-interface Variables {
+export interface Variables {
     user: typeof auth.$Infer.Session.user | null;
     session: typeof auth.$Infer.Session.session | null;
 }
 
-interface Env {
+export interface Env {
     Variables: Variables;
 }
 

@@ -83,7 +83,7 @@ const linkedinMediaUploadHandler = factory.createHandlers(validate, async c => {
                 id: draftId,
             },
             include: {
-                Post: true,
+                posts: true,
             },
         });
 
@@ -93,11 +93,11 @@ const linkedinMediaUploadHandler = factory.createHandlers(validate, async c => {
             });
         }
 
-        const postId = draft?.Post.find(post => post.postType === "LINKEDIN")?.id;
+        const postId = draft?.posts.find(post => post.postType === "LINKEDIN")?.id;
 
         const post = await db.post.upsert({
             where: {
-                id: postId,
+                id: postId || "new",
             },
             update: {
                 mediaIds: [uploadResult.asset],
@@ -107,6 +107,7 @@ const linkedinMediaUploadHandler = factory.createHandlers(validate, async c => {
                 mediaIds: [uploadResult.asset],
                 postType: "LINKEDIN",
                 draftId: draftId,
+                socialLoginId: socialLogin.id,
             },
         });
 

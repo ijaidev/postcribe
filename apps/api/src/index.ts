@@ -38,3 +38,5 @@ export default {
     port: 3000,
     development: process.env.ENVIRONMENT === "dev",
 };
+
+export type AppType = typeof mainRouter;
