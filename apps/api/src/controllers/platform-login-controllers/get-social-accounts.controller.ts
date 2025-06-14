@@ -29,10 +29,8 @@ const getSocialAccountsHandler = factory.createHandlers(async c => {
         return c.json(
             new ApiResponse({
                 data: socialAccounts,
-                statusCode: 200,
                 message: "Social accounts retrieved successfully",
             }),
-            200,
         );
     } catch (error) {
         logger.error("Get social accounts error:", error);

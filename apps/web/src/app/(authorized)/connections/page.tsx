@@ -134,7 +134,7 @@ export default function ConnectionsPage() {
     // Mock function to check if account is connected (you can replace with actual logic)
     const isAccountConnected = (account: SocialAccount) => {
         // For demo purposes, let's say some accounts are connected and some are not
-        return account.isVerified || false
+        return account.isConnected || false
     }
 
     return (

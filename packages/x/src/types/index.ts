@@ -269,6 +269,12 @@ interface UserTweets {
 
 // User Info
 
+interface UserInfoResponse {
+    result: {
+      data: UserInfo;
+    }
+}
+
 interface UserInfo {
     user: {
         result: UserResult;
@@ -404,4 +410,4 @@ interface CleanTweet {
     }>;
 }
 
-export type { UserInfo, UserTweets, CleanTweet, Tweet, TweetWithVisibilityResults };
+export type { UserInfoResponse, UserTweets, CleanTweet, Tweet, TweetWithVisibilityResults };

@@ -2,10 +2,10 @@ import { logger } from "@repo/logger";
 import axios from "axios";
 import type {
     UserTweets,
-    UserInfo,
     CleanTweet,
     Tweet,
     TweetWithVisibilityResults,
+    UserInfoResponse,
 } from "../types";
 
 const X_RAPID_API_KEY = process.env.X_RAPID_API_KEY;
@@ -27,10 +27,11 @@ export const getUserInfo = async (username: string) => {
     };
 
     try {
-        const response = await axios.request<UserInfo>(options);
+        const response = await axios.request<UserInfoResponse>(options);
+        console.dir(response.data, { depth: null });
         return {
-            id: response.data.user.result.rest_id,
-            isVerified: response.data.user.result.is_blue_verified,
+            id: response.data.result.data.user.result.rest_id,
+            isVerified: response.data.result.data.user.result.is_blue_verified,
         };
     } catch (error) {
         logger.error(error);
