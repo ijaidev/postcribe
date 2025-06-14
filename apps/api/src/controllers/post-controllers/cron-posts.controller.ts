@@ -114,7 +114,7 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
 
         return c.json(
             new ApiResponse<typeof result>({
-                statusCode: 201,
+
                 message: "Post cron created successfully",
                 data: result,
             }),

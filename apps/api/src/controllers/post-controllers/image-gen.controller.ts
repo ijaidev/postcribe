@@ -136,7 +136,6 @@ const imageGenController = factory.createHandlers(
             
             return c.json(
                 new ApiResponse<ImageGenResponse>({
-                    statusCode: 200,
                     message: "Images generated",
                     data: response,
                 }),
@@ -148,7 +147,6 @@ const imageGenController = factory.createHandlers(
             const result = await imageGen(options, platform.toUpperCase() as "X" | "LINKEDIN");
             return c.json(
                 new ApiResponse<ImageGenResponse>({
-                    statusCode: 200,
                     message: "Image generated",
                     data: {
                         [platform]: result.imageUrl,

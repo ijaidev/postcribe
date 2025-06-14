@@ -78,7 +78,7 @@ const scheduleDraftController = factory.createHandlers(
 
             return c.json(
                 new ApiResponse<DraftSchedule>({
-                    statusCode: 201,
+
                     message: "Draft scheduled successfully",
                     data: schedule,
                 }),

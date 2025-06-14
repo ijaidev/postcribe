@@ -117,3 +117,18 @@ export const getUserTweets = async (userId: string): Promise<CleanTweet[]> => {
         throw error;
     }
 };
+
+// TEMPORARY PLACEHOLDER FUNCTIONS - TO BE IMPLEMENTED
+export const uploadMediaBuffer = async (
+    mediaBuffer: Buffer,
+    mimeType: string,
+    accessToken: string,
+    altText?: string,
+    expiresAfterSecs?: number
+) => {
+    throw new Error("uploadMediaBuffer not implemented yet");
+};
+
+export const getValidAccessToken = async (socialLoginId: string) => {
+    throw new Error("getValidAccessToken not implemented yet");
+};

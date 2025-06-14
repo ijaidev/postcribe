@@ -204,8 +204,9 @@ model SocialLogin {
   userId       String
   userName     String?
   user         User          @relation(fields: [userId], references: [id])
-  accessToken  String
-  refreshToken String
+  accessToken  String?
+  refreshToken String?
+  isVerified   Boolean?
   expiresAt    DateTime
   createdAt    DateTime      @default(now())
   state        String?

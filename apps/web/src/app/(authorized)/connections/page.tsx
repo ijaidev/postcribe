@@ -4,13 +4,23 @@ import * as React from "react"
 import { useState } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Plus, Twitter, Linkedin, ExternalLink, Settings, Trash2 } from "lucide-react"
+import { Plus, Twitter, Linkedin, ExternalLink, Settings, Trash2, Circle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { ThreeDotLoader } from "@/components/ui/loaders"
 import { H1, H2 } from "@/components/ui/headings"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,6 +38,8 @@ export default function ConnectionsPage() {
     type SocialAccount = NonNullable<InferResponseType<typeof client.social.accounts.$get>['data']>[number]
 
     const [accountToDisconnect, setAccountToDisconnect] = useState<SocialAccount | null>(null)
+    const [showXUsernameDialog, setShowXUsernameDialog] = useState(false)
+    const [xUsername, setXUsername] = useState("")
 
     // Load connected social accounts using React Query
     const {
@@ -39,44 +51,53 @@ export default function ConnectionsPage() {
         queryFn: async () => (await client.social.accounts.$get()).json(),
     })
 
-    // Connect new account using mutations
-    const connectAccountMutation = useMutation({
-        mutationFn: async ({ provider, name }: { provider: "X" | "LINKEDIN", name: string }) => {
-            const response = provider === "X"
-                ? await client.social.login.x.$post({ json: { name } })
-                : await client.social.login.linkedin.$post({ json: { name } })
-
+    // Connect X account using mutations
+    const connectXAccountMutation = useMutation({
+        mutationFn: async (username: string) => {
+            const response = await client.social.login.x.$post({ json: { username } })
             if (!response.ok) {
-                throw new Error(`Failed to initiate ${provider} connection`)
+                throw new Error('Failed to initiate X connection')
             }
             return response.json()
         },
-        onSuccess: (result, { provider }) => {
-            if (result.data?.authUrl) {
-                // Open the auth URL in a new window
-                window.open(result.data.authUrl, '_blank', 'width=600,height=700')
-                toast.success(`${provider} connection initiated. Complete the authorization in the new window.`)
-
-                // Refresh accounts after a delay to allow user to complete auth
-                setTimeout(() => {
-                    refetchAccounts()
-                }, 3000)
+        onSuccess: (result) => {
+            if (result.data?.account) {
+                toast.success('X account connected successfully!')
+                refetchAccounts()
             } else {
-                throw new Error('No authorization URL received')
+                toast.success('X connection initiated. Complete the authorization in the new window.')
             }
         },
-        onError: (error, { provider }) => {
-            console.error(`Failed to connect ${provider} account:`, error)
-            toast.error(`Failed to connect ${provider} account`)
+        onError: (error) => {
+            console.error('Failed to connect X account:', error)
+            toast.error('Failed to connect X account')
         }
     })
 
-    const handleConnectAccount = async (provider: "X" | "LINKEDIN") => {
-        const accountName = prompt(`Enter a name for your ${provider} account:`)
+    const handleConnectXAccount = () => {
+        setShowXUsernameDialog(true)
+    }
+
+    const handleConnectLinkedInAccount = async () => {
+        const accountName = prompt(`Enter a name for your LinkedIn account:`)
         if (!accountName || accountName.trim() === '') {
             return
         }
-        connectAccountMutation.mutate({ provider, name: accountName.trim() })
+        toast.info("LinkedIn connection coming soon")
+    }
+
+    const handleXUsernameSubmit = () => {
+        if (!xUsername.trim()) {
+            toast.error("Please enter a username")
+            return
+        }
+        connectXAccountMutation.mutate(xUsername.trim())
+        setShowXUsernameDialog(false)
+        setXUsername("")
+    }
+
+    const handleReconnect = (provider: string) => {
+        toast.info("Reconnect functionality coming soon")
     }
 
     // Disconnect account (placeholder - would need API endpoint)
@@ -110,6 +131,12 @@ export default function ConnectionsPage() {
         }
     }
 
+    // Mock function to check if account is connected (you can replace with actual logic)
+    const isAccountConnected = (account: SocialAccount) => {
+        // For demo purposes, let's say some accounts are connected and some are not
+        return account.isVerified || false
+    }
+
     return (
         <div className="container max-w-4xl mx-auto py-8 space-y-8">
             {/* Header */}
@@ -134,12 +161,12 @@ export default function ConnectionsPage() {
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Button
-                            onClick={() => handleConnectAccount("X")}
-                            disabled={connectAccountMutation.isPending}
+                            onClick={handleConnectXAccount}
+                            disabled={connectXAccountMutation.isPending}
                             variant="outline"
                             className="flex items-center gap-2 h-12 px-6"
                         >
-                            {connectAccountMutation.isPending ? (
+                            {connectXAccountMutation.isPending ? (
                                 <ThreeDotLoader size="sm" />
                             ) : (
                                 <>
@@ -149,19 +176,12 @@ export default function ConnectionsPage() {
                             )}
                         </Button>
                         <Button
-                            onClick={() => handleConnectAccount("LINKEDIN")}
-                            disabled={connectAccountMutation.isPending}
+                            onClick={handleConnectLinkedInAccount}
                             variant="outline"
                             className="flex items-center gap-2 h-12 px-6"
                         >
-                            {connectAccountMutation.isPending ? (
-                                <ThreeDotLoader size="sm" />
-                            ) : (
-                                <>
-                                    <Linkedin className="h-5 w-5" />
-                                    Connect LinkedIn
-                                </>
-                            )}
+                            <Linkedin className="h-5 w-5" />
+                            Connect LinkedIn
                         </Button>
                     </div>
                 </CardContent>
@@ -190,16 +210,15 @@ export default function ConnectionsPage() {
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 justify-center">
                                 <Button
-                                    onClick={() => handleConnectAccount("X")}
-                                    disabled={connectAccountMutation.isPending}
+                                    onClick={handleConnectXAccount}
+                                    disabled={connectXAccountMutation.isPending}
                                     className="flex items-center gap-2"
                                 >
                                     <Twitter className="h-4 w-4" />
                                     Connect X
                                 </Button>
                                 <Button
-                                    onClick={() => handleConnectAccount("LINKEDIN")}
-                                    disabled={connectAccountMutation.isPending}
+                                    onClick={handleConnectLinkedInAccount}
                                     variant="outline"
                                     className="flex items-center gap-2"
                                 >
@@ -211,63 +230,132 @@ export default function ConnectionsPage() {
                     </Card>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
-                        {socialAccounts?.data?.map((account: SocialAccount) => (
-                            <Card key={account.id} className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${getProviderColor(account.provider)}`}>
-                                                {getProviderIcon(account.provider)}
+                        {socialAccounts?.data?.map((account: SocialAccount) => {
+                            const connected = isAccountConnected(account)
+                            return (
+                                <Card key={account.id} className="hover:shadow-md transition-shadow">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${getProviderColor(account.provider)}`}>
+                                                    {getProviderIcon(account.provider)}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold">{account.name}</h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {account.provider === 'X' ? 'X (Twitter)' : account.provider}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-semibold">{account.name}</h3>
+                                            <div className="flex items-center gap-2">
+                                                <Circle 
+                                                    className={`h-3 w-3 ${connected ? 'fill-green-500 text-green-500' : 'fill-red-500 text-red-500'}`} 
+                                                />
+                                                <Badge variant={connected ? "default" : "destructive"} className="text-xs">
+                                                    {connected ? 'Connected' : 'Not Connected'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+
+                                        {account.userName && (
+                                            <div className="mb-4">
                                                 <p className="text-sm text-muted-foreground">
-                                                    {account.provider === 'X' ? 'X (Twitter)' : account.provider}
+                                                    Username: <span className="font-medium">@{account.userName}</span>
                                                 </p>
                                             </div>
+                                        )}
+
+                                        <div className="text-xs text-muted-foreground mb-4">
+                                            Connected on {new Date(account.createdAt).toLocaleDateString()}
                                         </div>
-                                        <Badge variant="secondary" className="text-xs">
-                                            Connected
-                                        </Badge>
-                                    </div>
 
-                                    {account.userName && (
-                                        <div className="mb-4">
-                                            <p className="text-sm text-muted-foreground">
-                                                Username: <span className="font-medium">@{account.userName}</span>
-                                            </p>
+                                        <div className="flex gap-2">
+                                            {connected ? (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-2 flex-1"
+                                                    onClick={() => toast.info("Account management coming soon")}
+                                                >
+                                                    <ExternalLink className="h-3 w-3" />
+                                                    Manage
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-2 flex-1"
+                                                    onClick={() => handleReconnect(account.provider)}
+                                                >
+                                                    <ExternalLink className="h-3 w-3" />
+                                                    Reconnect
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => setAccountToDisconnect(account)}
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
                                         </div>
-                                    )}
-
-                                    <div className="text-xs text-muted-foreground mb-4">
-                                        Connected on {new Date(account.createdAt).toLocaleDateString()}
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex items-center gap-2 flex-1"
-                                            onClick={() => toast.info("Account management coming soon")}
-                                        >
-                                            <ExternalLink className="h-3 w-3" />
-                                            Manage
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={() => setAccountToDisconnect(account)}
-                                        >
-                                            <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
                     </div>
                 )}
             </div>
+
+            {/* X Username Input Dialog */}
+            <Dialog open={showXUsernameDialog} onOpenChange={setShowXUsernameDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Connect X Account</DialogTitle>
+                        <DialogDescription>
+                            Enter your X (Twitter) username to connect your account.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="x-username">X Username</Label>
+                            <Input
+                                id="x-username"
+                                placeholder="Enter your X username"
+                                value={xUsername}
+                                onChange={(e) => setXUsername(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleXUsernameSubmit()
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setShowXUsernameDialog(false)
+                                setXUsername("")
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleXUsernameSubmit}
+                            disabled={connectXAccountMutation.isPending}
+                        >
+                            {connectXAccountMutation.isPending ? (
+                                <ThreeDotLoader size="sm" />
+                            ) : (
+                                'Connect'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Disconnect Account Confirmation Dialog */}
             <AlertDialog open={!!accountToDisconnect} onOpenChange={(open) => !open && setAccountToDisconnect(null)}>

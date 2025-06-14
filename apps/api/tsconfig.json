@@ -9,6 +9,6 @@
     "declarationDir": "./dist",
     "noEmit": false
   },
-  "include": ["./src", "../../packages/x/src/functions/x.functions.ts"],
+  "include": ["./src"],
   "exclude": ["node_modules"]
 }

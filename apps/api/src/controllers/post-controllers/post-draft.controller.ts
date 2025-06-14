@@ -1,9 +1,10 @@
 import factory from "../../utils/factory";
 import ApiResponse from "../../utils/api-response";
-import {
-    uploadMediaBuffer,
-    getValidAccessToken,
-} from "@repo/x";
+// TEMPORARILY COMMENTED OUT - Missing exports from @repo/x
+// import {
+//     uploadMediaBuffer,
+//     getValidAccessToken,
+// } from "@repo/x";
 import { HTTPException } from "hono/http-exception";
 import db from "@repo/db";
 import { z } from "zod";
@@ -45,143 +46,148 @@ const schema = z.object({
 
 const validate = zv("form", schema);
 
+// TEMPORARILY COMMENTED OUT - Missing X package functions
 const postDraftHandler = factory.createHandlers(validate, async c => {
-    const {
-        file,
-        altText,
-        socialLoginId,
-        draftId,
-        updatedPost,
-        action,
-        scheduleDate,
-    } = c.req.valid("form");
+    // const {
+    //     file,
+    //     altText,
+    //     socialLoginId,
+    //     draftId,
+    //     updatedPost,
+    //     action,
+    //     scheduleDate,
+    // } = c.req.valid("form");
 
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const mediaBuffer = Buffer.from(arrayBuffer);
+    // Temporary placeholder - X social media functionality disabled
+    throw new HTTPException(503, {
+        message: "X social media posting temporarily unavailable",
+    });
 
-        const expiresAfterSecs =
-            action === "schedule" && scheduleDate
-                ? new Date(scheduleDate).getTime() - new Date().getTime()
-                : undefined;
+    // try {
+    //     const arrayBuffer = await file.arrayBuffer();
+    //     const mediaBuffer = Buffer.from(arrayBuffer);
 
-        // Get the first social login for X platform
-        const xSocialLogin = socialLoginId.find(login => login.platform === "X");
-        if (!xSocialLogin) {
-            throw new HTTPException(400, {
-                message: "No X social login provided",
-            });
-        }
+    //     const expiresAfterSecs =
+    //         action === "schedule" && scheduleDate
+    //             ? new Date(scheduleDate).getTime() - new Date().getTime()
+    //             : undefined;
 
-        const socialLogin = await db.socialLogin.findUnique({
-            where: {
-                id: xSocialLogin.id,
-            },
-        });
+    //     // Get the first social login for X platform
+    //     const xSocialLogin = socialLoginId.find(login => login.platform === "X");
+    //     if (!xSocialLogin) {
+    //         throw new HTTPException(400, {
+    //             message: "No X social login provided",
+    //         });
+    //     }
 
-        if (!socialLogin) {
-            throw new HTTPException(404, {
-                message: "Social account not found",
-            });
-        }
+    //     const socialLogin = await db.socialLogin.findUnique({
+    //         where: {
+    //             id: xSocialLogin.id,
+    //         },
+    //     });
 
-        const tokenResult = await getValidAccessToken(socialLogin.id);
+    //     if (!socialLogin) {
+    //         throw new HTTPException(404, {
+    //             message: "Social account not found",
+    //         });
+    //     }
 
-        const uploadResult = await uploadMediaBuffer(
-            mediaBuffer,
-            file.type,
-            tokenResult.accessToken,
-            altText,
-            expiresAfterSecs,
-        );
+    //     const tokenResult = await getValidAccessToken(socialLogin.id);
 
-        const draft = await db.draft.findUnique({
-            where: {
-                id: draftId,
-            },
-            include: {
-                posts: true,
-            },
-        });
+    //     const uploadResult = await uploadMediaBuffer(
+    //         mediaBuffer,
+    //         file.type,
+    //         tokenResult.accessToken,
+    //         altText,
+    //         expiresAfterSecs,
+    //     );
 
-        if (!draft) {
-            throw new HTTPException(404, {
-                message: "Draft not found",
-            });
-        }
-        const postId = draft?.posts.find(post => post.postType === "X")?.id;
+    //     const draft = await db.draft.findUnique({
+    //         where: {
+    //             id: draftId,
+    //         },
+    //         include: {
+    //             posts: true,
+    //         },
+    //     });
 
-        const post = await db.post.upsert({
-            where: {
-                id: postId,
-            },
-            update: {
-                mediaIds: [uploadResult.media_id_string],
-            },
-            create: {
-                post: "",
-                mediaIds: [uploadResult.media_id_string],
-                postType: "X",
-                draftId: draftId,
-                socialLoginId: socialLogin.id,
-            },
-        });
+    //     if (!draft) {
+    //         throw new HTTPException(404, {
+    //             message: "Draft not found",
+    //         });
+    //     }
+    //     const postId = draft?.posts.find(post => post.postType === "X")?.id;
 
-        return c.json(
-            new ApiResponse({
-                statusCode: 200,
-                message: "Media uploaded successfully to X",
-            }),
-            200,
-        );
-    } catch (error) {
-        console.error("Error in X media upload:", error);
+    //     const post = await db.post.upsert({
+    //         where: {
+    //             id: postId,
+    //         },
+    //         update: {
+    //             mediaIds: [uploadResult.media_id_string],
+    //         },
+    //         create: {
+    //             post: "",
+    //             mediaIds: [uploadResult.media_id_string],
+    //             postType: "X",
+    //             draftId: draftId,
+    //             socialLoginId: socialLogin.id,
+    //         },
+    //     });
 
-        if (error instanceof HTTPException) {
-            throw error;
-        }
+    //     return c.json(
+    //         new ApiResponse({
+    //             message: "Media uploaded successfully to X",
+    //         }),
+    //         200,
+    //     );
+    // } catch (error) {
+    //     console.error("Error in X media upload:", error);
 
-        // Handle specific error types
-        if (error instanceof Error) {
-            if (
-                error.message.includes("not connected") ||
-                error.message.includes("not found")
-            ) {
-                throw new HTTPException(404, {
-                    message: error.message,
-                });
-            }
+    //     if (error instanceof HTTPException) {
+    //         throw error;
+    //     }
 
-            if (
-                error.message.includes("refresh") ||
-                error.message.includes("re-authenticate")
-            ) {
-                throw new HTTPException(401, {
-                    message: error.message,
-                });
-            }
+    //     // Handle specific error types
+    //     if (error instanceof Error) {
+    //         if (
+    //             error.message.includes("not connected") ||
+    //             error.message.includes("not found")
+    //         ) {
+    //             throw new HTTPException(404, {
+    //                 message: error.message,
+    //             });
+    //         }
 
-            if (error.message.includes("media")) {
-                throw new HTTPException(400, {
-                    message: error.message,
-                });
-            }
+    //         if (
+    //             error.message.includes("refresh") ||
+    //             error.message.includes("re-authenticate")
+    //         ) {
+    //             throw new HTTPException(401, {
+    //                 message: error.message,
+    //             });
+    //         }
 
-            if (
-                error.message.includes("token") ||
-                error.message.includes("auth")
-            ) {
-                throw new HTTPException(401, {
-                    message:
-                        "Authentication failed. Please reconnect your X account.",
-                });
-            }
-        }
+    //         if (error.message.includes("media")) {
+    //             throw new HTTPException(400, {
+    //                 message: error.message,
+    //             });
+    //         }
 
-        throw new HTTPException(500, {
-            message: "Failed to upload media to X",
-        });
-    }
+    //         if (
+    //             error.message.includes("token") ||
+    //             error.message.includes("auth")
+    //         ) {
+    //             throw new HTTPException(401, {
+    //                 message:
+    //                     "Authentication failed. Please reconnect your X account.",
+    //             });
+    //         }
+    //     }
+
+    //     throw new HTTPException(500, {
+    //         message: "Failed to upload media to X",
+    //     });
+    // }
 });
 
 export default postDraftHandler;

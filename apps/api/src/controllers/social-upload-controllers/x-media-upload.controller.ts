@@ -1,156 +1,156 @@
-import factory from "../../utils/factory";
-import ApiResponse from "../../utils/api-response";
-import {
-    uploadMediaBuffer,
-    getValidAccessToken,
-    type MediaUploadResult,
-} from "@repo/x";
-import { HTTPException } from "hono/http-exception";
-import db from "@repo/db";
-import { z } from "zod";
-import { zValidator as zv } from "@hono/zod-validator";
+// import factory from "../../utils/factory";
+// import ApiResponse from "../../utils/api-response";
+// import {
+//     uploadMediaBuffer,
+//     getValidAccessToken,
+//     type MediaUploadResult,
+// } from "@repo/x";
+// import { HTTPException } from "hono/http-exception";
+// import db from "@repo/db";
+// import { z } from "zod";
+// import { zValidator as zv } from "@hono/zod-validator";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+// const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
-const schema = z.object({
-    file: z
-        .instanceof(File)
-        .refine(file => file.size > 0, {
-            message: "File is required",
-        })
-        .refine(file => file.type.startsWith("image/"), {
-            message: "File must be an image",
-        })
-        .refine(file => file.size <= MAX_FILE_SIZE, {
-            message: "File size must be less than 5MB",
-        })
-        .refine(file => ALLOWED_TYPES.includes(file.type), {
-            message: "Only PNG, JPEG, and WEBP images are allowed",
-        }),
+// const schema = z.object({
+//     file: z
+//         .instanceof(File)
+//         .refine(file => file.size > 0, {
+//             message: "File is required",
+//         })
+//         .refine(file => file.type.startsWith("image/"), {
+//             message: "File must be an image",
+//         })
+//         .refine(file => file.size <= MAX_FILE_SIZE, {
+//             message: "File size must be less than 5MB",
+//         })
+//         .refine(file => ALLOWED_TYPES.includes(file.type), {
+//             message: "Only PNG, JPEG, and WEBP images are allowed",
+//         }),
 
-    altText: z.string().optional(),
-    socialLoginId: z.string(),
-    draftId: z.string(),
-});
+//     altText: z.string().optional(),
+//     socialLoginId: z.string(),
+//     draftId: z.string(),
+// });
 
-const validate = zv("form", schema);
+// const validate = zv("form", schema);
 
-const xMediaUploadHandler = factory.createHandlers(validate, async c => {
-    const { file, altText, socialLoginId, draftId } = c.req.valid("form");
+// const xMediaUploadHandler = factory.createHandlers(validate, async c => {
+//     const { file, altText, socialLoginId, draftId } = c.req.valid("form");
 
-    try {
-        const tokenResult = await getValidAccessToken(socialLoginId);
+//     try {
+//         const tokenResult = await getValidAccessToken(socialLoginId);
 
-        const arrayBuffer = await file.arrayBuffer();
-        const mediaBuffer = Buffer.from(arrayBuffer);
+//         const arrayBuffer = await file.arrayBuffer();
+//         const mediaBuffer = Buffer.from(arrayBuffer);
 
-        const uploadResult = await uploadMediaBuffer(
-            mediaBuffer,
-            file.type,
-            tokenResult.accessToken,
-            altText,
-        );
+//         const uploadResult = await uploadMediaBuffer(
+//             mediaBuffer,
+//             file.type,
+//             tokenResult.accessToken,
+//             altText,
+//         );
 
-        const socialLogin = await db.socialLogin.findUnique({
-            where: {
-                id: socialLoginId,
-            },
-        });
+//         const socialLogin = await db.socialLogin.findUnique({
+//             where: {
+//                 id: socialLoginId,
+//             },
+//         });
 
-        if (!socialLogin) {
-            throw new HTTPException(404, {
-                message: "Social account not found",
-            });
-        }
-        const draft = await db.draft.findUnique({
-            where: {
-                id: draftId,
-            },
-            include: {
-                posts: true,
-            },
-        });
+//         if (!socialLogin) {
+//             throw new HTTPException(404, {
+//                 message: "Social account not found",
+//             });
+//         }
+//         const draft = await db.draft.findUnique({
+//             where: {
+//                 id: draftId,
+//             },
+//             include: {
+//                 posts: true,
+//             },
+//         });
 
-        if (!draft) {
-            throw new HTTPException(404, {
-                message: "Draft not found",
-            });
-        }
-        const postId = draft?.posts.find(post => post.postType === "X")?.id;
+//         if (!draft) {
+//             throw new HTTPException(404, {
+//                 message: "Draft not found",
+//             });
+//         }
+//         const postId = draft?.posts.find(post => post.postType === "X")?.id;
 
-        const post = await db.post.upsert({
-            where: {
-                id: postId || "new",
-            },
-            update: {
-                mediaIds: [uploadResult.media_id_string],
-            },
-            create: {
-                post: "",
-                mediaIds: [uploadResult.media_id_string],
-                postType: "X",
-                draftId: draftId,
-                socialLoginId: socialLogin.id,
-            },
-        });
+//         const post = await db.post.upsert({
+//             where: {
+//                 id: postId || "new",
+//             },
+//             update: {
+//                 mediaIds: [uploadResult.media_id_string],
+//             },
+//             create: {
+//                 post: "",
+//                 mediaIds: [uploadResult.media_id_string],
+//                 postType: "X",
+//                 draftId: draftId,
+//                 socialLoginId: socialLogin.id,
+//             },
+//         });
 
-        return c.json(
-            new ApiResponse({
-                statusCode: 200,
-                message: "Media uploaded successfully to X",
-            }),
-            200,
-        );
+//         return c.json(
+//             new ApiResponse({
+//                 statusCode: 200,
+//                 message: "Media uploaded successfully to X",
+//             }),
+//             200,
+//         );
         
-    } catch (error) {
-        console.error("Error in X media upload:", error);
+//     } catch (error) {
+//         console.error("Error in X media upload:", error);
 
-        if (error instanceof HTTPException) {
-            throw error;
-        }
+//         if (error instanceof HTTPException) {
+//             throw error;
+//         }
 
-        // Handle specific error types
-        if (error instanceof Error) {
-            if (
-                error.message.includes("not connected") ||
-                error.message.includes("not found")
-            ) {
-                throw new HTTPException(404, {
-                    message: error.message,
-                });
-            }
+//         // Handle specific error types
+//         if (error instanceof Error) {
+//             if (
+//                 error.message.includes("not connected") ||
+//                 error.message.includes("not found")
+//             ) {
+//                 throw new HTTPException(404, {
+//                     message: error.message,
+//                 });
+//             }
 
-            if (
-                error.message.includes("refresh") ||
-                error.message.includes("re-authenticate")
-            ) {
-                throw new HTTPException(401, {
-                    message: error.message,
-                });
-            }
+//             if (
+//                 error.message.includes("refresh") ||
+//                 error.message.includes("re-authenticate")
+//             ) {
+//                 throw new HTTPException(401, {
+//                     message: error.message,
+//                 });
+//             }
 
-            if (error.message.includes("media")) {
-                throw new HTTPException(400, {
-                    message: error.message,
-                });
-            }
+//             if (error.message.includes("media")) {
+//                 throw new HTTPException(400, {
+//                     message: error.message,
+//                 });
+//             }
 
-            if (
-                error.message.includes("token") ||
-                error.message.includes("auth")
-            ) {
-                throw new HTTPException(401, {
-                    message:
-                        "Authentication failed. Please reconnect your X account.",
-                });
-            }
-        }
+//             if (
+//                 error.message.includes("token") ||
+//                 error.message.includes("auth")
+//             ) {
+//                 throw new HTTPException(401, {
+//                     message:
+//                         "Authentication failed. Please reconnect your X account.",
+//                 });
+//             }
+//         }
 
-        throw new HTTPException(500, {
-            message: "Failed to upload media to X",
-        });
-    }
-});
+//         throw new HTTPException(500, {
+//             message: "Failed to upload media to X",
+//         });
+//     }
+// });
 
-export default xMediaUploadHandler;
+// export default xMediaUploadHandler;

@@ -86,7 +86,7 @@ const getScheduledDraftsController = factory.createHandlers(
 
             return c.json(
                 new ApiResponse<typeof data>({
-                    statusCode: 200,
+
                     message: "Scheduled drafts fetched successfully",
                     data,
                 }),
