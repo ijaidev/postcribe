@@ -75,7 +75,6 @@ const xCallbackHandler = factory.createHandlers(queryValidator, async c => {
         return c.json(
             new ApiResponse<typeof data>({
                 data,
-                statusCode: 200,
                 message: "X login successful",
             }),
             200,

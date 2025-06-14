@@ -202,6 +202,7 @@ model SocialLogin {
   name         String
   provider     LoginProvider
   userId       String
+  userName     String?
   user         User          @relation(fields: [userId], references: [id])
   accessToken  String
   refreshToken String

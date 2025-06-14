@@ -25,6 +25,7 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
         
         // Generate OAuth2 auth URL with proper code verifier
         const authData = await generateAuthURL(state);
+        console.log(authData);
         
         // Store the OAuth2 data in database including code verifier
         await db.socialLogin.create({
@@ -44,7 +45,6 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
                 data: {
                     authUrl: authData.url,
                 },
-                statusCode: 200,
                 message: "Login url generated successfully",
             }),
             200,

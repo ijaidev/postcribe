@@ -1,5 +1,13 @@
 import { TwitterApi } from "twitter-api-v2";
 
+const X_CLIENT_ID = process.env.X_CLIENT_ID;
+const X_CLIENT_SECRET = process.env.X_CLIENT_SECRET;
+const X_CALLBACK_URL = process.env.X_CALLBACK_URL;
+
+if (!X_CLIENT_ID || !X_CLIENT_SECRET || !X_CALLBACK_URL) {
+    throw new Error("X_CLIENT_ID and X_CLIENT_SECRET are required");
+}
+
 export function createUserClient(accessToken: string): TwitterApi {
     if (!accessToken) {
         throw new Error("Access token is required for user authentication");
@@ -9,47 +17,22 @@ export function createUserClient(accessToken: string): TwitterApi {
 }
 
 /**
- * Create a user-authenticated client with OAuth 1.0a credentials (for media uploads)
- * @param accessToken - User's OAuth access token
- * @param accessSecret - User's OAuth access secret
+ * Create OAuth2 client for authentication operations
  */
-export function createUserV1Client(
-    accessToken: string,
-    accessSecret: string,
-): TwitterApi {
-    if (!process.env.TWITTER_API_KEY || !process.env.TWITTER_API_SECRET) {
-        throw new Error("TWITTER_API_KEY and TWITTER_API_SECRET are required");
-    }
-
-    if (!accessToken || !accessSecret) {
-        throw new Error(
-            "Both access token and access secret are required for OAuth 1.0a",
-        );
-    }
-
+function createOAuth2Client(): TwitterApi {
     return new TwitterApi({
-        appKey: process.env.TWITTER_API_KEY,
-        appSecret: process.env.TWITTER_API_SECRET,
-        accessToken,
-        accessSecret,
+        clientId: X_CLIENT_ID!,
+        clientSecret: X_CLIENT_SECRET!,
     });
 }
 
 /**
- * Create OAuth2 client for authentication operations
+ * Create app-only client using bearer token for read-only operations
  */
-function createOAuth2Client(): TwitterApi {
-    if (!process.env.TWITTER_CLIENT_ID || !process.env.TWITTER_CLIENT_SECRET) {
-        throw new Error(
-            "TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET are required",
-        );
-    }
 
-    return new TwitterApi({
-        clientId: process.env.TWITTER_CLIENT_ID,
-        clientSecret: process.env.TWITTER_CLIENT_SECRET,
-    });
-}
+// function createAppOnlyClient(): TwitterApi {
+//     return new TwitterApi(X_BEARER_TOKEN!);
+// }
 
 /**
  * Check if a token is expired or will expire soon
@@ -78,23 +61,14 @@ export async function generateAuthURL(state: string): Promise<{
     codeVerifier: string;
     state: string;
 }> {
-    if (!process.env.TWITTER_CALLBACK_URL) {
-        throw new Error("TWITTER_CALLBACK_URL is required");
-    }
-
     try {
         const client = createOAuth2Client();
         const {
             url,
             codeVerifier,
             state: returnedState,
-        } = client.generateOAuth2AuthLink(process.env.TWITTER_CALLBACK_URL, {
-            scope: [
-                "tweet.read",
-                "tweet.write",
-                "users.read",
-                "offline.access",
-            ],
+        } = client.generateOAuth2AuthLink(X_CALLBACK_URL!, {
+            scope: ["offline.access", "users.read"],
             state,
         });
 
@@ -124,16 +98,12 @@ export async function requestAccessToken(
     refreshToken?: string;
     expiresIn?: number;
 }> {
-    if (!process.env.TWITTER_CALLBACK_URL) {
-        throw new Error("TWITTER_CALLBACK_URL is required");
-    }
-
     try {
         const client = createOAuth2Client();
         const loginResult = await client.loginWithOAuth2({
             code,
             codeVerifier,
-            redirectUri: process.env.TWITTER_CALLBACK_URL,
+            redirectUri: X_CALLBACK_URL!,
         });
 
         return {
@@ -142,6 +112,7 @@ export async function requestAccessToken(
             refreshToken: loginResult.refreshToken,
             expiresIn: loginResult.expiresIn,
         };
+        
     } catch (error) {
         console.error("Error exchanging code for access token:", error);
         throw new Error(
@@ -174,4 +145,3 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
         throw new Error("Failed to refresh access token");
     }
 }
-
