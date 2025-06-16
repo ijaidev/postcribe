@@ -1,89 +1,165 @@
-// import db from "@repo/db";
-// import factory from "../../utils/factory";
-// import ApiResponse from "../../utils/api-response";
-// import { requestAccessToken } from "@repo/linkedin";
-// import { z } from "zod";
-// import { zValidator as zv } from "@hono/zod-validator";
-// import { HTTPException } from "hono/http-exception";
-// import { logger } from "@repo/logger";
+import db from "@repo/db";
+import factory from "../../utils/factory";
+import ApiResponse from "../../utils/api-response";
+import { requestAccessToken, getProfile } from "@repo/linkedin";
+import { z } from "zod";
+import { zValidator as zv } from "@hono/zod-validator";
+import { HTTPException } from "hono/http-exception";
+import { logger } from "@repo/logger";
 
-// const querySchema = z.object({
-//     code: z.string(),
-//     state: z.string(),
-// });
-// const queryValidator = zv("query", querySchema);
+const linkedinCallbackHandler = factory.createHandlers(async c => {
+    const { code, state, error } = c.req.query();
+    if (error || !code || !state) {
+        throw new HTTPException(400, {
+            message: "Failed to connect LinkedIn account",
+        });
+    }
+    const user = c.get("user")!;
 
-// const linkedinCallbackHandler = factory.createHandlers(
-//     queryValidator,
-//     async c => {
-//         const { code, state } = c.req.valid("query");
-//         const user = c.get("user")!;
+    try {
+        // Find the social login record with the provided state
+        const socialLogin = await db.socialLogin.findFirst({
+            where: {
+                state: state as string,
+                userId: user.id,
+                provider: "LINKEDIN",
+            },
+        });
 
-//         try {
-//             // Find the social login record with the provided state
-//             const socialLogin = await db.socialLogin.findFirst({
-//                 where: {
-//                     state: state as string,
-//                     userId: user.id,
-//                     provider: "LINKEDIN",
-//                 },
-//             });
+        if (!socialLogin) {
+            throw new HTTPException(400, {
+                message: "Invalid state or session expired",
+            });
+        }
 
-//             if (!socialLogin) {
-//                 throw new HTTPException(400, {
-//                     message: "Invalid state or session expired",
-//                 });
-//             }
+        // Exchange the authorization code for access tokens
+        const tokenResult = await requestAccessToken(code);
 
-//             // Exchange the authorization code for access tokens
-//             const tokenResult = await requestAccessToken(code);
+        // Calculate expiration time
+        const expiresAt = tokenResult.expiresIn
+            ? new Date(Date.now() + tokenResult.expiresIn * 1000).toISOString()
+            : new Date(Date.now() + 3600000).toISOString(); // Default to 1 hour
 
-//             // Calculate expiration time
-//             const expiresAt = tokenResult.expiresIn
-//                 ? new Date(
-//                       Date.now() + tokenResult.expiresIn * 1000,
-//                   ).toISOString()
-//                 : new Date(Date.now() + 3600000).toISOString(); // Default to 1 hour
+        // Get LinkedIn user profile information
+        let linkedInProfile;
+        try {
+            linkedInProfile = await getProfile(tokenResult.accessToken);
+        } catch (profileError) {
+            logger.error("Failed to fetch LinkedIn profile:", profileError);
+            // Continue with basic token update if profile fetch fails
+            linkedInProfile = null;
+        }
 
-//             // Update the social login record with actual tokens
-//             const updatedSocialLogin = await db.socialLogin.update({
-//                 where: {
-//                     id: socialLogin.id,
-//                 },
-//                 data: {
-//                     accessToken: tokenResult.accessToken,
-//                     refreshToken: tokenResult.refreshToken || "",
-//                     expiresAt: expiresAt,
-//                     state: null, // Clear the state as it's no longer needed
-//                 },
-//                 select: {
-//                     name: true,
-//                     provider: true,
-//                     id: true,
-//                 },
-//             });
+        // Generate username from profile or fallback to account name
+        const userName = linkedInProfile
+            ? linkedInProfile.vanityName ||
+              `${linkedInProfile.firstName} ${linkedInProfile.lastName}`.trim()
+            : socialLogin.name;
 
-//             const data = {
-//                 name: updatedSocialLogin.name,
-//                 provider: updatedSocialLogin.provider,
-//                 id: updatedSocialLogin.id,
-//             };
+        // Update the social login record with actual tokens and profile info
+        const updatedSocialLogin = await db.socialLogin.update({
+            where: {
+                id: socialLogin.id,
+            },
+            data: {
+                accessToken: tokenResult.accessToken,
+                refreshToken: tokenResult.refreshToken || "",
+                expiresAt: expiresAt,
+                state: null, // Clear the state as it's no longer needed
+                userName: userName,
+                isConnected: true,
+            },
+            select: {
+                name: true,
+                provider: true,
+                id: true,
+                userName: true,
+                isConnected: true,
+            },
+        });
 
-//             return c.json(
-//                 new ApiResponse<typeof data>({
-//                     data,
-//                     statusCode: 200,
-//                     message: "LinkedIn login successful",
-//                 }),
-//                 200,
-//             );
-//         } catch (error) {
-//             logger.error("LinkedIn callback error:", error);
-//             throw new HTTPException(500, {
-//                 message: "Failed to complete LinkedIn authentication",
-//             });
-//         }
-//     },
-// );
+        const data = {
+            name: updatedSocialLogin.name,
+            provider: updatedSocialLogin.provider,
+            id: updatedSocialLogin.id,
+            userName: updatedSocialLogin.userName,
+            isConnected: updatedSocialLogin.isConnected,
+        };
 
-// export default linkedinCallbackHandler;
+        // Return HTML that sends postMessage to parent window and closes popup
+        const successHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>LinkedIn Authorization Success</title>
+                </head>
+                <body>
+                    <div style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                        <h2>✅ LinkedIn Connected Successfully!</h2>
+                        <p>You can close this window...</p>
+                    </div>
+                    <script>
+                        // Send success message to parent window
+                        if (window.opener && window.opener !== window) {
+                            window.opener.postMessage({
+                                type: 'LINKEDIN_AUTH_SUCCESS',
+                                account: ${JSON.stringify(data)}
+                            }, window.location.origin);
+                            window.close();
+                        } else {
+                            // Fallback for standalone access
+                            setTimeout(() => {
+                                window.location.href = '/dashboard/connections';
+                            }, 2000);
+                        }
+                    </script>
+                </body>
+                </html>
+            `;
+
+        return c.html(successHtml);
+    } catch (error) {
+        logger.error("LinkedIn callback error:", error);
+
+        const errorMessage =
+            error instanceof HTTPException
+                ? error.message
+                : "Failed to complete LinkedIn authentication";
+
+        // Return HTML that sends error message to parent window
+        const errorHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>LinkedIn Authorization Error</title>
+                </head>
+                <body>
+                    <div style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                        <h2>❌ LinkedIn Connection Failed</h2>
+                        <p>${errorMessage}</p>
+                        <p>You can close this window...</p>
+                    </div>
+                    <script>
+                        // Send error message to parent window
+                        if (window.opener && window.opener !== window) {
+                            window.opener.postMessage({
+                                type: 'LINKEDIN_AUTH_ERROR',
+                                error: '${errorMessage}'
+                            }, window.location.origin);
+                            window.close();
+                        } else {
+                            // Fallback for standalone access
+                            setTimeout(() => {
+                                window.location.href = '/dashboard/connections';
+                            }, 2000);
+                        }
+                    </script>
+                </body>
+                </html>
+            `;
+
+        return c.html(errorHtml);
+    }
+});
+
+export default linkedinCallbackHandler;

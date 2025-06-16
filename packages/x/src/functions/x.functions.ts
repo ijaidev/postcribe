@@ -1,5 +1,5 @@
 import { logger } from "@repo/logger";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import type {
     UserTweets,
     CleanTweet,
@@ -34,6 +34,14 @@ export const getUserInfo = async (username: string) => {
             isVerified: response.data.result.data.user.result.is_blue_verified,
         };
     } catch (error) {
+        if (isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                return {
+                    id: "",
+                    isVerified: false,
+                };
+            }
+        }
         logger.error(error);
         throw error;
     }
@@ -125,7 +133,7 @@ export const uploadMediaBuffer = async (
     mimeType: string,
     accessToken: string,
     altText?: string,
-    expiresAfterSecs?: number
+    expiresAfterSecs?: number,
 ) => {
     throw new Error("uploadMediaBuffer not implemented yet");
 };

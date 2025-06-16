@@ -37,7 +37,7 @@ export function LoginChecker() {
                 if (!isAuthenticated) return
                 router.push(redirect ? redirect : CLIENT_URL + "/dashboard")
             }
-            if (!isAuthenticated) router.push(CLIENT_URL + "/signin" + (redirect ? "?redirect=" + redirect : ""))
+            if (!isAuthenticated) router.push(CLIENT_URL + "/signin?redirect=" + CLIENT_URL + pathname)
         }
         checkAuth()
         setIsChecking(false)

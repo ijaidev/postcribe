@@ -15,7 +15,13 @@ const xLoginSchema = z.object({
         .min(1, { message: "Username is required" }),
 });
 
-const bodyValidator = zValidator("json", xLoginSchema);
+const bodyValidator = zValidator("json", xLoginSchema, result => {
+    if (!result.success) {
+        throw new HTTPException(400, {
+            message: "Username is required",
+        });
+    }
+});
 
 const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
     const { username } = c.req.valid("json");
@@ -52,6 +58,11 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
         // );
 
         const xUser = await getUserInfo(username);
+        if (xUser.id === "") {
+            throw new HTTPException(404, {
+                message: "User not found",
+            });
+        }
         const date = new Date();
         const expiresAt = new Date(date.setFullYear(2100)).toISOString();
         const account = await db.socialLogin.create({
@@ -71,6 +82,7 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
                 provider: true,
                 expiresAt: true,
                 isVerified: true,
+                isConnected: true,
             },
         });
         return c.json(
@@ -79,11 +91,16 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
                     account: account,
                 },
                 message: "X login successful",
+                status: 200,
             }),
             200,
         );
     } catch (error) {
         logger.error("X login error:", error);
+
+        if (error instanceof HTTPException) {
+            throw error;
+        }
         throw new HTTPException(500, {
             message: "Internal server error",
         });

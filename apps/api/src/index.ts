@@ -2,6 +2,11 @@ import factory from "./utils/factory";
 import mainRouter from "./router/main.router";
 import { auth } from "@repo/auth";
 import { cors } from "hono/cors";
+import { HTTPException } from "hono/http-exception";
+import { logger } from "@repo/logger";
+import ApiResponse from "./utils/api-response";
+import { ZodError } from "zod";
+import { getZodErrorMessage } from "./utils/zod-error-message";
 
 const app = factory
     .createApp()
@@ -32,7 +37,35 @@ const app = factory
         c.set("session", session.session);
         return next();
     })
-    .route("/v1", mainRouter);
+    .route("/v1", mainRouter)
+    .onError((err, c) => {
+        if (err instanceof HTTPException) {
+            return c.json(
+                new ApiResponse({
+                    message: err.message,
+                    status: err.status,
+                }),
+                err.status,
+            );
+        }
+        if (err instanceof ZodError) {
+            return c.json(
+                new ApiResponse({
+                    message: getZodErrorMessage(err),
+                    status: 400,
+                }),
+                400,
+            );
+        }
+        logger.error("Internal server error:", err);
+        return c.json(
+            new ApiResponse({
+                message: "Internal server error",
+                status: 500,
+            }),
+            500,
+        );
+    });
 
 export default {
     fetch: app.fetch,

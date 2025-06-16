@@ -20,6 +20,7 @@ const getSocialAccountsHandler = factory.createHandlers(async c => {
                 userName: true,
                 createdAt: true,
                 isVerified: true,
+                isConnected: true,
             },
             orderBy: {
                 createdAt: 'desc'
@@ -30,6 +31,7 @@ const getSocialAccountsHandler = factory.createHandlers(async c => {
             new ApiResponse({
                 data: socialAccounts,
                 message: "Social accounts retrieved successfully",
+                status: 200,
             }),
             200
         );

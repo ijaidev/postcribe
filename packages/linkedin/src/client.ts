@@ -28,7 +28,9 @@ function createAuthClient(): AuthClient {
     const redirectUrl = process.env.LINKEDIN_CALLBACK_URL;
 
     if (!clientId || !clientSecret) {
-        throw new Error("LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are required");
+        throw new Error(
+            "LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are required",
+        );
     }
 
     return new AuthClient({
@@ -48,7 +50,7 @@ const authClient = createAuthClient();
  */
 export function generateAuthURL(
     state: string,
-    scopes: string[] = ["openid", "profile", "email"]
+    scopes: string[] = ["openid", "profile", "email", "r_member_social"],
 ): LinkedInAuthResult {
     const authUrl = authClient.generateMemberAuthorizationUrl(scopes, state);
 
@@ -63,7 +65,9 @@ export function generateAuthURL(
  * @param code - Authorization code from LinkedIn callback
  * @returns Token details
  */
-export async function requestAccessToken(code: string): Promise<LinkedInTokenResult> {
+export async function requestAccessToken(
+    code: string,
+): Promise<LinkedInTokenResult> {
     try {
         const tokenData = await authClient.exchangeAuthCodeForAccessToken(code);
 
@@ -75,7 +79,9 @@ export async function requestAccessToken(code: string): Promise<LinkedInTokenRes
         };
     } catch (error) {
         console.error("LinkedIn token exchange error:", error);
-        throw new Error("Failed to exchange authorization code for access token");
+        throw new Error(
+            "Failed to exchange authorization code for access token",
+        );
     }
 }
 
@@ -84,9 +90,12 @@ export async function requestAccessToken(code: string): Promise<LinkedInTokenRes
  * @param refreshToken - Refresh token
  * @returns New token details
  */
-export async function refreshAccessToken(refreshToken: string): Promise<LinkedInRefreshResult> {
+export async function refreshAccessToken(
+    refreshToken: string,
+): Promise<LinkedInRefreshResult> {
     try {
-        const tokenData = await authClient.exchangeRefreshTokenForAccessToken(refreshToken);
+        const tokenData =
+            await authClient.exchangeRefreshTokenForAccessToken(refreshToken);
 
         return {
             accessToken: tokenData.access_token,
@@ -105,10 +114,13 @@ export async function refreshAccessToken(refreshToken: string): Promise<LinkedIn
  * @param bufferMinutes - Minutes buffer before expiration (default: 5)
  * @returns True if token is expired or will expire within buffer time
  */
-export function isTokenExpired(expiresAt: Date, bufferMinutes: number = 5): boolean {
+export function isTokenExpired(
+    expiresAt: Date,
+    bufferMinutes: number = 5,
+): boolean {
     const now = new Date();
     const bufferMs = bufferMinutes * 60 * 1000;
-    return now.getTime() >= (expiresAt.getTime() - bufferMs);
+    return now.getTime() >= expiresAt.getTime() - bufferMs;
 }
 
 /**
@@ -128,7 +140,6 @@ export function createLinkedInClient(accessToken?: string): RestliClient {
  * @returns Token introspection details
  */
 
-
 export async function introspectAccessToken(accessToken: string) {
     try {
         return await authClient.introspectAccessToken(accessToken);
@@ -136,4 +147,4 @@ export async function introspectAccessToken(accessToken: string) {
         console.error("LinkedIn token introspection error:", error);
         throw new Error("Failed to introspect LinkedIn access token");
     }
-} 
+}

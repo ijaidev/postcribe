@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Plus, Twitter, Linkedin, ExternalLink, Settings, Trash2, Circle } from "lucide-react"
 
@@ -36,16 +36,18 @@ import { InferResponseType } from "hono"
 
 export default function ConnectionsPage() {
     type SocialAccount = NonNullable<InferResponseType<typeof client.social.accounts.$get>['data']>[number]
-
+    
+    const queryClient = useQueryClient()
     const [accountToDisconnect, setAccountToDisconnect] = useState<SocialAccount | null>(null)
     const [showXUsernameDialog, setShowXUsernameDialog] = useState(false)
     const [xUsername, setXUsername] = useState("")
+    const [showLinkedInDialog, setShowLinkedInDialog] = useState(false)
+    const [linkedInAccountName, setLinkedInAccountName] = useState("")
 
     // Load connected social accounts using React Query
     const {
         data: socialAccounts,
-        isLoading: isLoadingAccounts,
-        refetch: refetchAccounts
+        isLoading: isLoadingAccounts
     } = useQuery({
         queryKey: ['social-accounts'],
         queryFn: async () => (await client.social.accounts.$get()).json(),
@@ -62,8 +64,15 @@ export default function ConnectionsPage() {
         },
         onSuccess: (result) => {
             if (result.data?.account) {
+                // Update query cache with new account instead of refetching
+                queryClient.setQueryData(['social-accounts'], (oldData: typeof socialAccounts) => {
+                    if (!oldData?.data) return oldData
+                    return {
+                        ...oldData,
+                        data: [...oldData.data, result.data!.account]
+                    }
+                })
                 toast.success('X account connected successfully!')
-                refetchAccounts()
             } else {
                 toast.success('X connection initiated. Complete the authorization in the new window.')
             }
@@ -74,16 +83,71 @@ export default function ConnectionsPage() {
         }
     })
 
+    // Connect LinkedIn account using mutations
+    const connectLinkedInAccountMutation = useMutation({
+        mutationFn: async (accountName: string) => {
+            const response = await client.social.login.linkedin.$post({ json: { name: accountName } })
+            if (!response.ok) {
+                throw new Error('Failed to initiate LinkedIn connection')
+            }
+            return response.json()
+        },
+        onSuccess: (result) => {
+            if (result.data?.authUrl) {
+                // Open OAuth URL in new window
+                const popup = window.open(result.data.authUrl, 'linkedin-auth', 'width=600,height=600,scrollbars=yes,resizable=yes')
+                
+                // Listen for messages from the popup
+                const handlePopupMessage = (event: MessageEvent) => {
+                    // Verify origin for security (replace with your actual domain)
+                    if (event.origin !== window.location.origin) return
+                    
+                    if (event.data.type === 'LINKEDIN_AUTH_SUCCESS') {
+                        // Update query cache with new account
+                        queryClient.setQueryData(['social-accounts'], (oldData: typeof socialAccounts) => {
+                            if (!oldData?.data) return oldData
+                            return {
+                                ...oldData,
+                                data: [...oldData.data, event.data.account]
+                            }
+                        })
+                        toast.success('LinkedIn account connected successfully!')
+                        popup?.close()
+                        window.removeEventListener('message', handlePopupMessage)
+                    } else if (event.data.type === 'LINKEDIN_AUTH_ERROR') {
+                        toast.error(event.data.error || 'LinkedIn connection failed')
+                        popup?.close()
+                        window.removeEventListener('message', handlePopupMessage)
+                    }
+                }
+                
+                window.addEventListener('message', handlePopupMessage)
+                
+                // Handle popup being closed manually
+                const checkClosed = setInterval(() => {
+                    if (popup?.closed) {
+                        clearInterval(checkClosed)
+                        window.removeEventListener('message', handlePopupMessage)
+                    }
+                }, 1000)
+                
+                toast.success('LinkedIn authorization window opened. Complete the process to connect your account.')
+            } else {
+                toast.error('Failed to get LinkedIn authorization URL')
+            }
+        },
+        onError: (error) => {
+            console.error('Failed to connect LinkedIn account:', error)
+            toast.error('Failed to connect LinkedIn account')
+        }
+    })
+
     const handleConnectXAccount = () => {
         setShowXUsernameDialog(true)
     }
 
-    const handleConnectLinkedInAccount = async () => {
-        const accountName = prompt(`Enter a name for your LinkedIn account:`)
-        if (!accountName || accountName.trim() === '') {
-            return
-        }
-        toast.info("LinkedIn connection coming soon")
+    const handleConnectLinkedInAccount = () => {
+        setShowLinkedInDialog(true)
     }
 
     const handleXUsernameSubmit = () => {
@@ -96,7 +160,17 @@ export default function ConnectionsPage() {
         setXUsername("")
     }
 
-    const handleReconnect = (provider: string) => {
+    const handleLinkedInSubmit = () => {
+        if (!linkedInAccountName.trim()) {
+            toast.error("Please enter an account name")
+            return
+        }
+        connectLinkedInAccountMutation.mutate(linkedInAccountName.trim())
+        setShowLinkedInDialog(false)
+        setLinkedInAccountName("")
+    }
+
+    const handleReconnect = () => {
         toast.info("Reconnect functionality coming soon")
     }
 
@@ -131,11 +205,6 @@ export default function ConnectionsPage() {
         }
     }
 
-    // Mock function to check if account is connected (you can replace with actual logic)
-    const isAccountConnected = (account: SocialAccount) => {
-        // For demo purposes, let's say some accounts are connected and some are not
-        return account.isConnected || false
-    }
 
     return (
         <div className="container max-w-4xl mx-auto py-8 space-y-8">
@@ -231,7 +300,7 @@ export default function ConnectionsPage() {
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
                         {socialAccounts?.data?.map((account: SocialAccount) => {
-                            const connected = isAccountConnected(account)
+                            const connected = account.isConnected
                             return (
                                 <Card key={account.id} className="hover:shadow-md transition-shadow">
                                     <CardContent className="p-6">
@@ -270,22 +339,12 @@ export default function ConnectionsPage() {
                                         </div>
 
                                         <div className="flex gap-2">
-                                            {connected ? (
+                                            {!connected && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     className="flex items-center gap-2 flex-1"
-                                                    onClick={() => toast.info("Account management coming soon")}
-                                                >
-                                                    <ExternalLink className="h-3 w-3" />
-                                                    Manage
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex items-center gap-2 flex-1"
-                                                    onClick={() => handleReconnect(account.provider)}
+                                                    onClick={handleReconnect}
                                                 >
                                                     <ExternalLink className="h-3 w-3" />
                                                     Reconnect
@@ -348,6 +407,55 @@ export default function ConnectionsPage() {
                             disabled={connectXAccountMutation.isPending}
                         >
                             {connectXAccountMutation.isPending ? (
+                                <ThreeDotLoader size="sm" />
+                            ) : (
+                                'Connect'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* LinkedIn Account Input Dialog */}
+            <Dialog open={showLinkedInDialog} onOpenChange={setShowLinkedInDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Connect LinkedIn Account</DialogTitle>
+                        <DialogDescription>
+                            Enter your LinkedIn account name to connect your account.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="linkedin-account-name">LinkedIn Account Name</Label>
+                            <Input
+                                id="linkedin-account-name"
+                                placeholder="Enter your LinkedIn account name"
+                                value={linkedInAccountName}
+                                onChange={(e) => setLinkedInAccountName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleLinkedInSubmit()
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setShowLinkedInDialog(false)
+                                setLinkedInAccountName("")
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleLinkedInSubmit}
+                            disabled={connectLinkedInAccountMutation.isPending}
+                        >
+                            {connectLinkedInAccountMutation.isPending ? (
                                 <ThreeDotLoader size="sm" />
                             ) : (
                                 'Connect'
