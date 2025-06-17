@@ -40,10 +40,11 @@ PostCribe is an AI-powered social media post creator and scheduler built with Ne
 **ALWAYS follow this order to maintain consistency and avoid code duplication:**
 
 1. **Check [components/ui/](mdc:apps/web/src/components/ui)** - Look for existing components first (all custom components are now in ui/)
-2. **Read component documentation** - Understand props and usage before implementing
-3. **Check existing patterns** - Look at `headings.tsx`, `loaders/`, `resend-verification-email.tsx`, `timezone.tsx` for examples
-4. **Install missing shadcn components** if needed: `bunx shadcn@latest add component-name`
-5. **Create new components** only if truly unique functionality is needed
+2. **Check [components/layout/](mdc:apps/web/src/components/layout)** - Layout-specific components like AppSidebar
+3. **Read component documentation** - Understand props and usage before implementing
+4. **Check existing patterns** - Look at `headings.tsx`, `loaders/`, `resend-verification-email.tsx`, `timezone.tsx` for examples
+5. **Install missing shadcn components** if needed: `bunx shadcn@latest add component-name`
+6. **Create new components** only if truly unique functionality is needed
 
 ### 2. Before Using Any Component
 ```bash
@@ -57,6 +58,8 @@ cat apps/web/src/components/ui/loaders/three-dot-loader.tsx  # Loading states
 cat apps/web/src/components/ui/resend-verification-email.tsx # Email verification UI
 cat apps/web/src/components/ui/timezone.tsx        # Timezone selection (1451 timezones)
 cat apps/web/src/components/ui/login-checker.tsx   # Route protection
+cat apps/web/src/components/ui/sidebar.tsx         # Sidebar system components
+cat apps/web/src/components/layout/app-sidebar.tsx # Main app sidebar implementation
 ```
 
 ## API Integration & Data Fetching
@@ -67,15 +70,20 @@ cat apps/web/src/components/ui/login-checker.tsx   # Route protection
 ```tsx
 import client from '@/lib/hono-client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { InferResponseType } from 'hono'
 
-// ✅ CORRECT: Type-safe API calls with React Query
-function useUserPosts() {
+// ✅ CORRECT: Type-safe API calls with React Query and proper typing
+type SocialAccount = NonNullable<
+  InferResponseType<typeof client.social.accounts.$get>["data"]
+>[number]
+
+function useSocialAccounts() {
   return useQuery({
-    queryKey: ['posts', 'user'],
+    queryKey: ['social-accounts'],
     queryFn: async () => {
-      const response = await client.v1.post.$get()
+      const response = await client.social.accounts.$get()
       if (!response.ok) {
-        throw new Error('Failed to fetch posts')
+        throw new Error('Failed to fetch social accounts')
       }
       return response.json()
     },
@@ -84,34 +92,43 @@ function useUserPosts() {
   })
 }
 
-function useCreatePost() {
+function useConnectXAccount() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async (postData: { title: string; content: string }) => {
-      const response = await client.v1.post.$post({
-        json: postData
+    mutationFn: async (username: string) => {
+      const response = await client.social.login.x.$post({
+        json: { username }
       })
       if (!response.ok) {
-        throw new Error('Failed to create post')
+        throw new Error('Failed to connect X account')
       }
       return response.json()
     },
-    onSuccess: () => {
-      // Invalidate and refetch posts
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
-      toast.success('Post created successfully!')
+    onSuccess: (result) => {
+      // Update query cache optimistically
+      queryClient.setQueryData(
+        ['social-accounts'],
+        (oldData: InferResponseType<typeof client.social.accounts.$get>) => {
+          if (!oldData?.data) return oldData
+          return {
+            ...oldData,
+            data: [...oldData.data, result.data!.account],
+          }
+        }
+      )
+      toast.success('X account connected successfully!')
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create post')
+      toast.error(error.message || 'Failed to connect X account')
     }
   })
 }
 
 // Usage in component
-function PostsPage() {
-  const { data: posts, isLoading, error } = useUserPosts()
-  const createPostMutation = useCreatePost()
+function ConnectionsPage() {
+  const { data: socialAccounts, isLoading, error } = useSocialAccounts()
+  const connectXMutation = useConnectXAccount()
 
   if (isLoading) {
     return <ThreeDotLoader size="lg" />
@@ -120,7 +137,7 @@ function PostsPage() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>Failed to load posts</AlertDescription>
+        <AlertDescription>Failed to load accounts</AlertDescription>
       </Alert>
     )
   }
@@ -128,17 +145,19 @@ function PostsPage() {
   return (
     <div className="space-y-4">
       <Button 
-        onClick={() => createPostMutation.mutate({ title: 'New Post', content: 'Content' })}
-        disabled={createPostMutation.isPending}
+        onClick={() => connectXMutation.mutate('username')}
+        disabled={connectXMutation.isPending}
       >
-        {createPostMutation.isPending ? <ThreeDotLoader size="sm" /> : 'Create Post'}
+        {connectXMutation.isPending ? <ThreeDotLoader size="sm" /> : 'Connect X'}
       </Button>
       
-      {posts?.map(post => (
-        <Card key={post.id}>
+      {socialAccounts?.data?.map(account => (
+        <Card key={account.id}>
           <CardContent>
-            <H3>{post.title}</H3>
-            <p>{post.content}</p>
+            <H3>{account.name}</H3>
+            <Badge variant={account.isConnected ? "default" : "destructive"}>
+              {account.isConnected ? "Connected" : "Disconnected"}
+            </Badge>
           </CardContent>
         </Card>
       ))}
@@ -147,8 +166,8 @@ function PostsPage() {
 }
 
 // ❌ WRONG: Direct fetch calls without type safety or caching
-async function fetchPosts() {
-  const response = await fetch('/api/posts') // No type safety
+async function fetchAccounts() {
+  const response = await fetch('/api/accounts') // No type safety
   return response.json() // No caching, no error handling
 }
 ```
@@ -371,9 +390,10 @@ apps/web/src/
 ├── app/                           # Next.js 15 App Router
 │   ├── (authorized)/             # Protected routes group
 │   │   ├── dashboard/            # Main dashboard page
-│   │   ├── settings/             # User settings page (687 lines - fully implemented)
-│   │   ├── connections/          # Social media connections (empty - needs implementation)
-│   │   └── layout.tsx            # Auth wrapper layout
+│   │   ├── settings/             # User settings page (814 lines - fully implemented)
+│   │   ├── connections/          # Social media connections (458 lines - fully implemented)
+│   │   ├── draft/                # Draft creation page (empty - needs implementation)
+│   │   └── layout.tsx            # Auth wrapper layout with sidebar
 │   ├── signin/                   # Email/Google login page
 │   ├── signup/                   # Registration with timezone selection
 │   ├── verify-email/             # Email verification page
@@ -383,7 +403,9 @@ apps/web/src/
 │   ├── loading.tsx               # Global loading component
 │   └── page.tsx                  # Landing page
 ├── components/
-│   ├── ui/                       # All components (shadcn + custom)
+│   ├── layout/                   # Layout-specific components
+│   │   └── app-sidebar.tsx       # ✅ Main app sidebar (313 lines - fully implemented)
+│   ├── ui/                       # All UI components (shadcn + custom)
 │   │   ├── loaders/              # Loading components
 │   │   │   ├── three-dot-loader.tsx  # ✅ Animated 3-dot loader (3 sizes)
 │   │   │   └── index.ts          # ✅ Loader exports
@@ -391,6 +413,12 @@ apps/web/src/
 │   │   ├── login-checker.tsx     # ✅ Auth route protection component
 │   │   ├── resend-verification-email.tsx # ✅ Email verification UI with cooldown
 │   │   ├── timezone.tsx          # ✅ Timezone selection (1451 entries)
+│   │   ├── x-logo.tsx            # ✅ X/Twitter logo component (transparent, theme-aware)
+│   │   ├── sidebar.tsx           # ✅ Complete sidebar system (727 lines)
+│   │   ├── avatar.tsx            # ✅ User avatar component
+│   │   ├── skeleton.tsx          # ✅ Loading skeleton component
+│   │   ├── tooltip.tsx           # ✅ Tooltip component
+│   │   ├── sheet.tsx             # ✅ Sheet/drawer component
 │   │   ├── alert.tsx             # ✅ Alert messages and notifications
 │   │   ├── alert-dialog.tsx      # ✅ Modal confirmation dialogs
 │   │   ├── badge.tsx             # ✅ Status indicators and labels
@@ -409,6 +437,8 @@ apps/web/src/
 │       ├── theme-provider.tsx    # ✅ Dark/light theme with next-themes
 │       ├── user-provider.tsx     # ✅ User context and auth state management
 │       └── providers.tsx         # ✅ Combined providers wrapper
+├── hooks/
+│   └── use-mobile.ts             # ✅ Mobile detection hook
 ├── lib/
 │   ├── auth-client.ts            # ✅ Better-Auth client setup with Google OAuth
 │   ├── hono-client.ts            # ✅ Type-safe API client (Hono RPC)
@@ -416,6 +446,51 @@ apps/web/src/
 │   └── utils.ts                  # ✅ Utility functions (cn, etc.)
 └── config.ts                     # ✅ Environment variables (CLIENT_URL, API_URL, BETTER_AUTH_URL)
 ```
+
+## Sidebar System & Layout
+
+### Sidebar Implementation
+**The app uses a sophisticated sidebar system with collapsible functionality:**
+
+```tsx
+import { AppSidebar } from '@/components/layout/app-sidebar'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+
+// ✅ CORRECT: Main layout pattern
+function AuthorizedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto p-6">{children}</div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
+
+// ✅ CORRECT: Using sidebar state in components
+function MyComponent() {
+  const { state, toggleSidebar } = useSidebar()
+  
+  return (
+    <div>
+      <p>Sidebar is {state}</p>
+      <Button onClick={toggleSidebar}>Toggle Sidebar</Button>
+    </div>
+  )
+}
+```
+
+### Sidebar Features
+- **Collapsible**: Icon-only mode with tooltips
+- **Mobile responsive**: Sheet overlay on mobile
+- **Navigation sections**: Main nav, platforms, account settings
+- **User section**: Avatar, name, email, verification status
+- **Platform links**: Twitter/X, LinkedIn with custom icons
+- **Quick actions**: Create post button
+- **Keyboard shortcut**: Cmd/Ctrl + B to toggle
 
 ### Component Usage Rules
 
@@ -429,10 +504,13 @@ import { H1, H2, H3, Subtitle } from '@/components/ui/headings'
 import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
 import { ThreeDotLoader } from '@/components/ui/loaders'
 import TimezoneSelect from '@/components/ui/timezone'
+import { XLogo } from '@/components/ui/x-logo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { useQuery } from '@tanstack/react-query'
 import client from '@/lib/hono-client'
 
@@ -465,14 +543,26 @@ function MyPage() {
   return (
     <Card>
       <CardHeader>
-        <H1>Welcome, {user?.name}!</H1>
-        <Subtitle>Manage your account settings</Subtitle>
+        <div className="flex items-center gap-3">
+          <Avatar>
+            <AvatarImage src={user?.image || undefined} />
+            <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
+          </Avatar>
+          <div>
+            <H1>Welcome, {user?.name}!</H1>
+            <Subtitle>Manage your account settings</Subtitle>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {!emailVerified && (
           <ResendVerificationEmail email={user?.email || ""} />
         )}
         <TimezoneSelect value={timezone} onValueChange={setTimezone} />
+        <div className="flex items-center gap-2">
+          <XLogo size="sm" />
+          <span>Connect X Account</span>
+        </div>
         <Button>Save Changes</Button>
       </CardContent>
     </Card>
@@ -506,6 +596,7 @@ function MyPage() {
 # Core components (already installed)
 bunx --bun shadcn@latest add alert
 bunx --bun shadcn@latest add alert-dialog  
+bunx --bun shadcn@latest add avatar
 bunx --bun shadcn@latest add badge
 bunx --bun shadcn@latest add button
 bunx --bun shadcn@latest add card
@@ -517,11 +608,14 @@ bunx --bun shadcn@latest add label
 bunx --bun shadcn@latest add popover
 bunx --bun shadcn@latest add select
 bunx --bun shadcn@latest add separator
+bunx --bun shadcn@latest add sheet
+bunx --bun shadcn@latest add sidebar
+bunx --bun shadcn@latest add skeleton
 bunx --bun shadcn@latest add sonner
+bunx --bun shadcn@latest add tooltip
 
 # Additional components (install when needed)
 bunx --bun shadcn@latest add accordion
-bunx --bun shadcn@latest add avatar
 bunx --bun shadcn@latest add breadcrumb
 bunx --bun shadcn@latest add calendar
 bunx --bun shadcn@latest add carousel
@@ -542,9 +636,6 @@ bunx --bun shadcn@latest add progress
 bunx --bun shadcn@latest add radio-group
 bunx --bun shadcn@latest add resizable
 bunx --bun shadcn@latest add scroll-area
-bunx --bun shadcn@latest add sheet
-bunx --bun shadcn@latest add sidebar
-bunx --bun shadcn@latest add skeleton
 bunx --bun shadcn@latest add slider
 bunx --bun shadcn@latest add switch
 bunx --bun shadcn@latest add table
@@ -552,7 +643,6 @@ bunx --bun shadcn@latest add tabs
 bunx --bun shadcn@latest add textarea
 bunx --bun shadcn@latest add toggle
 bunx --bun shadcn@latest add toggle-group
-bunx --bun shadcn@latest add tooltip
 ```
 
 ## Form Handling with react-hook-form + Zod
@@ -770,6 +860,20 @@ function TimezoneForm() {
 }
 ```
 
+#### X Logo Component
+```tsx
+import { XLogo } from '@/components/ui/x-logo'
+
+// Basic usage
+<XLogo size="md" />
+
+// With custom styling (automatically theme-aware)
+<XLogo size="lg" className="text-blue-500" />
+
+// Available sizes: sm, md, lg, xl
+// Automatically shows black on light mode, white on dark mode
+```
+
 #### Loading States
 ```tsx
 import { ThreeDotLoader } from '@/components/ui/loaders'
@@ -852,6 +956,7 @@ function WelcomePage() {
 - **Apply customizations through className prop** only
 - **Follow TypeScript best practices** with strict type checking
 - **Implement proper error handling** with toast notifications
+- **Use InferResponseType** for proper API response typing
 
 ### UX Standards
 - **Loading states** for all async operations using ThreeDotLoader
@@ -861,6 +966,7 @@ function WelcomePage() {
 - **Consistent animations and transitions**
 - **User context awareness** - always consider user state and authentication
 - **Toast notifications** for all user actions using Sonner
+- **Sidebar navigation** for easy app navigation
 
 ### Performance
 - **Leverage React Query caching** for optimal data fetching
@@ -869,6 +975,7 @@ function WelcomePage() {
 - **Use proper query invalidation** patterns
 - **Optimize images and assets**
 - **Use UserProvider efficiently** - avoid unnecessary refreshUser calls
+- **Sidebar state management** with cookies for persistence
 
 ### Accessibility
 - **Maintain shadcn's built-in accessibility features**
@@ -876,6 +983,7 @@ function WelcomePage() {
 - **Ensure keyboard navigation works**
 - **Test with screen readers**
 - **Proper focus management** in modals and forms
+- **Sidebar keyboard shortcuts** (Cmd/Ctrl + B)
 
 ## Route Protection & Navigation
 
@@ -883,9 +991,20 @@ function WelcomePage() {
 ```tsx
 // Already implemented in (authorized) layout - use this pattern for new protected routes
 import { LoginChecker } from '@/components/ui/login-checker'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/layout/app-sidebar'
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  return <LoginChecker>{children}</LoginChecker>
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto p-6">{children}</div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  )
 }
 
 // LoginChecker automatically handles:
@@ -928,4 +1047,22 @@ function Navigation() {
 }
 ```
 
-This comprehensive approach ensures we leverage all available components while maintaining design consistency, following DRY principles, properly integrating user context, and using React Query for optimal data fetching and caching throughout the PostCribe application.
+## Environment Configuration
+
+### Development URLs
+- **Frontend**: `http://localhost:3001` (Next.js with Turbopack)
+- **API**: `http://localhost:30011` (Hono API server)
+- **Better-Auth**: `http://localhost:3000/v1/auth` (Authentication endpoints)
+
+### Key Dependencies
+- **Next.js**: 15.3.2 with App Router
+- **React**: 19.0.0
+- **Better-Auth**: 1.2.8 with Google OAuth
+- **Tailwind CSS**: v4 with PostCSS
+- **React Query**: 5.80.7 for server state
+- **Hono**: 4.7.11 for type-safe API calls
+- **Luxon**: 3.6.1 for timezone handling
+- **Sonner**: 2.0.5 for toast notifications
+- **react-hook-form**: 7.57.0 with Zod validation
+
+This comprehensive approach ensures we leverage all available components while maintaining design consistency, following DRY principles, properly integrating user context, using React Query for optimal data fetching and caching, and implementing a modern sidebar-based navigation system throughout the PostCribe application.
