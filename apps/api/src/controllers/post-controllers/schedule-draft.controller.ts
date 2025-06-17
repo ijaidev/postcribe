@@ -5,6 +5,7 @@ import factory from "../../utils/factory";
 import { HTTPException } from "hono/http-exception";
 import type { DraftSchedule } from "@repo/db";
 import ApiResponse from "../../utils/api-response";
+import { logger } from "@repo/logger";
 
 const scheduleDraftSchema = z.object({
     draftId: z.string().uuid({
@@ -78,9 +79,9 @@ const scheduleDraftController = factory.createHandlers(
 
             return c.json(
                 new ApiResponse<DraftSchedule>({
-
                     message: "Draft scheduled successfully",
                     data: schedule,
+                    status: 201,
                 }),
                 201,
             );
@@ -88,8 +89,8 @@ const scheduleDraftController = factory.createHandlers(
             if (error instanceof HTTPException) {
                 throw error;
             }
-            
-            console.error("Error scheduling draft:", error);
+
+            logger.error({ error }, "Error scheduling draft");
             throw new HTTPException(500, {
                 message: "Internal server error: Failed to schedule draft",
             });

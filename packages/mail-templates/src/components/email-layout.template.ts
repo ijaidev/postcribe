@@ -20,7 +20,9 @@ export const defaultEmailConfig: EmailLayoutConfig = {
     companyUrl: "https://postcribe.com",
 };
 
-export const getEmailHeaderMjml = (config: EmailLayoutConfig = defaultEmailConfig) => `
+export const getEmailHeaderMjml = (
+    config: EmailLayoutConfig = defaultEmailConfig,
+) => `
 <!-- Header -->
 <mj-section background-color="#ffffff" padding="20px 0">
   <mj-column>
@@ -31,7 +33,10 @@ export const getEmailHeaderMjml = (config: EmailLayoutConfig = defaultEmailConfi
 </mj-section>
 `;
 
-export const getEmailFooterMjml = (config: EmailLayoutConfig = defaultEmailConfig, customContent?: string) => `
+export const getEmailFooterMjml = (
+    config: EmailLayoutConfig = defaultEmailConfig,
+    customContent?: string,
+) => `
 <!-- Divider -->
 <mj-section background-color="#ffffff" padding="0">
   <mj-column>
@@ -42,11 +47,14 @@ export const getEmailFooterMjml = (config: EmailLayoutConfig = defaultEmailConfi
 <!-- Footer -->
 <mj-section background-color="#ffffff" padding="32px 20px">
   <mj-column>
-    ${customContent || `
+    ${
+        customContent ||
+        `
     <mj-text align="center" font-size="14px" color="${config.mutedColor}" padding="0 0 16px 0">
       This email was sent by your ${config.companyName} system.
     </mj-text>
-    `}
+    `
+    }
     
     <mj-text align="center" font-size="13px" color="#9ca3af" padding="0">
       Need help? <a href="#" class="footer-link">Contact Support</a> | 
@@ -63,7 +71,9 @@ export const getEmailFooterMjml = (config: EmailLayoutConfig = defaultEmailConfi
 </mj-section>
 `;
 
-export const getEmailStylesMjml = (config: EmailLayoutConfig = defaultEmailConfig) => `
+export const getEmailStylesMjml = (
+    config: EmailLayoutConfig = defaultEmailConfig,
+) => `
 <mj-style>
   .header-logo {
     font-weight: 700;
@@ -118,7 +128,11 @@ export const getEmailAttributesMjml = () => `
 </mj-attributes>
 `;
 
-export const createPrimaryButton = (href: string, text: string, extraClasses?: string) => `
+export const createPrimaryButton = (
+    href: string,
+    text: string,
+    extraClasses?: string,
+) => `
 <mj-button 
   href="${href}"
   background-color="#1f2937"
@@ -128,7 +142,7 @@ export const createPrimaryButton = (href: string, text: string, extraClasses?: s
   border-radius="8px"
   padding="32px 0"
   inner-padding="16px 32px"
-  css-class="primary-button ${extraClasses || ''}"
+  css-class="primary-button ${extraClasses || ""}"
 >
   ${text}
 </mj-button>
@@ -151,7 +165,7 @@ export const createGreeting = (userName: string) => `
 
 export const createMainTitle = (title: string, emoji?: string) => `
 <mj-text padding="0 0 24px 0">
-  <h1 class="main-title">${title} ${emoji || ''}</h1>
+  <h1 class="main-title">${title} ${emoji || ""}</h1>
 </mj-text>
 `;
 
@@ -176,7 +190,10 @@ export interface FeatureItem {
     description: string;
 }
 
-export const createFeaturesSection = (sectionTitle: string, features: FeatureItem[]) => `
+export const createFeaturesSection = (
+    sectionTitle: string,
+    features: FeatureItem[],
+) => `
 <mj-section background-color="#f9fafb" padding="32px 20px">
   <mj-column>
     <mj-text align="center" font-size="18px" font-weight="600" color="#111827" padding="0 0 24px 0">
@@ -184,7 +201,9 @@ export const createFeaturesSection = (sectionTitle: string, features: FeatureIte
     </mj-text>
   </mj-column>
   
-  ${features.map(feature => `
+  ${features
+      .map(
+          feature => `
   <mj-column width="${100 / features.length}%">
     <mj-text align="center" font-size="40px" padding="0 0 12px 0">${feature.emoji}</mj-text>
     <mj-text align="center" font-size="14px" font-weight="600" color="#111827" padding="0 0 8px 0">
@@ -194,11 +213,17 @@ export const createFeaturesSection = (sectionTitle: string, features: FeatureIte
       ${feature.description}
     </mj-text>
   </mj-column>
-  `).join('')}
+  `,
+      )
+      .join("")}
 </mj-section>
 `;
 
-export const createHighlightBox = (title: string, content: string, additionalContent?: string) => `
+export const createHighlightBox = (
+    title: string,
+    content: string,
+    additionalContent?: string,
+) => `
 <mj-table css-class="highlight-box" padding="20px">
   <tr>
     <td style="padding: 20px; background-color: #f8f9fa; border-left: 4px solid #1f2937; border-radius: 6px;">
@@ -208,8 +233,8 @@ export const createHighlightBox = (title: string, content: string, additionalCon
       <div style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; font-size: 18px; color: #111827; font-weight: 600; margin-bottom: 16px;">
         ${content}
       </div>
-      ${additionalContent || ''}
+      ${additionalContent || ""}
     </td>
   </tr>
 </mj-table>
-`; 
+`;

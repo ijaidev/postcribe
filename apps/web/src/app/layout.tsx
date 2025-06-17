@@ -5,24 +5,25 @@ import { Toaster } from "sonner";
 import { LoginChecker } from "@/components/ui/login-checker";
 
 export const metadata: Metadata = {
-  title: "PostCribe",
-  description: "PostCribe is a platform for creating and scheduling social media posts.",
+    title: "PostCribe",
+    description:
+        "PostCribe is a platform for creating and scheduling social media posts.",
 };
 
 export default async function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <Providers>
-          {children}
-          <LoginChecker />
-          <Toaster />
-        </Providers>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="en" suppressHydrationWarning>
+            <body>
+                <Providers>
+                    {children}
+                    <LoginChecker />
+                    <Toaster />
+                </Providers>
+            </body>
+        </html>
+    );
 }

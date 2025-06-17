@@ -26,7 +26,7 @@ function getRedisClient(): Redis {
         });
 
         client.on("error", err => {
-            logger.error("Redis client error:", err);
+            logger.error({ error: err }, "Redis client error");
         });
 
         client.on("close", () => {
@@ -40,7 +40,7 @@ function getRedisClient(): Redis {
         redis = client;
         return client;
     } catch (error) {
-        logger.error("Failed to create Redis client:", error);
+        logger.error({ error }, "Failed to create Redis client");
         throw error;
     }
 }

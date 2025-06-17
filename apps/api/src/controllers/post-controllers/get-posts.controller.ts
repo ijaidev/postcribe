@@ -30,7 +30,6 @@ const getPostsController = factory.createHandlers(queryValidator, async c => {
     const posts = await getPosts({ draftId: draft.id });
     return c.json(
         new ApiResponse<GetPostsResponse>({
-
             message: "Posts fetched successfully",
             data: posts,
         }),

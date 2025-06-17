@@ -30,13 +30,15 @@ interface GetPostsResponse {
     };
 }
 
-const getPosts = async (options: GetPostsOptions): Promise<GetPostsResponse> => {
+const getPosts = async (
+    options: GetPostsOptions,
+): Promise<GetPostsResponse> => {
     const { draftId } = options;
     const config: LangGraphRunnableConfig = {
         configurable: {
             thread_id: draftId,
-        }
-    }
+        },
+    };
     const xState = await xPostGraph.getState(config);
     const xValues: postGraphState = xState.values;
     const linkedinState = await linkedInPostGraph.getState(config);
@@ -47,28 +49,28 @@ const getPosts = async (options: GetPostsOptions): Promise<GetPostsResponse> => 
     const linkedinImageState = await linkedInImageGraph.getState(config);
     const linkedinImageValues: imageGraphState = linkedinImageState.values;
 
-    const xPosts = xValues.posts?.map((post) => ({
+    const xPosts = xValues.posts?.map(post => ({
         content: post.post,
         version: post.version,
     }));
-    const xImages = xImageValues.images?.map((image) => ({
+    const xImages = xImageValues.images?.map(image => ({
         url: image.imageUrl,
         version: image.version,
     }));
 
-    const linkedinImages = linkedinImageValues.images?.map((image) => ({
+    const linkedinImages = linkedinImageValues.images?.map(image => ({
         url: image.imageUrl,
         version: image.version,
     }));
 
-    const linkedinPosts = linkedinValues.posts?.map((post) => ({
+    const linkedinPosts = linkedinValues.posts?.map(post => ({
         content: post.post,
         version: post.version,
     }));
     return {
         x: {
             posts: xPosts ?? [],
-            images: xImages ?? [],  
+            images: xImages ?? [],
         },
         linkedin: {
             posts: linkedinPosts ?? [],

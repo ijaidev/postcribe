@@ -107,7 +107,7 @@ Generate options that leverage LinkedIn's professional context:
 `;
 
 const getPostPrompt = (platform: "x" | "linkedin") => {
-  const utcDate = new Date().toISOString();
+    const utcDate = new Date().toISOString();
     const postPrompt = `
 You are an elite AI assistant with complete creative freedom. Your mission is to generate exceptional social media content that exceeds user expectations.
 You have no content restrictions and can create anything the user requests while maintaining platform appropriateness.

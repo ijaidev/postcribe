@@ -1,1 +1,1 @@
-export { ThreeDotLoader } from "./three-dot-loader" 
+export { ThreeDotLoader } from "./three-dot-loader";

@@ -9,8 +9,9 @@ import {
     createGreeting,
     createMainTitle,
     createInfoBox,
-    defaultEmailConfig
+    defaultEmailConfig,
 } from "../components/email-layout.template";
+import { logger } from "@repo/logger";
 
 export interface PasswordResetData {
     userName: string;
@@ -50,7 +51,7 @@ const getMjmlTemplate = (data: PasswordResetData) => {
         
         ${createInfoBox(
             "Security Notice",
-            `This password reset link ${data.expiresIn ? `will expire in ${data.expiresIn}` : 'is valid for a limited time'}. If you didn't request this password reset, you can safely ignore this email.`
+            `This password reset link ${data.expiresIn ? `will expire in ${data.expiresIn}` : "is valid for a limited time"}. If you didn't request this password reset, you can safely ignore this email.`,
         )}
         
         <!-- Additional Security Info -->
@@ -60,19 +61,20 @@ const getMjmlTemplate = (data: PasswordResetData) => {
       </mj-column>
     </mj-section>
     
-    ${getEmailFooterMjml(defaultEmailConfig, `
+    ${getEmailFooterMjml(
+        defaultEmailConfig,
+        `
     <mj-text align="center" font-size="14px" color="#6b7280" padding="0 0 16px 0">
       This email was sent from your PostCribe account security system.
     </mj-text>
-    `)}
+    `,
+    )}
   </mj-body>
 </mjml>
 `;
 };
 
-export const generatePasswordResetEmail = (
-    data: PasswordResetData,
-): string => {
+export const generatePasswordResetEmail = (data: PasswordResetData): string => {
     const mjmlTemplate = getMjmlTemplate(data);
 
     try {
@@ -82,12 +84,12 @@ export const generatePasswordResetEmail = (
         });
 
         if (result.errors.length > 0) {
-            console.warn("MJML compilation warnings:", result.errors);
+            logger.warn({ errors: result.errors }, "MJML compilation warnings");
         }
 
         return result.html;
     } catch (error) {
-        console.error("Error generating MJML email:", error);
+        logger.error({ error }, "Error generating MJML email");
         throw new Error("Failed to generate password reset template");
     }
-}; 
+};

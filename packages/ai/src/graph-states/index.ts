@@ -26,7 +26,7 @@ const imageReducer = (prev: Image[], curr: Image[]) => {
 export const graphConfig = Annotation.Root({
     thread_id: Annotation<string>,
     platform: Annotation<"X" | "LINKEDIN">,
-})
+});
 
 export const postGraphState = Annotation.Root({
     messages: Annotation<BaseMessage[]>({

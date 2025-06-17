@@ -96,7 +96,7 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
             200,
         );
     } catch (error) {
-        logger.error("X login error:", error);
+        logger.error({ error }, "X login error");
 
         if (error instanceof HTTPException) {
             throw error;

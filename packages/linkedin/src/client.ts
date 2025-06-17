@@ -1,4 +1,5 @@
 import { AuthClient, RestliClient } from "linkedin-api-client";
+import { logger } from "@repo/logger";
 
 export interface LinkedInAuthResult {
     authUrl: string;
@@ -50,7 +51,7 @@ const authClient = createAuthClient();
  */
 export function generateAuthURL(
     state: string,
-    scopes: string[] = ["openid", "profile", "email", "r_member_social"],
+    scopes: string[] = ["openid", "profile", "email", "w_member_social"],
 ): LinkedInAuthResult {
     const authUrl = authClient.generateMemberAuthorizationUrl(scopes, state);
 
@@ -78,7 +79,7 @@ export async function requestAccessToken(
             scope: tokenData.scope,
         };
     } catch (error) {
-        console.error("LinkedIn token exchange error:", error);
+        logger.error({ error }, "LinkedIn token exchange error");
         throw new Error(
             "Failed to exchange authorization code for access token",
         );
@@ -103,7 +104,7 @@ export async function refreshAccessToken(
             expiresIn: tokenData.expires_in,
         };
     } catch (error) {
-        console.error("LinkedIn token refresh error:", error);
+        logger.error({ error }, "LinkedIn token refresh error");
         throw new Error("Failed to refresh LinkedIn access token");
     }
 }
@@ -144,7 +145,7 @@ export async function introspectAccessToken(accessToken: string) {
     try {
         return await authClient.introspectAccessToken(accessToken);
     } catch (error) {
-        console.error("LinkedIn token introspection error:", error);
+        logger.error({ error }, "LinkedIn token introspection error");
         throw new Error("Failed to introspect LinkedIn access token");
     }
 }

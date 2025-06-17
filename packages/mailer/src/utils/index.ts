@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 transporter.verify((error, success) => {
     if (error) {
-        logger.error("SMTP connection error:", error);
+        logger.error({ error }, "SMTP connection error");
     } else {
         logger.info("SMTP server is ready to take messages");
     }
@@ -44,10 +44,9 @@ const sendEmail = async (options: SendEmailOptions) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        logger.info("Message sent: %s", info.messageId);
         return info;
     } catch (error) {
-        logger.error("Error sending email:", error);
+        logger.error({ error }, "Error sending email");
         throw error;
     }
 };

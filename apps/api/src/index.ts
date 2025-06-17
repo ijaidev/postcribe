@@ -57,7 +57,7 @@ const app = factory
                 400,
             );
         }
-        logger.error("Internal server error:", err);
+        logger.error({ error: err }, "Internal server error");
         return c.json(
             new ApiResponse({
                 message: "Internal server error",

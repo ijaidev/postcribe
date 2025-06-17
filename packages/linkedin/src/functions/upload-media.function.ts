@@ -1,4 +1,5 @@
 import { createLinkedInClient } from "../client";
+import { logger } from "@repo/logger";
 
 export interface LinkedInMediaUploadResult {
     asset: string; // Asset URN
@@ -18,7 +19,7 @@ export async function uploadImage(
     imageBuffer: Buffer,
     mimeType: string,
     accessToken: string,
-    personUrn: string
+    personUrn: string,
 ): Promise<LinkedInMediaUploadResult> {
     try {
         const client = createLinkedInClient();
@@ -46,9 +47,10 @@ export async function uploadImage(
 
         const responseValue = registerResponse.data.value as any;
         const asset = responseValue.asset;
-        const uploadInstructions = responseValue.uploadMechanism[
-            "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
-        ];
+        const uploadInstructions =
+            responseValue.uploadMechanism[
+                "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+            ];
 
         // Step 2: Upload the image to the provided URL
         const uploadUrl = uploadInstructions.uploadUrl;
@@ -64,7 +66,9 @@ export async function uploadImage(
         });
 
         if (!uploadResponse.ok) {
-            throw new Error(`Upload failed with status: ${uploadResponse.status}`);
+            throw new Error(
+                `Upload failed with status: ${uploadResponse.status}`,
+            );
         }
 
         return {
@@ -73,18 +77,29 @@ export async function uploadImage(
             status: "SUCCESS",
         };
     } catch (error) {
-        console.error("Error uploading image to LinkedIn:", error);
+        logger.error({ error }, "Error uploading image to LinkedIn");
 
         if (error instanceof Error) {
-            if (error.message.includes("401") || error.message.includes("unauthorized")) {
+            if (
+                error.message.includes("401") ||
+                error.message.includes("unauthorized")
+            ) {
                 throw new Error("LinkedIn access token is invalid or expired");
             }
 
-            if (error.message.includes("403") || error.message.includes("forbidden")) {
-                throw new Error("Insufficient permissions to upload media to LinkedIn");
+            if (
+                error.message.includes("403") ||
+                error.message.includes("forbidden")
+            ) {
+                throw new Error(
+                    "Insufficient permissions to upload media to LinkedIn",
+                );
             }
 
-            if (error.message.includes("413") || error.message.includes("too large")) {
+            if (
+                error.message.includes("413") ||
+                error.message.includes("too large")
+            ) {
                 throw new Error("Image file is too large for LinkedIn upload");
             }
         }
@@ -105,7 +120,7 @@ export async function uploadVideo(
     videoBuffer: Buffer,
     mimeType: string,
     accessToken: string,
-    personUrn: string
+    personUrn: string,
 ): Promise<LinkedInMediaUploadResult> {
     try {
         const client = createLinkedInClient();
@@ -134,9 +149,10 @@ export async function uploadVideo(
 
         const responseValue = registerResponse.data.value as any;
         const asset = responseValue.asset;
-        const uploadInstructions = responseValue.uploadMechanism[
-            "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
-        ];
+        const uploadInstructions =
+            responseValue.uploadMechanism[
+                "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+            ];
 
         // Step 2: Upload the video to the provided URL
         const uploadUrl = uploadInstructions.uploadUrl;
@@ -152,7 +168,9 @@ export async function uploadVideo(
         });
 
         if (!uploadResponse.ok) {
-            throw new Error(`Video upload failed with status: ${uploadResponse.status}`);
+            throw new Error(
+                `Video upload failed with status: ${uploadResponse.status}`,
+            );
         }
 
         return {
@@ -161,18 +179,29 @@ export async function uploadVideo(
             status: "SUCCESS",
         };
     } catch (error) {
-        console.error("Error uploading video to LinkedIn:", error);
+        logger.error({ error }, "Error uploading video to LinkedIn");
 
         if (error instanceof Error) {
-            if (error.message.includes("401") || error.message.includes("unauthorized")) {
+            if (
+                error.message.includes("401") ||
+                error.message.includes("unauthorized")
+            ) {
                 throw new Error("LinkedIn access token is invalid or expired");
             }
 
-            if (error.message.includes("403") || error.message.includes("forbidden")) {
-                throw new Error("Insufficient permissions to upload video to LinkedIn");
+            if (
+                error.message.includes("403") ||
+                error.message.includes("forbidden")
+            ) {
+                throw new Error(
+                    "Insufficient permissions to upload video to LinkedIn",
+                );
             }
 
-            if (error.message.includes("413") || error.message.includes("too large")) {
+            if (
+                error.message.includes("413") ||
+                error.message.includes("too large")
+            ) {
                 throw new Error("Video file is too large for LinkedIn upload");
             }
         }
@@ -193,7 +222,7 @@ export async function uploadMediaBuffer(
     mediaBuffer: Buffer,
     mimeType: string,
     accessToken: string,
-    personUrn: string
+    personUrn: string,
 ): Promise<LinkedInMediaUploadResult> {
     if (mimeType.startsWith("image/")) {
         return uploadImage(mediaBuffer, mimeType, accessToken, personUrn);
@@ -202,4 +231,4 @@ export async function uploadMediaBuffer(
     } else {
         throw new Error(`Unsupported media type: ${mimeType}`);
     }
-} 
+}

@@ -19,7 +19,7 @@ const redis = getRedisClient();
 // Connect to Redis with proper error handling
 if (redis) {
     redis.connect().catch(err => {
-        logger.error("❌ Redis connection failed:", err);
+        logger.error({ error: err }, "❌ Redis connection failed");
     });
 }
 
@@ -100,7 +100,7 @@ const checkEmailRateLimit = async (
             },
         });
     } catch (error) {
-        logger.error(error as string);
+        logger.error({ error }, "Failed to log email attempt");
         throw new APIError("INTERNAL_SERVER_ERROR", {
             message: "Failed to send email",
             code: "INTERNAL_SERVER_ERROR",
@@ -131,7 +131,7 @@ const auth = betterAuth({
             try {
                 return await redis.get(key);
             } catch (error) {
-                logger.error("❌ Redis GET error:", error);
+                logger.error({ error }, "❌ Redis GET error");
                 return null;
             }
         },
@@ -143,14 +143,14 @@ const auth = betterAuth({
                     await redis.set(key, value);
                 }
             } catch (error) {
-                logger.error("❌ Redis SET error:" + error);
+                logger.error({ error }, "❌ Redis SET error");
             }
         },
         delete: async key => {
             try {
                 await redis.del(key);
             } catch (error) {
-                logger.error("❌ Redis DEL error:" + error);
+                logger.error({ error }, "❌ Redis DEL error");
             }
         },
     },
@@ -249,9 +249,15 @@ const auth = betterAuth({
                 },
             },
             update: {
-                before: async (userData: Partial<User> & { timeZone?: string }) => {
+                before: async (
+                    userData: Partial<User> & { timeZone?: string },
+                ) => {
                     // Validate timezone if being updated
-                    if (userData.timeZone !== undefined && userData.timeZone && userData.timeZone.trim() !== "") {
+                    if (
+                        userData.timeZone !== undefined &&
+                        userData.timeZone &&
+                        userData.timeZone.trim() !== ""
+                    ) {
                         if (!IANAZone.isValidZone(userData.timeZone)) {
                             throw new APIError("BAD_REQUEST", {
                                 message: `Invalid timezone: ${userData.timeZone}. Please provide a valid IANA timezone identifier (e.g., 'America/New_York', 'Europe/London').`,

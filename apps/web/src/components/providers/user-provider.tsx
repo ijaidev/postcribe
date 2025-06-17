@@ -1,96 +1,104 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
-import { authClient } from "@/lib/auth-client"
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+    ReactNode,
+} from "react";
+import { authClient } from "@/lib/auth-client";
 
 interface User {
-  id: string
-  email: string
-  name?: string | null
-  timeZone?: string | null
-  emailVerified: boolean
-  image?: string | null
+    id: string;
+    email: string;
+    name?: string | null;
+    timeZone?: string | null;
+    emailVerified: boolean;
+    image?: string | null;
 }
 
 interface UserContextType {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  emailVerified: boolean
-  error: string | null
-  refreshUser: () => Promise<void>
+    user: User | null;
+    isLoading: boolean;
+    isAuthenticated: boolean;
+    emailVerified: boolean;
+    error: string | null;
+    refreshUser: () => Promise<void>;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined)
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 interface UserProviderProps {
-  children: ReactNode
+    children: ReactNode;
 }
 
 export function UserProvider({ children }: UserProviderProps) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [emailVerified, setEmailVerified] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [emailVerified, setEmailVerified] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  const refreshUser = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      
-      const { data: session, error: sessionError } = await authClient.getSession()
+    const refreshUser = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
 
-      if (sessionError) {
-        throw new Error(sessionError.message || "Something went wrong. Please try again.")
-      }
+            const { data: session, error: sessionError } =
+                await authClient.getSession();
 
-      if (!session) {
-        // Not authenticated
-        setIsAuthenticated(false)
-        setUser(null)
-        setEmailVerified(false)
-      } else {
-        // Authenticated
-        setIsAuthenticated(true)
-        setUser(session.user)
-        setEmailVerified(session.user.emailVerified || false)
-      }
-    } catch (err) {
-      console.error("Auth check error:", err)
-      setIsAuthenticated(false)
-      setUser(null)
-      setEmailVerified(false)
-      setError("Something went wrong. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+            if (sessionError) {
+                throw new Error(
+                    sessionError.message ||
+                        "Something went wrong. Please try again.",
+                );
+            }
 
-  useEffect(() => {
-    refreshUser()
-  }, [])
+            if (!session) {
+                // Not authenticated
+                setIsAuthenticated(false);
+                setUser(null);
+                setEmailVerified(false);
+            } else {
+                // Authenticated
+                setIsAuthenticated(true);
+                setUser(session.user);
+                setEmailVerified(session.user.emailVerified || false);
+            }
+        } catch (err) {
+            console.error("Auth check error:", err);
+            setIsAuthenticated(false);
+            setUser(null);
+            setEmailVerified(false);
+            setError("Something went wrong. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  const value: UserContextType = {
-    user,
-    isLoading,
-    isAuthenticated,
-    emailVerified,
-    error,
-    refreshUser,
-  }
+    useEffect(() => {
+        refreshUser();
+    }, []);
 
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  )
+    const value: UserContextType = {
+        user,
+        isLoading,
+        isAuthenticated,
+        emailVerified,
+        error,
+        refreshUser,
+    };
+
+    return (
+        <UserContext.Provider value={value}>{children}</UserContext.Provider>
+    );
 }
 
 export function useUser() {
-  const context = useContext(UserContext)
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider")
-  }
-  return context
-} 
+    const context = useContext(UserContext);
+    if (context === undefined) {
+        throw new Error("useUser must be used within a UserProvider");
+    }
+    return context;
+}

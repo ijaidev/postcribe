@@ -1,6 +1,7 @@
 import type { LICreateRequestOptions } from "linkedin-api-client";
 import { createLinkedInClient } from "../client";
 import { getProfile } from "./get-profile.function";
+import { logger } from "@repo/logger";
 
 interface ShareContent {
     shareCommentary: {
@@ -135,7 +136,7 @@ export async function createPost(
             shareUrl: `https://www.linkedin.com/feed/update/${response.createdEntityId}`,
         };
     } catch (error) {
-        console.error("Error creating LinkedIn post:", error);
+        logger.error({ error }, "Error creating LinkedIn post");
 
         if (error instanceof Error) {
             if (

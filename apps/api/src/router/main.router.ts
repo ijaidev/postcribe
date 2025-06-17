@@ -9,6 +9,6 @@ const mainRouter = factory
     .on(["POST", "GET"], "/auth/*", c => auth.handler(c.req.raw))
     .use("*", authorizationMiddleware)
     .route("/post", postRouter)
-    .route("/social", socialLoginRouter)
+    .route("/social", socialLoginRouter);
 
 export default mainRouter;

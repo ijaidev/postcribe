@@ -14,9 +14,9 @@
 // const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB for LinkedIn
 // const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB for LinkedIn videos
 // const ALLOWED_TYPES = [
-//     "image/png", 
-//     "image/jpeg", 
-//     "image/gif", 
+//     "image/png",
+//     "image/jpeg",
+//     "image/gif",
 //     "video/mp4",
 //     "video/quicktime",
 //     "video/x-msvideo"
@@ -122,7 +122,7 @@
 //             }),
 //             200,
 //         );
-        
+
 //     } catch (error) {
 //         console.error("Error in LinkedIn media upload:", error);
 
@@ -180,4 +180,4 @@
 //     }
 // });
 
-// export default linkedinMediaUploadHandler; 
+// export default linkedinMediaUploadHandler;

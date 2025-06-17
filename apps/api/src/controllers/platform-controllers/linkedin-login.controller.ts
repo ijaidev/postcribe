@@ -28,10 +28,10 @@ const linkedinLoginHandler = factory.createHandlers(bodyValidator, async c => {
 
     try {
         const state = uuidv4();
-        
+
         // Generate OAuth2 auth URL
         const authData = generateAuthURL(state);
-        
+
         // Store the OAuth2 data in database
         await db.socialLogin.create({
             data: {
@@ -53,10 +53,10 @@ const linkedinLoginHandler = factory.createHandlers(bodyValidator, async c => {
                 message: "LinkedIn login url generated successfully",
                 status: 200,
             }),
-            200
+            200,
         );
     } catch (error) {
-        logger.error("LinkedIn login error:", error);
+        logger.error({ error }, "LinkedIn login error");
         if (error instanceof HTTPException) {
             throw error;
         }
@@ -66,4 +66,4 @@ const linkedinLoginHandler = factory.createHandlers(bodyValidator, async c => {
     }
 });
 
-export default linkedinLoginHandler; 
+export default linkedinLoginHandler;

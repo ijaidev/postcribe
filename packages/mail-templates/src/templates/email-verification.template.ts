@@ -11,6 +11,7 @@ import {
     createInfoBox,
     defaultEmailConfig,
 } from "../components/email-layout.template";
+import { logger } from "@repo/logger";
 
 export interface EmailVerificationData {
     userName: string;
@@ -18,7 +19,7 @@ export interface EmailVerificationData {
     expiresIn?: string; // e.g., "24 hours"
 }
 
-const getMjmlTemplate = (data: EmailVerificationData) => {  
+const getMjmlTemplate = (data: EmailVerificationData) => {
     return `
 <mjml>
   <mj-head>
@@ -50,16 +51,19 @@ const getMjmlTemplate = (data: EmailVerificationData) => {
         
         ${createInfoBox(
             "Security Notice",
-            `This verification link ${data.expiresIn ? `will expire in ${data.expiresIn}` : 'is valid for a limited time'}. If you didn't create a PostCribe account, you can safely ignore this email.`
+            `This verification link ${data.expiresIn ? `will expire in ${data.expiresIn}` : "is valid for a limited time"}. If you didn't create a PostCribe account, you can safely ignore this email.`,
         )}
       </mj-column>
     </mj-section>
     
-    ${getEmailFooterMjml(defaultEmailConfig, `
+    ${getEmailFooterMjml(
+        defaultEmailConfig,
+        `
     <mj-text align="center" font-size="14px" color="#6b7280" padding="0 0 16px 0">
       This email was sent to verify your PostCribe account.
     </mj-text>
-    `)}
+    `,
+    )}
   </mj-body>
 </mjml>
 `;
@@ -77,12 +81,12 @@ export const generateEmailVerificationEmail = (
         });
 
         if (result.errors.length > 0) {
-            console.warn("MJML compilation warnings:", result.errors);
+            logger.warn({ errors: result.errors }, "MJML compilation warnings");
         }
 
         return result.html;
     } catch (error) {
-        console.error("Error generating MJML email:", error);
+        logger.error({ error }, "Error generating MJML email");
         throw new Error("Failed to generate email verification template");
     }
-}; 
+};

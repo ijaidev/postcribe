@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useUser } from "@/components/providers/user-provider"
-import Link from "next/link"
+import { useUser } from "@/components/providers/user-provider";
+import Link from "next/link";
 
 export default function DashboardPage() {
-    const { user, isLoading } = useUser()
+    const { user, isLoading } = useUser();
 
     if (isLoading) {
-        return <div>Loading...</div>
+        return <div>Loading...</div>;
     }
 
     return (
@@ -17,7 +17,7 @@ export default function DashboardPage() {
             <p>Email: {user?.email}</p>
             <p>ID: {user?.id}</p>
             <p>Timezone: {user?.timeZone}</p>
-            <p>Email Verified: {user?.emailVerified ? 'Yes' : 'No'}</p>
+            <p>Email Verified: {user?.emailVerified ? "Yes" : "No"}</p>
 
             <Link href="/signin">Sign in</Link>
             <Link href="/signup">Sign up</Link>
@@ -28,5 +28,5 @@ export default function DashboardPage() {
             <Link href="/settings">Settings</Link>
             <Link href="/logout">Logout</Link>
         </div>
-    )
+    );
 }

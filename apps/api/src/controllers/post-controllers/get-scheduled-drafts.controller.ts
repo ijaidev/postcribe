@@ -72,7 +72,7 @@ const getScheduledDraftsController = factory.createHandlers(
                             userId: user.id,
                             isDeleted: false,
                         },
-                        isPublished
+                        isPublished,
                     },
                 }),
             ]);
@@ -86,7 +86,6 @@ const getScheduledDraftsController = factory.createHandlers(
 
             return c.json(
                 new ApiResponse<typeof data>({
-
                     message: "Scheduled drafts fetched successfully",
                     data,
                 }),

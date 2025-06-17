@@ -85,7 +85,7 @@ export const cronPostGen = async (
         }
         return { success: true };
     } catch (error) {
-        logger.error(error);
+        logger.error({ error }, "Failed to generate cron post");
         throw error;
     }
 };

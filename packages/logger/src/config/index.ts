@@ -10,7 +10,6 @@ import { join } from "path";
 const shouldEnableFileLogging = false;
 
 const shouldEnableConsoleLogging = process.env.ENVIRONMENT === "development";
-console.log(process.env.ENVIRONMENT);
 
 const logDir = process.env.LOG_DIRECTORY || "logs";
 

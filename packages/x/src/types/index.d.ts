@@ -352,4 +352,10 @@ interface CleanTweet {
         indices: number[];
     }>;
 }
-export type { UserInfo, UserTweets, CleanTweet, Tweet, TweetWithVisibilityResults };
+export type {
+    UserInfo,
+    UserTweets,
+    CleanTweet,
+    Tweet,
+    TweetWithVisibilityResults,
+};

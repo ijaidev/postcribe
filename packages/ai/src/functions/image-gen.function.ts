@@ -37,7 +37,7 @@ const imageGen = async (
 
     const currentState = await graph.getState(config);
     const values: imageGraphState = currentState.values;
-    
+
     if (version && version > 0) {
         const { images, messages } = values;
         if (images && images.length - 1 > version) {
@@ -57,7 +57,8 @@ const imageGen = async (
             }
         }
     }
-    const lastImage = images && images.length > 0 ? images[images.length - 1] : undefined;
+    const lastImage =
+        images && images.length > 0 ? images[images.length - 1] : undefined;
 
     const inputMessage = [
         new HumanMessage({
@@ -66,12 +67,16 @@ const imageGen = async (
                     type: "text",
                     text: message,
                 },
-                ...(lastImage ? [{
-                    type: "image_url",
-                    image_url: {
-                        url: lastImage,
-                    },
-                }] : []),
+                ...(lastImage
+                    ? [
+                          {
+                              type: "image_url",
+                              image_url: {
+                                  url: lastImage,
+                              },
+                          },
+                      ]
+                    : []),
                 ...(images && images.length > 0
                     ? images.map(image => ({
                           type: "image_url",

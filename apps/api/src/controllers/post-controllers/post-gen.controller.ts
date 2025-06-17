@@ -166,7 +166,10 @@ const postGenController = factory.createHandlers(
                     stream.close();
                 });
             }
-            const postGenResult = await postGen(options, platform.toUpperCase() as "X" | "LINKEDIN");
+            const postGenResult = await postGen(
+                options,
+                platform.toUpperCase() as "X" | "LINKEDIN",
+            );
 
             return stream(c, async stream => {
                 for await (const chunk of postGenResult.stream()) {

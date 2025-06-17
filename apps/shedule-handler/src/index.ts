@@ -13,11 +13,14 @@ export const handler: ScheduledHandler = async (
         const { draftId } = event.detail;
         await processScheduledDraft(draftId);
     } catch (error) {
-        logger.error("Failed to process scheduled draft", {
-            draftId: event.detail.draftId,
-            error: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        logger.error(
+            {
+                draftId: event.detail.draftId,
+                error: error instanceof Error ? error.message : "Unknown error",
+                stack: error instanceof Error ? error.stack : undefined,
+            },
+            "Failed to process scheduled draft",
+        );
         throw error;
     }
 };

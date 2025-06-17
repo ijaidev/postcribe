@@ -11,8 +11,9 @@ import {
     createHighlightBox,
     createFeaturesSection,
     defaultEmailConfig,
-    type FeatureItem
+    type FeatureItem,
 } from "../components/email-layout.template";
+import { logger } from "@repo/logger";
 
 export interface PostApprovalEmailData {
     userName: string;
@@ -26,28 +27,30 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => {
         {
             emoji: "✏️",
             title: "Edit Content",
-            description: "Modify the AI-generated text to match your voice"
+            description: "Modify the AI-generated text to match your voice",
         },
         {
             emoji: "🖼️",
             title: "Add Media",
-            description: "Upload images or generate new visuals"
+            description: "Upload images or generate new visuals",
         },
         {
             emoji: "📅",
             title: "Schedule",
-            description: "Set the perfect time to publish"
-        }
+            description: "Set the perfect time to publish",
+        },
     ];
 
-    const previewContent = data.previewText ? `
+    const previewContent = data.previewText
+        ? `
     <mj-text font-size="14px" color="#6b7280" font-weight="600" text-transform="uppercase" letter-spacing="0.5px" padding="0 0 8px 0">
       Preview
     </mj-text>
     <mj-text font-size="16px" color="#111827" padding="0">
       ${data.previewText}
     </mj-text>
-    ` : '';
+    `
+        : "";
 
     return `
 <mjml>
@@ -84,11 +87,14 @@ const getMjmlTemplate = (data: PostApprovalEmailData) => {
     
     ${createFeaturesSection("What you can do in the editor:", features)}
     
-    ${getEmailFooterMjml(defaultEmailConfig, `
+    ${getEmailFooterMjml(
+        defaultEmailConfig,
+        `
         <mj-text align="center" font-size="14px" color="#6b7280" padding="0 0 16px 0">
           This email was sent by your PostCribe scheduling system.
         </mj-text>
-    `)}
+    `,
+    )}
   </mj-body>
 </mjml>
 `;
@@ -106,12 +112,12 @@ export const generatePostApprovalEmail = (
         });
 
         if (result.errors.length > 0) {
-            console.warn("MJML compilation warnings:", result.errors);
+            logger.warn({ errors: result.errors }, "MJML compilation warnings");
         }
 
         return result.html;
     } catch (error) {
-        console.error("Error generating MJML email:", error);
+        logger.error({ error }, "Error generating MJML email");
         throw new Error("Failed to generate email template");
     }
 };

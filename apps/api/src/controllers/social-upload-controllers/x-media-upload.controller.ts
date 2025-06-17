@@ -102,7 +102,7 @@
 //             }),
 //             200,
 //         );
-        
+
 //     } catch (error) {
 //         console.error("Error in X media upload:", error);
 

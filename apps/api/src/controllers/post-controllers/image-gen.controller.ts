@@ -37,16 +37,18 @@ const bodySchema = z.object({
             },
             { message: "Only PNG, JPEG, and WEBP images are allowed" },
         ),
-    version: z.union([
-        z.number().min(0),
-        z.string().transform(val => {
-            const parsed = parseInt(val, 10);
-            if (isNaN(parsed) || parsed < 0) {
-                throw new Error("Version must be a non-negative number");
-            }
-            return parsed;
-        })
-    ]).optional(),
+    version: z
+        .union([
+            z.number().min(0),
+            z.string().transform(val => {
+                const parsed = parseInt(val, 10);
+                if (isNaN(parsed) || parsed < 0) {
+                    throw new Error("Version must be a non-negative number");
+                }
+                return parsed;
+            }),
+        ])
+        .optional(),
 });
 
 const bodySchemaValidator = zValidator("form", bodySchema, result => {
@@ -107,55 +109,69 @@ const imageGenController = factory.createHandlers(
         if (platform === "all") {
             const [xResult, linkedinResult] = await Promise.allSettled([
                 imageGen(options, "X"),
-                imageGen(options, "LINKEDIN"),  
+                imageGen(options, "LINKEDIN"),
             ]);
-            
+
             // Log any failures for debugging
             if (xResult.status === "rejected") {
-                logger.error("X image generation failed:", xResult.reason);
+                logger.error(
+                    { error: xResult.reason },
+                    "X image generation failed",
+                );
             }
             if (linkedinResult.status === "rejected") {
-                logger.error("LinkedIn image generation failed:", linkedinResult.reason);
+                logger.error(
+                    { error: linkedinResult.reason },
+                    "LinkedIn image generation failed",
+                );
             }
-            
+
             const response: ImageGenResponse = {};
-            
+
             if (xResult.status === "fulfilled") {
                 response.x = xResult.value.imageUrl;
             }
             if (linkedinResult.status === "fulfilled") {
                 response.linkedin = linkedinResult.value.imageUrl;
             }
-            
+
             // If both failed, throw an error
-            if (xResult.status === "rejected" && linkedinResult.status === "rejected") {
+            if (
+                xResult.status === "rejected" &&
+                linkedinResult.status === "rejected"
+            ) {
                 throw new HTTPException(500, {
                     message: "Failed to generate images for both platforms",
                 });
             }
-            
+
             return c.json(
                 new ApiResponse<ImageGenResponse>({
                     message: "Images generated",
                     data: response,
+                    status: 200,
                 }),
                 200,
             );
         }
 
         try {
-            const result = await imageGen(options, platform.toUpperCase() as "X" | "LINKEDIN");
+            const result = await imageGen(
+                options,
+                platform.toUpperCase() as "X" | "LINKEDIN",
+            );
             return c.json(
                 new ApiResponse<ImageGenResponse>({
                     message: "Image generated",
                     data: {
                         [platform]: result.imageUrl,
                     },
+                    status: 200,
                 }),
                 200,
             );
         } catch (error) {
-            logger.error(error);
+            logger.error({ error }, "Failed to generate image");
             throw new HTTPException(500, {
                 message: "Failed to generate image",
             });

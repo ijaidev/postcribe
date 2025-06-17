@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { LoginChecker } from "../ui/login-checker"
-import ThemeProvider from "./theme-provider"
-import { UserProvider } from "./user-provider"
+import { LoginChecker } from "../ui/login-checker";
+import ThemeProvider from "./theme-provider";
+import { UserProvider } from "./user-provider";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -12,7 +12,7 @@ const queryClient = new QueryClient({
             refetchOnWindowFocus: false,
         },
     },
-})
+});
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
@@ -29,5 +29,5 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 </UserProvider>
             </ThemeProvider>
         </QueryClientProvider>
-    )
+    );
 }

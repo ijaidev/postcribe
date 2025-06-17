@@ -8,20 +8,20 @@ import { ZodError } from "zod";
  */
 export function getZodErrorMessage(
     error: ZodError,
-    fallbackMessage: string = "Invalid request"
+    fallbackMessage: string = "Invalid request",
 ): string {
     const firstError = error.errors[0];
-    
+
     if (!firstError) {
         return fallbackMessage;
     }
-    
+
     // Return the error message with field context if available
     if (firstError.path.length > 0) {
         const fieldPath = firstError.path.join(".");
         return `${fieldPath}: ${firstError.message}`;
     }
-    
+
     return firstError.message;
 }
 

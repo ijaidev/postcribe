@@ -6,8 +6,7 @@ export const handler: Handler = async () => {
     try {
         await main();
     } catch (error) {
-        logger.error(error);
+        logger.error({ error }, "Failed to send cron message");
         throw error;
     }
 };
-

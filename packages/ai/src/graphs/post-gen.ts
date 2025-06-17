@@ -14,10 +14,7 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import responseTool from "../tools/post-structure.tool";
 import dateTimeTool from "../tools/date-time.tool";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
-import {
-    graphConfig,
-    postGraphState,
-} from "../graph-states";
+import { graphConfig, postGraphState } from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { getPostPrompt } from "../config/system-prompts";
 
@@ -75,7 +72,9 @@ const modelCallNode = async (
     const { messages } = state;
     const platform = config.configurable?.platform;
     if (!platform) throw new Error("Platform is required");
-    const systemPrompt = getPostPrompt(platform.toLowerCase() as "x" | "linkedin");
+    const systemPrompt = getPostPrompt(
+        platform.toLowerCase() as "x" | "linkedin",
+    );
     const utcDate = new Date().toISOString();
     const response = await modelWithTools.invoke([
         new SystemMessage(systemPrompt),

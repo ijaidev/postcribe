@@ -1,5 +1,6 @@
 import db from "@repo/db";
 import { refreshAccessToken, isTokenExpired } from "../client";
+import { logger } from "@repo/logger";
 
 export interface AccessTokenResult {
     accessToken: string;
@@ -30,7 +31,9 @@ export async function getValidAccessToken(
         }
 
         if (!socialLogin.refreshToken) {
-            throw new Error("LinkedIn refresh token not available for token refresh");
+            throw new Error(
+                "LinkedIn refresh token not available for token refresh",
+            );
         }
 
         // Check if access token is expired (with 5 minute buffer)
@@ -59,7 +62,8 @@ export async function getValidAccessToken(
             data: {
                 accessToken: refreshResult.accessToken,
                 expiresAt: newExpiresAt,
-                refreshToken: refreshResult.refreshToken || socialLogin.refreshToken,
+                refreshToken:
+                    refreshResult.refreshToken || socialLogin.refreshToken,
             },
         });
 
@@ -76,7 +80,7 @@ export async function getValidAccessToken(
             },
         });
 
-        console.error("Error getting valid LinkedIn access token:", error);
+        logger.error({ error }, "Error getting valid LinkedIn access token");
 
         // Provide more specific error messages
         if (error instanceof Error) {
@@ -95,4 +99,4 @@ export async function getValidAccessToken(
 
         throw new Error("Failed to get valid LinkedIn access token");
     }
-} 
+}

@@ -7,10 +7,7 @@ import {
 } from "@langchain/langgraph";
 import { AIMessage, SystemMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import {
-    graphConfig,
-    imageGraphState,
-} from "../graph-states";
+import { graphConfig, imageGraphState } from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import imageEditTool from "../tools/image-edit-tool";
 import ImageGenTool from "../tools/image-gen.tool";
@@ -72,7 +69,10 @@ const modelCallNode = async (
     });
     const context = postGraphState?.values?.messages;
     if (!context) throw new Error("No post found to generate image for");
-    const systemPrompt = getImagePrompt(platform.toLowerCase() as "x" | "linkedin", JSON.stringify(context));
+    const systemPrompt = getImagePrompt(
+        platform.toLowerCase() as "x" | "linkedin",
+        JSON.stringify(context),
+    );
     const response = await modelWithTools.invoke([
         new SystemMessage(systemPrompt),
         ...messages,

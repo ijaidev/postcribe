@@ -25,10 +25,10 @@ interface ScheduleEvent {
 ## Process Flow
 
 ```
-Schedule Event (draftId) 
+Schedule Event (draftId)
     ↓
 Fetch Draft with Posts & User Social Logins
-    ↓ 
+    ↓
 Validate Draft (not published, has posts, user has social accounts)
     ↓
 For each unpublished post:
@@ -45,6 +45,7 @@ Mark Schedule as Published
 ## Database Integration
 
 Interacts with these database models:
+
 - `Draft` - Contains posts and schedule info
 - `Post` - Individual posts with platform type
 - `DraftSchedule` - Scheduling metadata
@@ -54,12 +55,14 @@ Interacts with these database models:
 ## Platform Publishing
 
 ### X/Twitter
+
 - Uses `@repo/x` package
 - Calls `postTweet()` with user's access token
 - Supports media attachments via `media_ids`
 - Handles token validation and refresh
 
-### LinkedIn  
+### LinkedIn
+
 - Uses `@repo/linkedin` package
 - Calls `createPost()` with user's access token
 - Supports media attachments
@@ -76,6 +79,7 @@ Interacts with these database models:
 ## Environment Variables
 
 Inherits from workspace packages:
+
 - Database connection via `@repo/db`
 - Platform API credentials via `@repo/x` and `@repo/linkedin`
 

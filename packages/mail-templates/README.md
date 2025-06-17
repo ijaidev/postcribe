@@ -17,6 +17,7 @@ Professional email templates built with MJML for the PostCribe platform.
 A professional template for notifying users when their scheduled posts are ready for review.
 
 **Features:**
+
 - Responsive design for all devices
 - Professional PostCribe branding
 - Clear call-to-action button
@@ -37,13 +38,16 @@ bun install
 ### Basic Usage
 
 ```typescript
-import { generatePostApprovalEmail, type PostApprovalEmailData } from '@repo/mail-templates';
+import {
+    generatePostApprovalEmail,
+    type PostApprovalEmailData,
+} from "@repo/mail-templates";
 
 const emailData: PostApprovalEmailData = {
     userName: "John Doe",
     postTitle: "My Awesome Post",
     reviewUrl: "https://app.postcribe.com/post/draft/123",
-    previewText: "This is a preview of the post content..." // optional
+    previewText: "This is a preview of the post content...", // optional
 };
 
 const { html, text } = generatePostApprovalEmail(emailData);
@@ -60,10 +64,14 @@ await sendEmail({
 ### Integration with PostCribe Cron Handler
 
 ```typescript
-import { generatePostApprovalEmail } from '@repo/mail-templates';
-import { sendEmail } from '@repo/mailer';
+import { generatePostApprovalEmail } from "@repo/mail-templates";
+import { sendEmail } from "@repo/mailer";
 
-const sendApprovalEmail = async (user: User, draftId: string, postTitle: string) => {
+const sendApprovalEmail = async (
+    user: User,
+    draftId: string,
+    postTitle: string,
+) => {
     const baseUrl = process.env.FRONTEND_BASE_URL;
     const reviewUrl = `${baseUrl}/post/draft/${draftId}`;
 
@@ -98,17 +106,17 @@ bun run preview
 ### Test Custom Data
 
 ```typescript
-import { previewEmail } from '@repo/mail-templates';
+import { previewEmail } from "@repo/mail-templates";
 
 const customData = {
     userName: "Jane Smith",
     postTitle: "Custom Test Post",
     reviewUrl: "https://localhost:3000/post/draft/test",
-    previewText: "This is a custom test..."
+    previewText: "This is a custom test...",
 };
 
 const { html, text } = previewEmail(customData);
-console.log('Generated email:', html);
+console.log("Generated email:", html);
 ```
 
 ### Build
@@ -123,10 +131,10 @@ bun run build
 
 ```typescript
 interface PostApprovalEmailData {
-    userName: string;        // Recipient's name
-    postTitle: string;       // Title of the post to review
-    reviewUrl: string;       // URL to the draft editor
-    previewText?: string;    // Optional preview of post content
+    userName: string; // Recipient's name
+    postTitle: string; // Title of the post to review
+    reviewUrl: string; // URL to the draft editor
+    previewText?: string; // Optional preview of post content
 }
 ```
 
@@ -156,6 +164,7 @@ Built with MJML 4.15.3, these templates are compatible with:
 ### Colors and Branding
 
 The template uses a consistent color scheme:
+
 - Primary: `#3b82f6` (blue)
 - Secondary: `#2563eb` (darker blue)
 - Text: `#1f2937` (dark gray)
@@ -210,6 +219,7 @@ When adding new templates:
 ## Best Practices
 
 ### Email Design
+
 - Keep content concise and scannable
 - Use clear, action-oriented CTAs
 - Ensure good contrast ratios
@@ -217,6 +227,7 @@ When adding new templates:
 - Include text fallbacks
 
 ### MJML Usage
+
 - Use semantic components when possible
 - Leverage MJML's responsive features
 - Keep CSS simple and inline-friendly
@@ -224,6 +235,7 @@ When adding new templates:
 - Validate templates during build
 
 ### Performance
+
 - Optimize images and assets
 - Keep HTML size reasonable
 - Use web-safe fonts with fallbacks
@@ -234,16 +246,19 @@ When adding new templates:
 ### Common Issues
 
 **MJML compilation errors:**
+
 - Check MJML syntax and component usage
 - Ensure all required attributes are provided
 - Validate template structure
 
 **Rendering issues:**
+
 - Test in multiple email clients
 - Check for unsupported CSS properties
 - Ensure proper fallbacks are in place
 
 **Development issues:**
+
 - Run `bun install` to ensure dependencies
 - Check TypeScript compilation with `bun run typecheck`
 - Verify MJML version compatibility

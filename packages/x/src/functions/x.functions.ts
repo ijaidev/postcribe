@@ -28,7 +28,6 @@ export const getUserInfo = async (username: string) => {
 
     try {
         const response = await axios.request<UserInfoResponse>(options);
-        console.dir(response.data, { depth: null });
         return {
             id: response.data.result.data.user.result.rest_id,
             isVerified: response.data.result.data.user.result.is_blue_verified,
@@ -42,7 +41,7 @@ export const getUserInfo = async (username: string) => {
                 };
             }
         }
-        logger.error(error);
+        logger.error({ error }, "Failed to get user info");
         throw error;
     }
 };
@@ -122,7 +121,7 @@ export const getUserTweets = async (userId: string): Promise<CleanTweet[]> => {
 
         return tweets;
     } catch (error) {
-        logger.error(error);
+        logger.error({ error }, "Failed to get user tweets");
         throw error;
     }
 };

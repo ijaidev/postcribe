@@ -23,8 +23,8 @@ const getSocialAccountsHandler = factory.createHandlers(async c => {
                 isConnected: true,
             },
             orderBy: {
-                createdAt: 'desc'
-            }
+                createdAt: "desc",
+            },
         });
 
         return c.json(
@@ -33,14 +33,14 @@ const getSocialAccountsHandler = factory.createHandlers(async c => {
                 message: "Social accounts retrieved successfully",
                 status: 200,
             }),
-            200
+            200,
         );
     } catch (error) {
-        logger.error("Get social accounts error:", error);
+        logger.error({ error }, "Get social accounts error");
         throw new HTTPException(500, {
             message: "Internal server error",
         });
     }
 });
 
-export default getSocialAccountsHandler; 
+export default getSocialAccountsHandler;

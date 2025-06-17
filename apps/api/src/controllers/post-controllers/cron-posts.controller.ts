@@ -6,6 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import fileToBase64 from "../../utils/file-to-base64";
 import { uploadImages, type UploadImagesInput } from "@repo/s3";
 import ApiResponse from "../../utils/api-response";
+import { logger } from "@repo/logger";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -114,9 +115,9 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
 
         return c.json(
             new ApiResponse<typeof result>({
-
                 message: "Post cron created successfully",
                 data: result,
+                status: 201,
             }),
             201,
         );
@@ -124,8 +125,8 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
         if (error.message?.includes("Failed to process images")) {
             throw error;
         }
-        
-        console.error("Error creating post cron:", error);
+
+        logger.error({ error }, "Error creating post cron");
         throw new HTTPException(500, {
             message: "Internal server error: Failed to create post cron",
         });

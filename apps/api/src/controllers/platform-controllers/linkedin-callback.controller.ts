@@ -2,21 +2,24 @@ import db from "@repo/db";
 import factory from "../../utils/factory";
 import ApiResponse from "../../utils/api-response";
 import { requestAccessToken, getProfile } from "@repo/linkedin";
-import { z } from "zod";
-import { zValidator as zv } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "@repo/logger";
+import { CLIENT_URL } from "../../config";
 
 const linkedinCallbackHandler = factory.createHandlers(async c => {
-    const { code, state, error } = c.req.query();
-    if (error || !code || !state) {
-        throw new HTTPException(400, {
-            message: "Failed to connect LinkedIn account",
-        });
-    }
+    const { code, state, error, error_description } = c.req.query();
     const user = c.get("user")!;
 
     try {
+        if (error || !code || !state) {
+            logger.error(
+                { error, error_description },
+                "Failed to connect LinkedIn account",
+            );
+            throw new HTTPException(400, {
+                message: "Failed to connect LinkedIn account",
+            });
+        }
         // Find the social login record with the provided state
         const socialLogin = await db.socialLogin.findFirst({
             where: {
@@ -45,7 +48,7 @@ const linkedinCallbackHandler = factory.createHandlers(async c => {
         try {
             linkedInProfile = await getProfile(tokenResult.accessToken);
         } catch (profileError) {
-            logger.error("Failed to fetch LinkedIn profile:", profileError);
+            logger.error({ profileError }, "Failed to fetch LinkedIn profile");
             // Continue with basic token update if profile fetch fails
             linkedInProfile = null;
         }
@@ -104,12 +107,12 @@ const linkedinCallbackHandler = factory.createHandlers(async c => {
                             window.opener.postMessage({
                                 type: 'LINKEDIN_AUTH_SUCCESS',
                                 account: ${JSON.stringify(data)}
-                            }, window.location.origin);
+                            }, '${CLIENT_URL}');
                             window.close();
                         } else {
                             // Fallback for standalone access
                             setTimeout(() => {
-                                window.location.href = '/dashboard/connections';
+                                window.location.href = '${CLIENT_URL}/connections';
                             }, 2000);
                         }
                     </script>
@@ -119,7 +122,7 @@ const linkedinCallbackHandler = factory.createHandlers(async c => {
 
         return c.html(successHtml);
     } catch (error) {
-        logger.error("LinkedIn callback error:", error);
+        logger.error({ error }, "LinkedIn callback error");
 
         const errorMessage =
             error instanceof HTTPException
@@ -139,21 +142,21 @@ const linkedinCallbackHandler = factory.createHandlers(async c => {
                         <p>${errorMessage}</p>
                         <p>You can close this window...</p>
                     </div>
-                    <script>
-                        // Send error message to parent window
-                        if (window.opener && window.opener !== window) {
-                            window.opener.postMessage({
-                                type: 'LINKEDIN_AUTH_ERROR',
-                                error: '${errorMessage}'
-                            }, window.location.origin);
-                            window.close();
-                        } else {
-                            // Fallback for standalone access
-                            setTimeout(() => {
-                                window.location.href = '/dashboard/connections';
-                            }, 2000);
-                        }
-                    </script>
+                                            <script>
+                            // Send error message to parent window
+                            if (window.opener && window.opener !== window) {
+                                window.opener.postMessage({
+                                    type: 'LINKEDIN_AUTH_ERROR',
+                                    error: '${errorMessage}'
+                                }, '${CLIENT_URL}');
+                                window.close();
+                            } else {
+                                // Fallback for standalone access
+                                setTimeout(() => {
+                                    window.location.href = '${CLIENT_URL}/connections';
+                                }, 2000);
+                            }
+                        </script>
                 </body>
                 </html>
             `;

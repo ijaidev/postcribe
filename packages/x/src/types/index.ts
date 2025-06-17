@@ -2,57 +2,57 @@
 interface UserTweets {
     cursor: Cursor;
     result: Result;
-  }
-  
-  interface Cursor {
+}
+
+interface Cursor {
     bottom: string;
     top: string;
-  }
-  
-  interface Result {
+}
+
+interface Result {
     timeline: Timeline;
-  }
-  
-  interface Timeline {
+}
+
+interface Timeline {
     instructions: Instruction[];
-  }
-  
-  export type Instruction = TimelineClearCache | TimelineAddEntries;
-  
-  interface TimelineClearCache {
+}
+
+export type Instruction = TimelineClearCache | TimelineAddEntries;
+
+interface TimelineClearCache {
     type: "TimelineClearCache";
-  }
-  
-  interface TimelineAddEntries {
+}
+
+interface TimelineAddEntries {
     type: "TimelineAddEntries";
     entries: Entry[];
-  }
-  
-  interface Entry {
+}
+
+interface Entry {
     entryId: string;
     sortIndex: string;
     content: EntryContent;
-  }
-  
-  export interface EntryContent {
+}
+
+export interface EntryContent {
     entryType: "TimelineTimelineItem";
     __typename: "TimelineTimelineItem";
     itemContent: ItemContent;
     clientEventInfo: ClientEventInfo;
-  }
-  
-  interface ItemContent {
+}
+
+interface ItemContent {
     itemType: "TimelineTweet";
     __typename: "TimelineTweet";
     tweet_results: TweetResults;
     tweetDisplayType: "Tweet";
-  }
-  
-  interface TweetResults {
+}
+
+interface TweetResults {
     result: Tweet | TweetWithVisibilityResults;
-  }
-  
-  interface Tweet {
+}
+
+interface Tweet {
     __typename: "Tweet";
     rest_id: string;
     core: Core;
@@ -63,23 +63,23 @@ interface UserTweets {
     source: string;
     legacy: LegacyTweet;
     quick_promote_eligibility: QuickPromoteEligibility;
-  }
-  
-  interface TweetWithVisibilityResults {
+}
+
+interface TweetWithVisibilityResults {
     __typename: "TweetWithVisibilityResults";
     tweet: Tweet;
     community_results?: CommunityResults;
-  }
-  
-  interface Core {
+}
+
+interface Core {
     user_results: UserResults;
-  }
-  
-  interface UserResults {
+}
+
+interface UserResults {
     result: User;
-  }
-  
-  interface User {
+}
+
+interface User {
     __typename: "User";
     id: string;
     rest_id: string;
@@ -91,9 +91,9 @@ interface UserTweets {
     professional?: Professional;
     tipjar_settings?: TipjarSettings;
     super_follow_eligible?: boolean;
-  }
-  
-  interface LegacyUser {
+}
+
+interface LegacyUser {
     can_dm: boolean;
     can_media_tag: boolean;
     created_at: string;
@@ -124,49 +124,49 @@ interface UserTweets {
     verified: boolean;
     want_retweets: boolean;
     withheld_in_countries: any[];
-  }
-  
-  interface UserEntities {
+}
+
+interface UserEntities {
     description: {
-      urls: UrlEntity[];
+        urls: UrlEntity[];
     };
     url?: {
-      urls: UrlEntity[];
+        urls: UrlEntity[];
     };
-  }
-  
-  interface UrlEntity {
+}
+
+interface UrlEntity {
     display_url: string;
     expanded_url: string;
     url: string;
     indices: [number, number];
-  }
-  
-  interface Professional {
+}
+
+interface Professional {
     rest_id: string;
     professional_type: "Creator";
     category: any[];
-  }
-  
-  interface TipjarSettings {
+}
+
+interface TipjarSettings {
     is_enabled: boolean;
     bitcoin_handle?: string;
     ethereum_handle?: string;
-  }
-  
-  interface EditControl {
+}
+
+interface EditControl {
     edit_tweet_ids: string[];
     editable_until_msecs: string;
     is_edit_eligible: boolean;
     edits_remaining: string;
-  }
-  
-  interface Views {
+}
+
+interface Views {
     count: string;
     state: "EnabledWithCount";
-  }
-  
-  interface LegacyTweet {
+}
+
+interface LegacyTweet {
     bookmark_count: number;
     bookmarked: boolean;
     created_at: string;
@@ -184,45 +184,45 @@ interface UserTweets {
     retweeted: boolean;
     user_id_str: string;
     id_str: string;
-  }
-  
-  interface TweetEntities {
+}
+
+interface TweetEntities {
     hashtags: any[];
     symbols: any[];
     timestamps: any[];
     urls: UrlEntity[];
     user_mentions: UserMention[];
-  }
-  
-  interface UserMention {
+}
+
+interface UserMention {
     id_str: string;
     name: string;
     screen_name: string;
     indices: [number, number];
-  }
-  
-  interface QuickPromoteEligibility {
+}
+
+interface QuickPromoteEligibility {
     eligibility: "IneligibleNotProfessional";
-  }
-  
-  interface ClientEventInfo {
+}
+
+interface ClientEventInfo {
     component: "tweet";
     element: "tweet";
     details: {
-      timelinesDetails: TimelinesDetails;
+        timelinesDetails: TimelinesDetails;
     };
-  }
-  
-  interface TimelinesDetails {
+}
+
+interface TimelinesDetails {
     injectionType: "RankedOrganicTweet";
     controllerData: string;
-  }
-  
-  interface CommunityResults {
+}
+
+interface CommunityResults {
     result: Community;
-  }
-  
-  interface Community {
+}
+
+interface Community {
     __typename: "Community";
     id_str: string;
     name: string;
@@ -240,39 +240,37 @@ interface UserTweets {
     invites_policy: "MemberInvitesAllowed";
     is_pinned: boolean;
     members_facepile_results: UserResults[];
-  }
-  
-  interface CommunityTopic {
+}
+
+interface CommunityTopic {
     topic_id: string;
     topic_name: string;
-  }
-  
-  interface CommunityActions {
+}
+
+interface CommunityActions {
     delete_action_result: CommunityActionUnavailable;
     join_action_result: { __typename: "CommunityJoinAction" };
     leave_action_result: CommunityActionUnavailable & { message: string };
     pin_action_result: { __typename: "CommunityTweetPinActionUnavailable" };
-  }
-  
-  interface CommunityActionUnavailable {
+}
+
+interface CommunityActionUnavailable {
     __typename: string; // e.g., "CommunityDeleteActionUnavailable", "CommunityLeaveActionUnavailable"
     reason: string;
-  }
-  
-  interface CommunityInvitesResult {
+}
+
+interface CommunityInvitesResult {
     __typename: "CommunityInvitesUnavailable";
     reason: "Unavailable";
     message: string;
-  }
-
-
+}
 
 // User Info
 
 interface UserInfoResponse {
     result: {
-      data: UserInfo;
-    }
+        data: UserInfo;
+    };
 }
 
 interface UserInfo {
@@ -410,4 +408,10 @@ interface CleanTweet {
     }>;
 }
 
-export type { UserInfoResponse, UserTweets, CleanTweet, Tweet, TweetWithVisibilityResults };
+export type {
+    UserInfoResponse,
+    UserTweets,
+    CleanTweet,
+    Tweet,
+    TweetWithVisibilityResults,
+};

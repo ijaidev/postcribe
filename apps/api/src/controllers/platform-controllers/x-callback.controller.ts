@@ -35,7 +35,7 @@
 
 //         // Retrieve the code verifier from the accessToken field (where we temporarily stored it)
 //         const codeVerifier = socialLogin.accessToken;
-        
+
 //         if (!codeVerifier) {
 //             throw new HTTPException(400, {
 //                 message: "Code verifier not found",
@@ -46,7 +46,7 @@
 //         const tokenResult = await requestAccessToken(code, codeVerifier);
 
 //         // Calculate expiration time
-//         const expiresAt = tokenResult.expiresIn 
+//         const expiresAt = tokenResult.expiresIn
 //             ? new Date(Date.now() + (tokenResult.expiresIn * 1000)).toISOString()
 //             : new Date(Date.now() + 7200000).toISOString(); // Default to 2 hours
 
@@ -71,7 +71,7 @@
 //             name: updatedSocialLogin.name,
 //             provider: updatedSocialLogin.provider,
 //         };
-        
+
 //         return c.json(
 //             new ApiResponse<typeof data>({
 //                 data,
@@ -79,7 +79,7 @@
 //             }),
 //             200,
 //         );
-//     } catch (error) {        
+//     } catch (error) {
 //         logger.error("X callback error:", error);
 //         throw new HTTPException(500, {
 //             message: "Failed to complete X authentication",

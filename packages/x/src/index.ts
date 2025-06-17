@@ -5,6 +5,5 @@
 // export * from "./functions/upload-media.function";
 // export * from "./functions/get-access-token.function";
 
-
 export * from "./functions/x.functions";
 export * from "./types";

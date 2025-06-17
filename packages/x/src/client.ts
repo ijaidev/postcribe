@@ -9,7 +9,6 @@
 //     throw new Error("X_API_KEY, X_API_SECRET, X_BEARER_TOKEN, and X_CALLBACK_URL are required");
 // }
 
-
 // export function createUserClient(accessToken: string): TwitterApi {
 //     if (!accessToken) {
 //         throw new Error("Access token is required for user authentication");
@@ -21,7 +20,6 @@
 // /**
 //  * Create OAuth2 client for authentication operations
 //  */
-
 
 // function createOAuth2Client(): TwitterApi {
 //     return new TwitterApi({
@@ -146,4 +144,3 @@
 //         throw new Error("Failed to refresh access token");
 //     }
 // }
-
