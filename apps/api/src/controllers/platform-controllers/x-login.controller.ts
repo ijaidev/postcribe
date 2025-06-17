@@ -57,6 +57,18 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
         //     200,
         // );
 
+        const alreadyConnected = await db.socialLogin.findFirst({
+            where: {
+                userId: user.id,
+                provider: "X",
+                userName: username,
+            },
+        });
+        if (alreadyConnected) {
+            throw new HTTPException(400, {
+                message: "X account already connected",
+            });
+        }
         const xUser = await getUserInfo(username);
         if (xUser.id === "") {
             throw new HTTPException(404, {
@@ -80,9 +92,9 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
                 name: true,
                 userName: true,
                 provider: true,
-                expiresAt: true,
                 isVerified: true,
                 isConnected: true,
+                createdAt: true,
             },
         });
         return c.json(

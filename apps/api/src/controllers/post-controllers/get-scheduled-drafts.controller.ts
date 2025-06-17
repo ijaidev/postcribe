@@ -88,6 +88,7 @@ const getScheduledDraftsController = factory.createHandlers(
                 new ApiResponse<typeof data>({
                     message: "Scheduled drafts fetched successfully",
                     data,
+                    status: 200,
                 }),
                 200,
             );

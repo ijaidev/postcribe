@@ -32,6 +32,7 @@ const getPostsController = factory.createHandlers(queryValidator, async c => {
         new ApiResponse<GetPostsResponse>({
             message: "Posts fetched successfully",
             data: posts,
+            status: 200,
         }),
         200,
     );

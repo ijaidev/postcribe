@@ -28,9 +28,16 @@ export const getUserInfo = async (username: string) => {
 
     try {
         const response = await axios.request<UserInfoResponse>(options);
+        if (!response.data.result.data?.user) {
+            return {
+                id: "",
+                isVerified: false,
+            };
+        }
         return {
-            id: response.data.result.data.user.result.rest_id,
-            isVerified: response.data.result.data.user.result.is_blue_verified,
+            id: response.data.result.data.user.result.rest_id || "",
+            isVerified:
+                response.data.result.data.user.result.is_blue_verified || false,
         };
     } catch (error) {
         if (isAxiosError(error)) {

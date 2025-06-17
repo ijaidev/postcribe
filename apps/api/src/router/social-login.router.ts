@@ -18,7 +18,7 @@ const socialLoginRouter = factory
 
     .post("/login/x", ...xLoginController)
     // .get("/login/x/callback", ...xCallbackController)
-    .post("/login/linkedin", ...linkedinLoginController)
-    .get("/login/linkedin/callback", ...linkedinCallbackController);
+    // .post("/login/linkedin", ...linkedinLoginController)
+    // .get("/login/linkedin/callback", ...linkedinCallbackController);
 
 export default socialLoginRouter;
