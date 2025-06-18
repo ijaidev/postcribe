@@ -198,21 +198,22 @@ enum Platform {
 
 // Login
 model SocialLogin {
-  id           String        @id @default(uuid())
-  name         String
-  provider     LoginProvider
-  userId       String
-  userName     String?
-  user         User          @relation(fields: [userId], references: [id])
-  accessToken  String?
-  refreshToken String?
-  isVerified   Boolean?
-  expiresAt    DateTime
-  createdAt    DateTime      @default(now())
-  state        String?
-  isConnected  Boolean       @default(false)
-  isDeleted    Boolean       @default(false)
-  posts        Post[]
+  id               String        @id @default(uuid())
+  name             String
+  provider         LoginProvider
+  userId           String
+  userName         String?
+  user             User          @relation(fields: [userId], references: [id])
+  platformUserId   String?
+  accessToken      String?
+  refreshToken     String?
+  isVerified       Boolean?
+  expiresAt        DateTime
+  createdAt        DateTime      @default(now())
+  state            String?
+  isConnected      Boolean       @default(false)
+  isDeleted        Boolean       @default(false)
+  posts            Post[]
 
   @@map("social_login")
 }

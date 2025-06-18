@@ -19,5 +19,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "ioredis": "^5.6.1",
+    "@repo/logger": "workspace:*"
   }
 }

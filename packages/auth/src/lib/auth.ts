@@ -8,7 +8,7 @@ import {
     generateEmailVerificationEmail,
     generatePasswordResetEmail,
 } from "@repo/mail-templates";
-import { getRedisClient } from "./redis-client";
+import { getRedisClient } from "@repo/redis";
 import { IANAZone } from "luxon";
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3001";

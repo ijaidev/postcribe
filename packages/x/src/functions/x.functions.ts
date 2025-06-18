@@ -7,6 +7,7 @@ import type {
     TweetWithVisibilityResults,
     UserInfoResponse,
 } from "../types";
+import { getRedisClient } from "@repo/redis";
 
 const X_RAPID_API_KEY = process.env.X_RAPID_API_KEY;
 const X_RAPID_API_HOST = "twitter241.p.rapidapi.com";
@@ -15,6 +16,8 @@ const headers = {
     "x-rapidapi-key": X_RAPID_API_KEY,
     "x-rapidapi-host": X_RAPID_API_HOST,
 };
+
+const redis = getRedisClient();
 
 export const getUserInfo = async (username: string) => {
     const options = {
@@ -87,18 +90,26 @@ const extractTweetData = (
     };
 };
 
-export const getUserTweets = async (userId: string): Promise<CleanTweet[]> => {
+export const getUserTweets = async (
+    userId: string,
+    count: number = 50,
+): Promise<CleanTweet[]> => {
     const options = {
         method: "GET",
         url: "https://twitter241.p.rapidapi.com/user-tweets",
         params: {
             user: userId,
-            count: "50",
+            count: count,
         },
         headers: headers,
     };
 
     try {
+        const cachedTweets = await redis.get(`tweets_${userId}`);
+        if (cachedTweets) {
+            return JSON.parse(cachedTweets);
+        }
+
         const response = await axios.request<UserTweets>(options);
         const instructions = response.data.result.timeline.instructions;
 
@@ -125,6 +136,13 @@ export const getUserTweets = async (userId: string): Promise<CleanTweet[]> => {
                 }
             }
         }
+
+        await redis.set(
+            `tweets_${userId}`,
+            JSON.stringify(tweets),
+            "EX",
+            60 * 60 * 24,
+        );
 
         return tweets;
     } catch (error) {

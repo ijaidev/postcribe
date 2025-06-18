@@ -50,6 +50,19 @@ export const imageGraphState = Annotation.Root({
     }),
 });
 
+export const suggestionGraphState = Annotation.Root({
+    messages: Annotation<BaseMessage[]>({
+        reducer: messagesStateReducer,
+        default: () => [],
+    }),
+});
+
+export const suggestionGraphConfig = Annotation.Root({
+    numberOfPrompts: Annotation<number>,
+});
+
+export type suggestionGraphState = typeof suggestionGraphState.State;
+export type suggestionGraphConfig = typeof suggestionGraphConfig.State;
 export type graphConfig = typeof graphConfig.State;
 export type postGraphState = typeof postGraphState.State;
 export type imageGraphState = typeof imageGraphState.State;

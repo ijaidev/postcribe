@@ -19,6 +19,7 @@
         "typescript": "^5"
     },
     "dependencies": {
+        "@repo/redis": "workspace:*",
         "@repo/s3": "workspace:*",
         "@langchain/langgraph": "^0.2.72",
         "@langchain/langgraph-checkpoint-postgres": "^0.0.5",

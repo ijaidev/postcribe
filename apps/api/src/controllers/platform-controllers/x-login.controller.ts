@@ -86,6 +86,7 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
                 expiresAt: expiresAt,
                 isVerified: xUser.isVerified,
                 isConnected: true,
+                platformUserId: xUser.id,
             },
             select: {
                 id: true,

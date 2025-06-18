@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "twitter-api-v2": "^1.23.2",
-    "@repo/db": "workspace:*"
+    "@repo/db": "workspace:*",
+    "@repo/redis": "workspace:*"
   }
 }

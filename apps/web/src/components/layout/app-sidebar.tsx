@@ -191,7 +191,7 @@ export function AppSidebar({ className, ...props }: React.ComponentProps<typeof 
       </SidebarHeader>
 
       {/* Content */}
-      <SidebarContent>
+      <SidebarContent className="overflow-x-hidden">
         {/* Quick Actions */}
         <SidebarGroup>
           <SidebarGroupContent>
