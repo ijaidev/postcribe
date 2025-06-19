@@ -10,16 +10,15 @@ import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ThreeDotLoader } from "@/components/ui/loaders";
 import { H1 } from "@/components/ui/headings";
 import { XLogo } from "@/components/ui/x-logo";
 import client from "@/lib/hono-client";
 import Suggestions from "@/components/pages/suggestions";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function DraftPage() {
     const [selectedAccountId, setSelectedAccountId] = useState<string>("");
@@ -130,15 +129,15 @@ export default function DraftPage() {
             </Card>
 
             {/* Prompt Input Area */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="space-y-4">
-                        <div className="min-h-[200px]">
-                            <textarea
+            <Card className="mb-4 bg-transparent border-none px-0">
+                <CardContent className="pt-6 px-0">
+                    <div className="space-y-6">
+                        <div >
+                            <Textarea
                                 placeholder="Text area for prompt"
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                className="w-full h-full min-h-[200px] resize-none border-0 outline-none text-lg placeholder:text-muted-foreground bg-transparent"
+                                className="w-full h-full min-h-[100px] resize-none border-0 outline-none text-sm rounded-3xl p-4 bg-card"
                             />
                         </div>
                         <div className="flex justify-end">
@@ -153,26 +152,13 @@ export default function DraftPage() {
 
             {/* Suggestions Section */}
             {selectedAccount && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5" />
-                            Prompt Suggestions
-                            <Badge variant="outline" className="ml-auto">
-                                {selectedAccount.name}
-                            </Badge>
-                        </CardTitle>
-                        <CardDescription>
-                            AI-generated prompt suggestions based on your tweet patterns
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
+                <div className="bg-transparent">
                         <Suggestions 
                             platformUserId={selectedAccount.platformUserId || ""}
                             autoLoad={true}
+                            setPrompt={setPrompt}
                         />
-                    </CardContent>
-                </Card>
+                </div>
             )}
         </div>
     );

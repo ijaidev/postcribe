@@ -111,6 +111,7 @@ export const getUserTweets = async (
         }
 
         const response = await axios.request<UserTweets>(options);
+
         const instructions = response.data.result.timeline.instructions;
 
         // Extract tweets from the nested structure
@@ -137,6 +138,7 @@ export const getUserTweets = async (
             }
         }
 
+        console.debug("tweets", tweets, "length", tweets.length);
         await redis.set(
             `tweets_${userId}`,
             JSON.stringify(tweets),
