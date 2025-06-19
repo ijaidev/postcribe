@@ -3,7 +3,7 @@ import factory from "../../utils/factory";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { generatePostSuggestions } from "@repo/ai";
-import { stream } from "hono/streaming";
+import { streamText } from "hono/streaming";
 import { logger } from "@repo/logger";
 import { getZodErrorMessage } from "../../utils/zod-error-message";
 import db from "@repo/db";
@@ -23,7 +23,7 @@ const bodySchemaValidator = zValidator("json", bodySchema, result => {
 
 const postSuggestionsController = factory.createHandlers(
     bodySchemaValidator,
-    async c => {
+    async (c) => {
         const user = c.get("user")!;
         const { platformUserId, refresh } = c.req.valid("json");
 
@@ -48,15 +48,14 @@ const postSuggestionsController = factory.createHandlers(
                 refresh,
             );
 
-            return stream(c, async stream => {
+            return streamText(c, async stream => {
                 try {
                     for await (const chunk of suggestionResult.stream()) {
                         await stream.write(
                             JSON.stringify({
                                 event: chunk.event,
                                 content: chunk.content,
-                                timestamp: new Date().toISOString(),
-                            }),
+                            }) + "\n",
                         );
                     }
                 } catch (streamError) {
@@ -68,8 +67,7 @@ const postSuggestionsController = factory.createHandlers(
                         JSON.stringify({
                             event: "error",
                             content: "Stream interrupted",
-                            timestamp: new Date().toISOString(),
-                        }),
+                        }) + "\n",
                     );
                 } finally {
                     stream.close();

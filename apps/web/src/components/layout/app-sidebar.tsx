@@ -49,7 +49,7 @@ const navigationItems = [
   },
   {
     title: "Create Post",
-    url: "/create",
+    url: "/draft",
     icon: PenTool,
   },
   {

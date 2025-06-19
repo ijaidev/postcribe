@@ -9,7 +9,7 @@ const suggestionStructureSchema = z.object({
         ),
 });
 
-type SuggestionStructureArgs = z.infer<typeof suggestionStructureSchema>;
+export type SuggestionStructureArgs = z.infer<typeof suggestionStructureSchema>;
 
 const suggestionStructureToolSchema: StructuredToolParams = {
     name: "response",

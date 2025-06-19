@@ -62,6 +62,7 @@ const xLoginHandler = factory.createHandlers(bodyValidator, async c => {
                 userId: user.id,
                 provider: "X",
                 userName: username,
+                isDeleted: false,
             },
         });
         if (alreadyConnected) {

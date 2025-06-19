@@ -21,6 +21,7 @@ const getSocialAccountsHandler = factory.createHandlers(async c => {
                 createdAt: true,
                 isVerified: true,
                 isConnected: true,
+                platformUserId: true,
             },
             orderBy: {
                 createdAt: "desc",

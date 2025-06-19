@@ -5,9 +5,13 @@ import type { suggestionGraphConfig } from "../graph-states";
 import { logger } from "@repo/logger";
 import { getRedisClient } from "@repo/redis";
 
-interface SuggestionGenResponse {
-    event: string;
+export interface SuggestionGenStreamResponse {
+    event: "start" | "search" | "extract" | "response" | "end" | "error";
     content: string;
+}
+
+export interface Suggestions {
+    prompt_suggestions: string[];
 }
 
 const redis = getRedisClient();
@@ -16,11 +20,31 @@ export const generatePostSuggestions = async (
     userId: string,
     numberOfPrompts: number = 10,
     refresh: boolean = false,
-) => {
+): Promise<{
+    stream: () => AsyncGenerator<SuggestionGenStreamResponse, any, any>;
+}> => {
     try {
         const cachedSuggestions = await redis.get(`suggestion_${userId}`);
         if (cachedSuggestions && !refresh) {
-            return JSON.parse(cachedSuggestions);
+            const suggestions: Suggestions = JSON.parse(cachedSuggestions);
+            return {
+                async *stream(): AsyncGenerator<SuggestionGenStreamResponse> {
+                    yield {
+                        event: "start",
+                        content: "",
+                    };
+                    for (const suggestion of suggestions.prompt_suggestions) {
+                        yield {
+                            event: "response",
+                            content: suggestion,
+                        };
+                    }
+                    yield {
+                        event: "end",
+                        content: "",
+                    };
+                },
+            };
         }
 
         // Get user's recent tweets
@@ -62,72 +86,98 @@ export const generatePostSuggestions = async (
         );
 
         let isResponse = false;
+
         return {
-            async *stream(): AsyncGenerator<SuggestionGenResponse> {
+            async *stream(): AsyncGenerator<SuggestionGenStreamResponse> {
                 yield {
                     event: "start",
                     content: "",
                 };
-                for await (const chunk of stream) {
-                    const { data, event } = chunk;
-                    if (event === "on_chat_model_stream") {
-                        const { chunk } = data;
-                        if (!isAIMessageChunk(chunk)) continue;
 
-                        const toolCallChunks = chunk.tool_call_chunks;
-                        if (!toolCallChunks || toolCallChunks.length === 0) {
-                            isResponse = false;
-                            continue;
-                        }
-                        const toolCallChunk =
-                            toolCallChunks[toolCallChunks.length - 1];
+                try {
+                    for await (const chunk of stream) {
+                        const { data, event } = chunk;
+                        if (!data?.chunk) continue;
+                        if (event === "on_chat_model_stream") {
+                            const { chunk: messageChunk } = data;
+                            if (!messageChunk) continue;
+                            if (!isAIMessageChunk(messageChunk)) continue;
 
-                        if (toolCallChunk?.name === "response") {
-                            isResponse = true;
+                            const toolCallChunks =
+                                messageChunk.tool_call_chunks;
+                            if (
+                                !toolCallChunks ||
+                                toolCallChunks.length === 0
+                            ) {
+                                isResponse = false;
+                                continue;
+                            }
+
+                            const toolCallChunk =
+                                toolCallChunks[toolCallChunks.length - 1];
+                            if (!toolCallChunk) continue;
+
+                            if (toolCallChunk.name === "response") {
+                                isResponse = true;
+                            }
+                            if (toolCallChunk.name === "search") {
+                                isResponse = false;
+                                yield {
+                                    event: "search",
+                                    content: "",
+                                };
+                            }
+                            if (toolCallChunk.name === "extract") {
+                                isResponse = false;
+                                yield {
+                                    event: "extract",
+                                    content: "",
+                                };
+                            }
+                            if (isResponse && toolCallChunk.args) {
+                                yield {
+                                    event: "response",
+                                    content: toolCallChunk.args,
+                                };
+                            }
                         }
-                        if (toolCallChunk?.name === "search") {
-                            isResponse = false;
-                            yield {
-                                event: "search",
-                                content: "",
-                            };
-                        }
-                        if (toolCallChunk?.name === "extract") {
-                            isResponse = false;
-                            yield {
-                                event: "extract",
-                                content: "",
-                            };
-                        }
-                        if (isResponse) {
-                            yield {
-                                event: "response",
-                                content: toolCallChunk?.args || "",
-                            };
+
+                        if (event === "on_chat_model_end") {
+                            const { chunk: messageChunk } = data;
+                            if (!isAIMessageChunk(messageChunk)) continue;
+
+                            const toolCall = messageChunk.tool_calls;
+                            if (!toolCall || toolCall.length === 0) continue;
+
+                            const toolCallArgs =
+                                toolCall[toolCall.length - 1]?.args;
+                            if (!toolCallArgs) continue;
+
+                            if (toolCallArgs.name === "response") {
+                                redis.set(
+                                    `suggestion_${userId}`,
+                                    JSON.stringify(toolCallArgs.output),
+                                    "EX",
+                                    60,
+                                );
+                            }
                         }
                     }
-                    if (event === "on_chat_model_end") {
-                        const { chunk } = data;
-                        if (!isAIMessageChunk(chunk)) continue;
-                        const toolCall = chunk.tool_calls?.[0];
-                        const isResponse = toolCall?.name === "response";
-                        if (isResponse) {
-                            const response = toolCall?.args;
-                            await redis.set(
-                                `suggestion_${userId}`,
-                                JSON.stringify(response),
-                                "EX",
-                                60
-                            );
-                        }
-                    }
-                    if (event === "on_chain_end") {
-                        yield {
-                            event: "end",
-                            content: "",
-                        };
-                    }
+                } catch (streamError) {
+                    logger.error(
+                        { streamError },
+                        "Error in suggestion stream processing",
+                    );
+                    yield {
+                        event: "error",
+                        content: "Stream processing error",
+                    };
                 }
+
+                yield {
+                    event: "end",
+                    content: "",
+                };
             },
         };
     } catch (error) {

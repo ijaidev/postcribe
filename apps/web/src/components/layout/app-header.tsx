@@ -98,7 +98,7 @@ export function AppHeader() {
                         {getUserInitials(user.name, user.email)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 space-y-1">
+                    <div className="flex-1 space-y-2">
                       <h4 className="text-sm font-semibold">
                         {user.name || "User"}
                       </h4>
@@ -136,18 +136,6 @@ export function AppHeader() {
                       <Settings className="size-4" />
                       Settings
                     </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2 text-sm"
-                      onClick={() => {
-                        router.push("/profile");
-                        setOpen(false);
-                      }}
-                    >
-                      <User className="size-4" />
-                      Profile
-                    </Button>
-                    <Separator />
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-2 text-sm text-red-600 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"

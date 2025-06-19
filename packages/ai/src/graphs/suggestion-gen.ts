@@ -17,7 +17,7 @@ import { getSuggestionPrompt } from "../config/system-prompts";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
 
 const model = new ChatOpenAI({
-    model: "gpt-4.1",
+    model: "gpt-4.1-mini",
     apiKey: process.env.OPENAI_API_KEY,
     temperature: 0.7,
 });
