@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface XLogoProps extends React.SVGProps<SVGSVGElement> {
     className?: string;
-    size?: "sm" | "md" | "lg" | "xl";
+    size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 }
 
 /**
@@ -16,20 +16,30 @@ interface XLogoProps extends React.SVGProps<SVGSVGElement> {
  * @example
  * // With different sizes
  * <XLogo size="sm" />
- * <XLogo size="lg" />
+ * <XLogo size="xl" />
+ * <XLogo size="3xl" />
  * 
  * @example
- * // Custom styling
+ * // Custom styling (size prop takes precedence over width/height in className)
  * <XLogo className="text-blue-500" />
  */
 const XLogo = React.forwardRef<SVGSVGElement, XLogoProps>(
     ({ className, size = "md", ...props }, ref) => {
         const sizeClasses = {
+            xs: "w-3 h-3",
             sm: "w-4 h-4",
             md: "w-5 h-5", 
             lg: "w-6 h-6",
             xl: "w-8 h-8",
+            "2xl": "w-10 h-10",
+            "3xl": "w-12 h-12",
         };
+
+        // Remove any width/height classes from className to prevent conflicts
+        const filteredClassName = className
+            ?.split(' ')
+            .filter(cls => !cls.match(/^(w-|h-)/))
+            .join(' ') || '';
 
         return (
             <svg
@@ -39,7 +49,7 @@ const XLogo = React.forwardRef<SVGSVGElement, XLogoProps>(
                 className={cn(
                     sizeClasses[size], 
                     "text-black dark:text-white", // Theme-aware colors
-                    className
+                    filteredClassName
                 )}
                 fill="currentColor"
                 {...props}

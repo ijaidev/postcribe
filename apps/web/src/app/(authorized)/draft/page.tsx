@@ -31,6 +31,7 @@ import Suggestions from "@/components/pages/suggestions";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
+import { LinkedinLogo } from "@/components/ui/linkedin-logo";
 
 interface UploadedImage {
     id: string;
@@ -367,7 +368,7 @@ export default function DraftPage() {
             <div className="container max-w-4xl mx-auto py-8">
                 {/* Main Chat Interface */}
                 <div className="space-y-6">
-                    {/* ChatGPT-like Input */}
+                    {/* Input */}
                     <div className="sticky bottom-4">
                         <Card
                             className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-6 ${isDragging
@@ -425,7 +426,7 @@ export default function DraftPage() {
                                         handleCreatePost();
                                     }
                                 }}
-                                className="min-h-[120px] max-h-[300px] resize-none border-0 bg-transparent text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl overflow-hidden leading-relaxed p-6 pb-16"
+                                className="min-h-[120px] max-h-[300px] resize-none border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl overflow-hidden leading-relaxed p-6 pb-16 "
                             />
 
                             {/* Bottom actions */}
@@ -538,21 +539,21 @@ export default function DraftPage() {
                     </div>
 
                     {/* AI Suggestions with Tabs */}
-                    {(selectedPlatforms.x.selected || selectedPlatforms.linkedin.selected) && (
+
                         <div className="space-y-3">
                             <div className="flex items-center gap-2 px-1">
                                 <Sparkles className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-medium text-muted-foreground">Suggestions for you</span>
                             </div>
 
-                            <Tabs value={suggestionsTab} onValueChange={setSuggestionsTab} className="w-full">
-                                <TabsList className="grid w-full grid-cols-2">
+                            <Tabs value={suggestionsTab} onValueChange={setSuggestionsTab} className="w-full gap-4">
+                                <TabsList className="grid w-full grid-cols-2 bg-transparent">
                                     <TabsTrigger
                                         value="x"
                                         disabled={!selectedPlatforms.x.selected}
-                                        className="flex items-center gap-2"
+                                        className="flex items-center gap-2 p-3 hover:cursor-pointer hover:bg-background"
                                     >
-                                        <XLogo size="sm" />
+                                        <XLogo size="2xl" />
                                         X (Twitter)
                                     </TabsTrigger>
                                     <TabsTrigger
@@ -560,27 +561,21 @@ export default function DraftPage() {
                                         disabled={!selectedPlatforms.linkedin.selected}
                                         className="flex items-center gap-2"
                                     >
-                                        <User className="h-4 w-4" />
+                                        <LinkedinLogo size="2xl" />
                                         LinkedIn
                                     </TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="x" className="mt-4">
-                                    {(() => {
-                                        return selectedPlatforms.x.accountId ? (
-                                            <Suggestions
-                                                platformUserId={selectedPlatforms.x.accountId}
-                                                autoLoad={true}
-                                                setPrompt={setPrompt}
-                                            />
-                                        ) : (
-                                            <Card className="p-4">
-                                                <p className="text-sm text-muted-foreground">
-                                                    Suggestions require a connected X account with platform data.
-                                                </p>
-                                            </Card>
-                                        );
-                                    })()}
+                                    {selectedPlatforms.x.accountId ? (
+                                        <Suggestions platformUserId={selectedPlatforms.x.accountId} autoLoad={true} setPrompt={setPrompt} />
+                                    ) : (
+                                        <Card className="p-4">
+                                            <p className="text-sm text-muted-foreground">
+                                                Please select an account to get post suggestions.
+                                            </p>
+                                        </Card>
+                                    )}  
                                 </TabsContent>
 
                                 <TabsContent value="linkedin" className="mt-4">
@@ -592,7 +587,6 @@ export default function DraftPage() {
                                 </TabsContent>
                             </Tabs>
                         </div>
-                    )}
                 </div>
             </div>
         </div>
