@@ -24,10 +24,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import client from "@/lib/hono-client";
 import { API_URL } from "@/config";
 import Suggestions from "@/components/pages/suggestions";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
 
 interface UploadedImage {
     id: string;
@@ -47,8 +50,14 @@ interface SocialAccount {
 }
 
 interface PlatformSelection {
-    platform: "X" | "LINKEDIN";
-    accountId: string;
+    x: {
+        selected: boolean;
+        accountId: string | null;
+    },
+    linkedin: {
+        selected: boolean;
+        accountId: string | null;
+    }
 }
 
 export default function DraftPage() {
@@ -57,8 +66,18 @@ export default function DraftPage() {
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [generateImages, setGenerateImages] = useState(false);
-    const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformSelection[]>([]);
+    const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformSelection>({
+        x: {
+            selected: false,
+            accountId: null
+        },
+        linkedin: {
+            selected: false,
+            accountId: null
+        }
+    });
     const [isCreating, setIsCreating] = useState(false);
+    const [suggestionsTab, setSuggestionsTab] = useState<string>("x"); // Default to X tab
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -76,41 +95,6 @@ export default function DraftPage() {
         (account) => account.isConnected
     ) || [];
 
-    // Group accounts by platform
-    const accountsByPlatform = connectedAccounts.reduce((acc, account) => {
-        if (!acc[account.provider]) {
-            acc[account.provider] = [];
-        }
-        acc[account.provider].push(account);
-        return acc;
-    }, {} as Record<string, SocialAccount[]>);
-
-    // Initialize platform selection with first account of each platform
-    useEffect(() => {
-        if (connectedAccounts.length > 0 && selectedPlatforms.length === 0) {
-            const initialSelections: PlatformSelection[] = [];
-
-            // Add X platform if available
-            const xAccounts = accountsByPlatform["X"];
-            if (xAccounts && xAccounts.length > 0) {
-                initialSelections.push({
-                    platform: "X",
-                    accountId: xAccounts[0].id
-                });
-            }
-
-            // Add LinkedIn platform if available  
-            const linkedinAccounts = accountsByPlatform["LINKEDIN"];
-            if (linkedinAccounts && linkedinAccounts.length > 0) {
-                initialSelections.push({
-                    platform: "LINKEDIN",
-                    accountId: linkedinAccounts[0].id
-                });
-            }
-
-            setSelectedPlatforms(initialSelections);
-        }
-    }, [connectedAccounts]);
 
 
 
@@ -123,8 +107,6 @@ export default function DraftPage() {
             uploaded: false
         };
     };
-
-
 
     const handleFiles = (files: FileList | File[]) => {
         const newFiles = Array.from(files);
@@ -212,32 +194,6 @@ export default function DraftPage() {
         });
     };
 
-    const updatePlatformAccount = (platform: "X" | "LINKEDIN", accountId: string) => {
-        setSelectedPlatforms(prev =>
-            prev.map(selection =>
-                selection.platform === platform
-                    ? { ...selection, accountId }
-                    : selection
-            )
-        );
-    };
-
-    const togglePlatform = (platform: "X" | "LINKEDIN") => {
-        setSelectedPlatforms(prev => {
-            const exists = prev.find(p => p.platform === platform);
-            if (exists) {
-                // Remove platform
-                return prev.filter(p => p.platform !== platform);
-            } else {
-                // Add platform with first available account
-                const accounts = accountsByPlatform[platform];
-                if (accounts && accounts.length > 0) {
-                    return [...prev, { platform, accountId: accounts[0].id }];
-                }
-                return prev;
-            }
-        });
-    };
 
     // Post creation mutation
     const createPostMutation = useMutation({
@@ -246,7 +202,7 @@ export default function DraftPage() {
                 throw new Error("Please enter a prompt");
             }
 
-            if (selectedPlatforms.length === 0) {
+            if (!selectedPlatforms.x.selected && !selectedPlatforms.linkedin.selected) {
                 throw new Error("Please select at least one platform");
             }
 
@@ -256,34 +212,36 @@ export default function DraftPage() {
                 const uploadPromises = images.map(async (image) => {
                     const formData = new FormData();
                     formData.append('image', image.file);
-                    
+
                     // Make direct fetch request to upload endpoint since Hono client path is complex
                     const response = await fetch(`${API_URL}/v1/post/draft/image/upload`, {
                         method: 'POST',
                         body: formData,
                         credentials: 'include'
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error(`Failed to upload image: ${image.file.name}`);
                     }
-                    
+
                     const result = await response.json();
                     return result.data.image;
                 });
-                
+
                 base64Images = await Promise.all(uploadPromises);
             }
 
             // Determine platform parameter
-            const platforms = selectedPlatforms.map(p => p.platform);
+            const platforms = [selectedPlatforms.x.selected ? "x" : null, selectedPlatforms.linkedin.selected ? "linkedin" : null].filter(Boolean);
             let platform: string;
-            if (platforms.includes("X") && platforms.includes("LINKEDIN")) {
+            if (platforms.length === 2) {
                 platform = "all";
-            } else if (platforms.includes("X")) {
+            } else if (platforms.includes("x")) {
                 platform = "x";
-            } else {
+            } else if (platforms.includes("linkedin")) {
                 platform = "linkedin";
+            } else {
+                throw new Error("No valid platforms selected");
             }
 
             // Create form data with proper structure
@@ -331,13 +289,13 @@ export default function DraftPage() {
 
                     for (const line of lines) {
                         try {
-                                                const data = JSON.parse(line);
-                    if (data.draftId && !draftId) {
-                        draftId = data.draftId;
-                    }
-                } catch {
-                    // Ignore JSON parse errors for streaming chunks
-                }
+                            const data = JSON.parse(line);
+                            if (data.draftId && !draftId) {
+                                draftId = data.draftId;
+                            }
+                        } catch {
+                            // Ignore JSON parse errors for streaming chunks
+                        }
                     }
                 }
 
@@ -388,25 +346,6 @@ export default function DraftPage() {
         );
     }
 
-    if (!connectedAccounts.length) {
-        return (
-            <div className="container max-w-4xl mx-auto py-8">
-                <div className="text-center py-12">
-                    <div className="p-4 rounded-full bg-muted/30 w-fit mx-auto mb-4">
-                        <Sparkles className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <H1>No Connected Accounts</H1>
-                    <p className="text-muted-foreground mb-6">
-                        Connect your social media accounts to start creating drafts
-                    </p>
-                    <Button asChild>
-                        <a href="/connections">Connect Accounts</a>
-                    </Button>
-                </div>
-            </div>
-        );
-    }
-
     if (isCreating) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -449,9 +388,9 @@ export default function DraftPage() {
                                 className="hidden"
                             />
 
-                            {/* Images in left corner */}
+                            {/* Images at top of card */}
                             {images.length > 0 && (
-                                <div className="absolute top-6 left-6 flex gap-2 z-10">
+                                <div className="flex flex-wrap gap-2 mb-4">
                                     {images.map((image) => (
                                         <div key={image.id} className="relative group">
                                             <img
@@ -467,11 +406,9 @@ export default function DraftPage() {
                                             </button>
                                         </div>
                                     ))}
-                                    {images.length < 5 && (
-                                        <div className="text-xs text-muted-foreground mt-2 whitespace-nowrap">
-                                            {images.length}/5 images
-                                        </div>
-                                    )}
+                                    <div className="text-xs text-muted-foreground flex items-center">
+                                        {images.length}/5 images
+                                    </div>
                                 </div>
                             )}
 
@@ -488,8 +425,7 @@ export default function DraftPage() {
                                         handleCreatePost();
                                     }
                                 }}
-                                className={`min-h-[80px] max-h-[300px] resize-none border-0 bg-transparent text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl overflow-hidden leading-relaxed ${images.length > 0 ? 'pl-20 pt-2 pr-20 pb-16' : 'p-0 pr-20 pb-16'
-                                    }`}
+                                className="min-h-[120px] max-h-[300px] resize-none border-0 bg-transparent text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl overflow-hidden leading-relaxed p-6 pb-16"
                             />
 
                             {/* Bottom actions */}
@@ -506,16 +442,13 @@ export default function DraftPage() {
                                         <Paperclip className="h-4 w-4 text-muted-foreground" />
                                     </Button>
 
-                                    {/* Character count */}
-                                    <span className="text-xs text-muted-foreground">
-                                        {prompt.length}/280
-                                    </span>
+
                                 </div>
 
                                 {/* Send button */}
                                 <Button
                                     onClick={handleCreatePost}
-                                    disabled={!prompt.trim() || selectedPlatforms.length === 0 || createPostMutation.isPending}
+                                    disabled={!prompt.trim() || !selectedPlatforms.x.selected || !selectedPlatforms.linkedin.selected || createPostMutation.isPending}
                                     size="sm"
                                     className="h-8 w-8 p-0 rounded-full"
                                 >
@@ -544,140 +477,120 @@ export default function DraftPage() {
                     </div>
 
                     {/* Platform & Settings Section */}
-                    <Card className="p-6 space-y-6">
-                        {/* Image Generation Toggle */}
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <Label htmlFor="generate-images" className="text-sm font-medium">
-                                    Generate Images
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Let AI create images for your posts
-                                </p>
+                    <div className="flex items-start flex-row gap-4 p-2">
+                        <div className="flex items-center gap-1 flex-col min-h-10">
+                            <div className="flex items-center gap-2 flex-row">
+                                <Checkbox id="x/twitter"
+                                    checked={selectedPlatforms.x.selected}
+                                    onCheckedChange={(checked) => {
+                                        setSelectedPlatforms(prev => ({
+                                            ...prev,
+                                            x: { ...prev.x, selected: checked === "indeterminate" ? false : checked }
+                                        }));
+                                    }}
+                                />
+                                <Label htmlFor="x/twitter">X (Twitter)</Label>
                             </div>
-                            <Switch
-                                id="generate-images"
-                                checked={generateImages}
-                                onCheckedChange={setGenerateImages}
+                            {selectedPlatforms.x.selected && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <span className="text-xs w-full underline underline-offset-4 text-muted-foreground text-right hover:cursor-pointer hover:text-primary">{connectedAccounts.find(account => account.id === selectedPlatforms.x.accountId)?.name ?? "Select Account"}</span>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56" align="center">
+                                        <DropdownMenuLabel>Select Account</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuGroup>
+                                            {
+                                                connectedAccounts.filter(account => account.provider === "X").map(account => (
+                                                    <DropdownMenuItem key={account.id} onClick={() => setSelectedPlatforms(prev => ({
+                                                        ...prev,
+                                                        x: { ...prev.x, accountId: account.id }
+                                                    }))}>
+                                                        <XLogo size="sm" />
+                                                        {account.name}
+                                                    </DropdownMenuItem>
+                                                ))
+                                            }
+                                            
+                                        </DropdownMenuGroup>
+
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="linkedin"
+                                checked={selectedPlatforms.linkedin.selected}
+                                onCheckedChange={(checked) => {
+                                    setSelectedPlatforms(prev => ({
+                                        ...prev,
+                                        linkedin: { ...prev.linkedin, selected: checked === "indeterminate" ? false : checked }
+                                    }));
+                                }}
                             />
+                            <Label htmlFor="linkedin">LinkedIn</Label>
                         </div>
-
-                        <Separator />
-
-                        {/* Platform Selection */}
-                        <div className="space-y-4">
-                            <H3>Select Platforms</H3>
-
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {/* X Platform */}
-                                {accountsByPlatform["X"] && (
-                                    <Card className="p-4">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <XLogo size="sm" />
-                                                <span className="font-medium">X (Twitter)</span>
-                                            </div>
-                                            <Switch
-                                                checked={selectedPlatforms.some(p => p.platform === "X")}
-                                                onCheckedChange={() => togglePlatform("X")}
-                                            />
-                                        </div>
-
-                                        {selectedPlatforms.some(p => p.platform === "X") && (
-                                            <Select
-                                                value={selectedPlatforms.find(p => p.platform === "X")?.accountId || ""}
-                                                onValueChange={(value) => updatePlatformAccount("X", value)}
-                                            >
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Select X account" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {accountsByPlatform["X"].map((account) => (
-                                                        <SelectItem key={account.id} value={account.id}>
-                                                            <div className="flex items-center gap-2">
-                                                                <span>{account.name}</span>
-                                                                {account.userName && (
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                        @{account.userName}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    </Card>
-                                )}
-
-                                {/* LinkedIn Platform */}
-                                {accountsByPlatform["LINKEDIN"] && (
-                                    <Card className="p-4">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <User className="h-4 w-4" />
-                                                <span className="font-medium">LinkedIn</span>
-                                            </div>
-                                            <Switch
-                                                checked={selectedPlatforms.some(p => p.platform === "LINKEDIN")}
-                                                onCheckedChange={() => togglePlatform("LINKEDIN")}
-                                            />
-                                        </div>
-
-                                        {selectedPlatforms.some(p => p.platform === "LINKEDIN") && (
-                                            <Select
-                                                value={selectedPlatforms.find(p => p.platform === "LINKEDIN")?.accountId || ""}
-                                                onValueChange={(value) => updatePlatformAccount("LINKEDIN", value)}
-                                            >
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Select LinkedIn account" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {accountsByPlatform["LINKEDIN"].map((account) => (
-                                                        <SelectItem key={account.id} value={account.id}>
-                                                            <div className="flex items-center gap-2">
-                                                                <span>{account.name}</span>
-                                                                {account.userName && (
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                        @{account.userName}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    </Card>
-                                )}
-                            </div>
+                        <div className="flex-1"></div>
+                        <div className="flex items-center gap-2">
+                            <Switch id="generateImages" />
+                            <Label htmlFor="generateImages">Generate images</Label>
                         </div>
-                    </Card>
+                    </div>
 
-                    {/* AI Suggestions - Only show for X accounts with platformUserId */}
-                    {selectedPlatforms.some(p => p.platform === "X") && (
+                    {/* AI Suggestions with Tabs */}
+                    {(selectedPlatforms.x.selected || selectedPlatforms.linkedin.selected) && (
                         <div className="space-y-3">
                             <div className="flex items-center gap-2 px-1">
                                 <Sparkles className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-medium text-muted-foreground">Suggestions for you</span>
                             </div>
-                            {(() => {
-                                const xSelection = selectedPlatforms.find(p => p.platform === "X");
-                                const xAccount = xSelection ? connectedAccounts.find(acc => acc.id === xSelection.accountId) : null;
-                                return xAccount?.platformUserId ? (
-                                    <Suggestions
-                                        platformUserId={xAccount.platformUserId}
-                                        autoLoad={true}
-                                        setPrompt={setPrompt}
-                                    />
-                                ) : (
+
+                            <Tabs value={suggestionsTab} onValueChange={setSuggestionsTab} className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger
+                                        value="x"
+                                        disabled={!selectedPlatforms.x.selected}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <XLogo size="sm" />
+                                        X (Twitter)
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="linkedin"
+                                        disabled={!selectedPlatforms.linkedin.selected}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <User className="h-4 w-4" />
+                                        LinkedIn
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="x" className="mt-4">
+                                    {(() => {
+                                        return selectedPlatforms.x.accountId ? (
+                                            <Suggestions
+                                                platformUserId={selectedPlatforms.x.accountId}
+                                                autoLoad={true}
+                                                setPrompt={setPrompt}
+                                            />
+                                        ) : (
+                                            <Card className="p-4">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Suggestions require a connected X account with platform data.
+                                                </p>
+                                            </Card>
+                                        );
+                                    })()}
+                                </TabsContent>
+
+                                <TabsContent value="linkedin" className="mt-4">
                                     <Card className="p-4">
                                         <p className="text-sm text-muted-foreground">
-                                            Suggestions require a connected X account with platform data.
+                                            LinkedIn suggestions are not available yet. Coming soon!
                                         </p>
                                     </Card>
-                                );
-                            })()}
+                                </TabsContent>
+                            </Tabs>
                         </div>
                     )}
                 </div>
