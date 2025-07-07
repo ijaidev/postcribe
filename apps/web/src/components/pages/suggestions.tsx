@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import client from "@/lib/hono-client";
 import type { SuggestionGenStreamResponse, Suggestions } from "@repo/ai";
@@ -14,7 +13,7 @@ import { JsonOutputParser } from "@langchain/core/output_parsers";
 
 
 export default function Suggestions({ platformUserId, autoLoad = true, setPrompt }: { platformUserId: string, autoLoad?: boolean, setPrompt: (prompt: string) => void }) {
-    const [suggestions, setSuggestions] = useState<Suggestions["prompt_suggestions"]>([]);
+    const [suggestions, setSuggestions] = useState<Suggestions["suggestions"]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -51,18 +50,14 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
                 const { done, value } = await reader.read();
                 if (done) break;
                 const chunks = decoder.decode(value, { stream: true })
-                console.log("chunks", chunks);
                 const chunksArray = chunks.split("\n").filter(chunk => chunk.trim() !== "");
                 for (const chunk of chunksArray) {
                     const parsedChunk = await parser.parse(chunk) as SuggestionGenStreamResponse;
-                    console.log("parsedChunk", parsedChunk);
                     if (parsedChunk.event !== "response") continue;
-                    buffer += parsedChunk.content
+                    buffer += parsedChunk.content;
                     const parsed = parse(buffer, Allow.ALL) as Partial<Suggestions>;
-                    console.log("parsed", parsed);
-                    const newSuggestions = parsed.prompt_suggestions || [];
-                    setSuggestions(newSuggestions);
-                    console.log("new suggestions", newSuggestions);
+                    const newSuggestions = parsed.suggestions || [];
+                    setSuggestions((prev) => [...prev, ...newSuggestions]);
                 }
             }
         } catch (error) {
@@ -97,10 +92,10 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
     };
 
     const renderSkeletons = () => {
-        return Array.from({ length: 10 }, (_, index) => (
-            <Card key={`skeleton-${index}`} className="w-fit h-10 border-dashed flex items-center justify-center">
-                <CardContent className="p-4 flex items-center">
-                    <Skeleton className="h-4 w-64" />
+        return Array.from({ length: 8 }, (_, index) => (
+            <Card key={`skeleton-${index}`} className="flex-shrink-0 w-48 min-h-[36px] border-dashed bg-muted/30 flex items-center justify-center">
+                <CardContent className="p-3 flex items-center">
+                    <Skeleton className="h-3 w-36" />
                 </CardContent>
             </Card>
         ));
@@ -110,11 +105,11 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
         return suggestions.map((suggestion, index) => (
             <Card
                 key={index}
-                className="w-fit h-10 border-dashed hover:border-solid hover:bg-muted transition-all cursor-pointer flex items-center justify-center"
+                className="flex-shrink-0 min-w-fit min-h-[36px] border-0 bg-muted/50 hover:bg-muted transition-all cursor-pointer flex items-center justify-center p-0 shadow-sm hover:shadow-md"
                 onClick={() => setPrompt(suggestion)}
             >
-                <CardContent className="p-4 flex items-center">
-                    <p className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                <CardContent className="flex items-center justify-center px-4 py-2">
+                    <p className="text-sm font-medium whitespace-pre-wrap text-center leading-relaxed max-w-md">
                         {suggestion}
                     </p>
                 </CardContent>
@@ -124,43 +119,49 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
 
 
     return (
-        <div className="space-y-2">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={scrollLeft}
-                        disabled={isLoading}
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={scrollRight}
-                        disabled={isLoading}
-                    >
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
-                </div>
+        <div className="space-y-3">
+            <div className="relative flex items-center gap-3">
                 <Button
-                    variant="outline"
+                    variant="ghost"
+                    size="sm"
+                    onClick={scrollLeft}
+                    disabled={isLoading}
+                    className="h-8 w-8 p-0 rounded-full shrink-0"
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <div
+                    ref={scrollContainerRef}
+                    className="flex gap-3 overflow-x-auto flex-1 py-1"
+                    style={{ 
+                        scrollbarWidth: 'none', 
+                        msOverflowStyle: 'none',
+                        scrollBehavior: 'smooth'
+                    }}
+                >
+                    {suggestions.length === 0 ? renderSkeletons() : renderSuggestions()}
+                </div>
+                
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={scrollRight}
+                    disabled={isLoading}
+                    className="h-8 w-8 p-0 rounded-full shrink-0"
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                <Button
+                    variant="ghost"
                     size="sm"
                     onClick={handleRefresh}
                     disabled={isLoading}
+                    className="h-8 w-8 p-0 rounded-full shrink-0"
                 >
                     <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    Refresh
                 </Button>
-            </div>
-
-            <div 
-                ref={scrollContainerRef}
-                className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-                {suggestions.length === 0 ? renderSkeletons() : renderSuggestions()}
             </div>
         </div>
     );

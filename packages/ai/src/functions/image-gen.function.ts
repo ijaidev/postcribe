@@ -97,11 +97,11 @@ const imageGen = async (
         },
     );
     for await (const chunk of stream) {
-        for (const [node, values] of Object.entries<imageGraphState>(chunk)) {
+        for (const [node, values] of Object.entries(chunk)) {
             if (
                 node !== "toolNode" ||
-                values.messages.length === 0 ||
-                !isToolMessage(values.messages[0]!)
+                values.messages?.length === 0 ||
+                !isToolMessage(values.messages![0]!)
             )
                 continue;
 

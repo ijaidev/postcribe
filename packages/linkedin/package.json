@@ -1,12 +1,18 @@
 {
   "name": "@repo/linkedin",
-  "module": "index.ts",
+  "module": "dist/index.js",
   "type": "module",
+  "types": "dist/index.d.ts",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "scripts": {
+    "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && tsc",
+    "build:prod": "bun build src/index.ts --outdir dist --target bun",
     "dev": "bun run --watch index.ts",
     "start": "bun run index.ts",
     "lint": "eslint --max-warnings 0",

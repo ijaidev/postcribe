@@ -2,7 +2,7 @@ import { tool, type StructuredToolParams } from "@langchain/core/tools";
 import { z } from "zod";
 
 const suggestionStructureSchema = z.object({
-    prompt_suggestions: z
+    suggestions: z
         .array(z.string())
         .describe(
             "Array of Prompt suggestions that can be fed to AI post generation agents",

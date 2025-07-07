@@ -23,7 +23,7 @@ const bodySchemaValidator = zValidator("json", bodySchema, result => {
 
 const postSuggestionsController = factory.createHandlers(
     bodySchemaValidator,
-    async (c) => {
+    async c => {
         const user = c.get("user")!;
         const { platformUserId, refresh } = c.req.valid("json");
 

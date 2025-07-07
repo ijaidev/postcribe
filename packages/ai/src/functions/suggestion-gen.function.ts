@@ -11,7 +11,7 @@ export interface SuggestionGenStreamResponse {
 }
 
 export interface Suggestions {
-    prompt_suggestions: string[];
+    suggestions: string[];
 }
 
 const redis = getRedisClient();
@@ -33,12 +33,20 @@ export const generatePostSuggestions = async (
                         event: "start",
                         content: "",
                     };
-                    for (const suggestion of suggestions.prompt_suggestions) {
+                    yield {
+                        event: "response",
+                        content: "{\n\"suggestions\": [",
+                    };
+                    for (const suggestion of suggestions.suggestions) {
                         yield {
                             event: "response",
-                            content: suggestion,
-                        };
+                            content: `"${suggestion}"`,
+                        }
                     }
+                    yield {
+                        event: "response",
+                        content: "],\n}",
+                    };
                     yield {
                         event: "end",
                         content: "",
@@ -97,8 +105,8 @@ export const generatePostSuggestions = async (
                 try {
                     for await (const chunk of stream) {
                         const { data, event } = chunk;
-                        if (!data?.chunk) continue;
                         if (event === "on_chat_model_stream") {
+                            if (!data?.chunk) continue;
                             const { chunk: messageChunk } = data;
                             if (!messageChunk) continue;
                             if (!isAIMessageChunk(messageChunk)) continue;
@@ -143,20 +151,21 @@ export const generatePostSuggestions = async (
                         }
 
                         if (event === "on_chat_model_end") {
-                            const { chunk: messageChunk } = data;
-                            if (!isAIMessageChunk(messageChunk)) continue;
+                            const aiMessage = data?.output;
+                            if (!isAIMessageChunk(aiMessage)) continue;
 
-                            const toolCall = messageChunk.tool_calls;
-                            if (!toolCall || toolCall.length === 0) continue;
+                            const toolCalls = aiMessage.tool_calls;
+                            if (!toolCalls || toolCalls.length === 0) continue;
 
-                            const toolCallArgs =
-                                toolCall[toolCall.length - 1]?.args;
-                            if (!toolCallArgs) continue;
+                            const toolCall = toolCalls[toolCalls.length - 1];
+                            if (!toolCall) continue;
 
-                            if (toolCallArgs.name === "response") {
+                            if (toolCall.name === "response") {
+                                const toolCallArgs = toolCall?.args;
+                                if (!toolCallArgs) continue;
                                 redis.set(
                                     `suggestion_${userId}`,
-                                    JSON.stringify(toolCallArgs.output),
+                                    JSON.stringify(toolCallArgs),
                                     "EX",
                                     60,
                                 );

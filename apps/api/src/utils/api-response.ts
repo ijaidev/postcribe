@@ -10,7 +10,11 @@ class ApiResponse<T> {
     message: string;
     data?: T;
 
-    constructor({ message, data, status }: ApiResponseProps<T>) {
+    constructor({
+        message,
+        data,
+        status,
+    }: Omit<ApiResponseProps<T>, "success">) {
         this.success = status >= 200 && status < 300;
         this.status = status;
         this.message = message;

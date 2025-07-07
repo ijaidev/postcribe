@@ -1,14 +1,18 @@
 {
   "name": "@repo/db",
-  "main": "src/index.ts",
-  "module": "src/index.ts",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "scripts": {
-    "build": "bun build --entrypoints src/index.ts --target bun --outdir dist",
+    "build:dev": "bun run db:generate && bun build src/index.ts --outdir dist --target bun --packages external && tsc",
+    "build:prod": "bun build src/index.ts --outdir dist --target bun",
     "lint": "eslint --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",

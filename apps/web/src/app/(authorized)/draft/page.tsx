@@ -1,76 +1,385 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, Sparkles, User } from "lucide-react";
+import { Send, Sparkles, User, ImagePlus, X, Paperclip, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
     Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card";
 import { ThreeDotLoader } from "@/components/ui/loaders";
-import { H1 } from "@/components/ui/headings";
+import { H1, H2, H3 } from "@/components/ui/headings";
 import { XLogo } from "@/components/ui/x-logo";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import client from "@/lib/hono-client";
+import { API_URL } from "@/config";
 import Suggestions from "@/components/pages/suggestions";
 import { Textarea } from "@/components/ui/textarea";
 
+interface UploadedImage {
+    id: string;
+    file: File;
+    preview: string;
+    uploaded?: boolean;
+    uploadedUrl?: string;
+}
+
+interface SocialAccount {
+    id: string;
+    name: string;
+    provider: "X" | "LINKEDIN";
+    userName?: string | null;
+    isConnected: boolean;
+    platformUserId?: string | null;
+}
+
+interface PlatformSelection {
+    platform: "X" | "LINKEDIN";
+    accountId: string;
+}
+
 export default function DraftPage() {
-    const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+    const router = useRouter();
     const [prompt, setPrompt] = useState("");
+    const [images, setImages] = useState<UploadedImage[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
+    const [generateImages, setGenerateImages] = useState(false);
+    const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformSelection[]>([]);
+    const [isCreating, setIsCreating] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Load connected social accounts
     const { data: socialAccounts, isLoading: isLoadingAccounts } = useQuery({
         queryKey: ["social-accounts"],
-        queryFn: async () => (await client.social.accounts.$get()).json(),
+        queryFn: async () => {
+            const response = await client.social.accounts.$get();
+            if (!response.ok) throw new Error('Failed to fetch accounts');
+            return response.json();
+        },
     });
-
-    // Auto-select first connected account
-    useEffect(() => {
-        if (socialAccounts?.data?.length && !selectedAccountId) {
-            const firstConnectedAccount = socialAccounts.data.find(
-                (account) => account.isConnected
-            );
-            if (firstConnectedAccount) {
-                setSelectedAccountId(firstConnectedAccount.id);
-            }
-        }
-    }, [socialAccounts, selectedAccountId]);
-
-    const selectedAccount = socialAccounts?.data?.find(
-        (account) => account.id === selectedAccountId
-    );
 
     const connectedAccounts = socialAccounts?.data?.filter(
         (account) => account.isConnected
     ) || [];
 
-    const getProviderIcon = (provider: string) => {
-        switch (provider) {
-            case "X":
-                return <XLogo size="sm" className="text-current" />;
-            default:
-                return <User className="h-4 w-4" />;
+    // Group accounts by platform
+    const accountsByPlatform = connectedAccounts.reduce((acc, account) => {
+        if (!acc[account.provider]) {
+            acc[account.provider] = [];
+        }
+        acc[account.provider].push(account);
+        return acc;
+    }, {} as Record<string, SocialAccount[]>);
+
+    // Initialize platform selection with first account of each platform
+    useEffect(() => {
+        if (connectedAccounts.length > 0 && selectedPlatforms.length === 0) {
+            const initialSelections: PlatformSelection[] = [];
+
+            // Add X platform if available
+            const xAccounts = accountsByPlatform["X"];
+            if (xAccounts && xAccounts.length > 0) {
+                initialSelections.push({
+                    platform: "X",
+                    accountId: xAccounts[0].id
+                });
+            }
+
+            // Add LinkedIn platform if available  
+            const linkedinAccounts = accountsByPlatform["LINKEDIN"];
+            if (linkedinAccounts && linkedinAccounts.length > 0) {
+                initialSelections.push({
+                    platform: "LINKEDIN",
+                    accountId: linkedinAccounts[0].id
+                });
+            }
+
+            setSelectedPlatforms(initialSelections);
+        }
+    }, [connectedAccounts]);
+
+
+
+    // Image handling functions
+    const createImagePreview = (file: File): UploadedImage => {
+        return {
+            id: Math.random().toString(36).substring(7),
+            file,
+            preview: URL.createObjectURL(file),
+            uploaded: false
+        };
+    };
+
+
+
+    const handleFiles = (files: FileList | File[]) => {
+        const newFiles = Array.from(files);
+
+        // Check if adding these files would exceed the limit
+        if (images.length + newFiles.length > 5) {
+            toast.error(`You can only upload up to 5 images. Currently have ${images.length} images.`);
+            return;
+        }
+
+        const validFiles = newFiles.filter(file => {
+            const isImage = file.type.startsWith('image/');
+            const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+
+            if (!isImage) {
+                toast.error(`${file.name} is not an image file`);
+                return false;
+            }
+            if (!isValidSize) {
+                toast.error(`${file.name} is too large (max 10MB)`);
+                return false;
+            }
+            return true;
+        });
+
+        if (validFiles.length > 0) {
+            const newImages = validFiles.map(createImagePreview);
+            setImages(prev => [...prev, ...newImages]);
+            toast.success(`${validFiles.length} image(s) uploaded`);
         }
     };
 
-    const handleCreatePost = () => {
-        if (!prompt.trim()) {
-            toast.error("Please enter a prompt");
-            return;
+    const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            handleFiles(e.target.files);
         }
-        // TODO: Implement post creation with the prompt
-        toast.success("Post creation will be implemented here!");
     };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files) {
+            handleFiles(e.dataTransfer.files);
+        }
+    };
+
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = Array.from(e.clipboardData.items);
+        const imageFiles = items
+            .filter(item => item.type.startsWith('image/'))
+            .map(item => item.getAsFile())
+            .filter((file): file is File => file !== null);
+
+        if (imageFiles.length > 0) {
+            handleFiles(imageFiles);
+        }
+    };
+
+    const removeImage = (id: string) => {
+        setImages(prev => {
+            const imageToRemove = prev.find(img => img.id === id);
+            if (imageToRemove) {
+                URL.revokeObjectURL(imageToRemove.preview);
+            }
+            return prev.filter(img => img.id !== id);
+        });
+    };
+
+    const updatePlatformAccount = (platform: "X" | "LINKEDIN", accountId: string) => {
+        setSelectedPlatforms(prev =>
+            prev.map(selection =>
+                selection.platform === platform
+                    ? { ...selection, accountId }
+                    : selection
+            )
+        );
+    };
+
+    const togglePlatform = (platform: "X" | "LINKEDIN") => {
+        setSelectedPlatforms(prev => {
+            const exists = prev.find(p => p.platform === platform);
+            if (exists) {
+                // Remove platform
+                return prev.filter(p => p.platform !== platform);
+            } else {
+                // Add platform with first available account
+                const accounts = accountsByPlatform[platform];
+                if (accounts && accounts.length > 0) {
+                    return [...prev, { platform, accountId: accounts[0].id }];
+                }
+                return prev;
+            }
+        });
+    };
+
+    // Post creation mutation
+    const createPostMutation = useMutation({
+        mutationFn: async () => {
+            if (!prompt.trim()) {
+                throw new Error("Please enter a prompt");
+            }
+
+            if (selectedPlatforms.length === 0) {
+                throw new Error("Please select at least one platform");
+            }
+
+            // Upload images first and get base64 URLs
+            let base64Images: string[] = [];
+            if (images.length > 0) {
+                const uploadPromises = images.map(async (image) => {
+                    const formData = new FormData();
+                    formData.append('image', image.file);
+                    
+                    // Make direct fetch request to upload endpoint since Hono client path is complex
+                    const response = await fetch(`${API_URL}/v1/post/draft/image/upload`, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to upload image: ${image.file.name}`);
+                    }
+                    
+                    const result = await response.json();
+                    return result.data.image;
+                });
+                
+                base64Images = await Promise.all(uploadPromises);
+            }
+
+            // Determine platform parameter
+            const platforms = selectedPlatforms.map(p => p.platform);
+            let platform: string;
+            if (platforms.includes("X") && platforms.includes("LINKEDIN")) {
+                platform = "all";
+            } else if (platforms.includes("X")) {
+                platform = "x";
+            } else {
+                platform = "linkedin";
+            }
+
+            // Create form data with proper structure
+            const formData = new FormData();
+            formData.append("message", prompt);
+            formData.append("platform", platform);
+            formData.append("forceWeb", "false");
+
+            // Add base64 images as individual form entries
+            base64Images.forEach((base64Image) => {
+                formData.append("images", base64Image);
+            });
+
+            const response = await fetch(`${API_URL}/v1/post/draft`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to create post");
+            }
+
+            return response;
+        },
+        onSuccess: async (response) => {
+            setIsCreating(true);
+
+            // Parse the streaming response
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error("No response stream available");
+            }
+
+            const decoder = new TextDecoder();
+            let draftId = "";
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n').filter(line => line.trim());
+
+                    for (const line of lines) {
+                        try {
+                                                const data = JSON.parse(line);
+                    if (data.draftId && !draftId) {
+                        draftId = data.draftId;
+                    }
+                } catch {
+                    // Ignore JSON parse errors for streaming chunks
+                }
+                    }
+                }
+
+                if (draftId) {
+                    toast.success("Post created successfully!");
+                    router.push(`/draft/${draftId}`);
+                } else {
+                    throw new Error("No draft ID received");
+                }
+            } catch (error) {
+                console.error("Streaming error:", error);
+                throw new Error("Failed to process response");
+            }
+        },
+        onError: (error) => {
+            setIsCreating(false);
+            toast.error(error.message || "Failed to create post");
+        }
+    });
+
+    const handleCreatePost = () => {
+        createPostMutation.mutate();
+    };
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [prompt]);
+
+    // Cleanup URLs on unmount
+    useEffect(() => {
+        return () => {
+            images.forEach(image => URL.revokeObjectURL(image.preview));
+        };
+    }, []);
 
     if (isLoadingAccounts) {
         return (
-            <div className="container max-w-6xl mx-auto py-8">
+            <div className="container max-w-4xl mx-auto py-8">
                 <div className="flex items-center justify-center py-12">
                     <ThreeDotLoader size="lg" />
                     <span className="ml-3 text-muted-foreground">Loading accounts...</span>
@@ -81,7 +390,7 @@ export default function DraftPage() {
 
     if (!connectedAccounts.length) {
         return (
-            <div className="container max-w-6xl mx-auto py-8">
+            <div className="container max-w-4xl mx-auto py-8">
                 <div className="text-center py-12">
                     <div className="p-4 rounded-full bg-muted/30 w-fit mx-auto mb-4">
                         <Sparkles className="h-8 w-8 text-muted-foreground" />
@@ -98,68 +407,281 @@ export default function DraftPage() {
         );
     }
 
-    return (
-        <div className="container max-w-6xl mx-auto py-8 space-y-8">
-            {/* Account Tabs */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Account Tabs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex gap-2 overflow-x-auto">
-                        {connectedAccounts.map((account) => (
-                            <Button
-                                key={account.id}
-                                variant={selectedAccountId === account.id ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setSelectedAccountId(account.id)}
-                                className="flex items-center gap-2 whitespace-nowrap"
-                            >
-                                {getProviderIcon(account.provider)}
-                                <span>{account.name}</span>
-                                {account.userName && (
-                                    <span className="text-xs opacity-70">
-                                        @{account.userName}
-                                    </span>
-                                )}
-                            </Button>
-                        ))}
+    if (isCreating) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Card className="w-full max-w-md p-8">
+                    <div className="text-center space-y-4">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+                        <H2>Creating Your Post</H2>
+                        <p className="text-muted-foreground">
+                            AI is generating your content...
+                        </p>
                     </div>
-                </CardContent>
-            </Card>
+                </Card>
+            </div>
+        );
+    }
 
-            {/* Prompt Input Area */}
-            <Card className="mb-4 bg-transparent border-none px-0">
-                <CardContent className="pt-6 px-0">
-                    <div className="space-y-6">
-                        <div >
+    return (
+        <div className="min-h-screen bg-background">
+            <div className="container max-w-4xl mx-auto py-8">
+                {/* Main Chat Interface */}
+                <div className="space-y-6">
+                    {/* ChatGPT-like Input */}
+                    <div className="sticky bottom-4">
+                        <Card
+                            className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-6 ${isDragging
+                                ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
+                                : "border-border hover:shadow-xl"
+                                }`}
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                        >
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={handleFileInput}
+                                className="hidden"
+                            />
+
+                            {/* Images in left corner */}
+                            {images.length > 0 && (
+                                <div className="absolute top-6 left-6 flex gap-2 z-10">
+                                    {images.map((image) => (
+                                        <div key={image.id} className="relative group">
+                                            <img
+                                                src={image.preview}
+                                                alt="Upload preview"
+                                                className="w-16 h-16 object-cover rounded-lg border-2 border-border shadow-sm"
+                                            />
+                                            <button
+                                                onClick={() => removeImage(image.id)}
+                                                className="absolute -top-1 -right-1 p-0.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 text-xs"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {images.length < 5 && (
+                                        <div className="text-xs text-muted-foreground mt-2 whitespace-nowrap">
+                                            {images.length}/5 images
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Textarea */}
                             <Textarea
-                                placeholder="Text area for prompt"
+                                ref={textareaRef}
+                                placeholder="What's on your mind?"
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                className="w-full h-full min-h-[100px] resize-none border-0 outline-none text-sm rounded-3xl p-4 bg-card"
+                                onPaste={handlePaste}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                        e.preventDefault();
+                                        handleCreatePost();
+                                    }
+                                }}
+                                className={`min-h-[80px] max-h-[300px] resize-none border-0 bg-transparent text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl overflow-hidden leading-relaxed ${images.length > 0 ? 'pl-20 pt-2 pr-20 pb-16' : 'p-0 pr-20 pb-16'
+                                    }`}
+                            />
+
+                            {/* Bottom actions */}
+                            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    {/* Attach button */}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={images.length >= 5}
+                                        className="h-8 w-8 p-0 rounded-full hover:bg-muted/60"
+                                    >
+                                        <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+
+                                    {/* Character count */}
+                                    <span className="text-xs text-muted-foreground">
+                                        {prompt.length}/280
+                                    </span>
+                                </div>
+
+                                {/* Send button */}
+                                <Button
+                                    onClick={handleCreatePost}
+                                    disabled={!prompt.trim() || selectedPlatforms.length === 0 || createPostMutation.isPending}
+                                    size="sm"
+                                    className="h-8 w-8 p-0 rounded-full"
+                                >
+                                    {createPostMutation.isPending ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                        <Send className="h-3 w-3" />
+                                    )}
+                                </Button>
+                            </div>
+
+                            {/* Enhanced Drag overlay */}
+                            {isDragging && (
+                                <div className="absolute inset-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center border-2 border-dashed border-primary animate-pulse">
+                                    <div className="text-center space-y-3">
+                                        <div className="relative">
+                                            <ImagePlus className="h-12 w-12 text-primary mx-auto animate-bounce" />
+                                            <div className="absolute inset-0 h-12 w-12 bg-primary/20 rounded-full animate-ping"></div>
+                                        </div>
+                                        <p className="text-lg font-semibold text-primary">Drop your images here</p>
+                                        <p className="text-sm text-primary/70">Support JPG, PNG, GIF up to 10MB (max 5 images)</p>
+                                    </div>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
+
+                    {/* Platform & Settings Section */}
+                    <Card className="p-6 space-y-6">
+                        {/* Image Generation Toggle */}
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <Label htmlFor="generate-images" className="text-sm font-medium">
+                                    Generate Images
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Let AI create images for your posts
+                                </p>
+                            </div>
+                            <Switch
+                                id="generate-images"
+                                checked={generateImages}
+                                onCheckedChange={setGenerateImages}
                             />
                         </div>
-                        <div className="flex justify-end">
-                            <Button onClick={handleCreatePost} disabled={!prompt.trim()}>
-                                <Send className="h-4 w-4 mr-2" />
-                                Create
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
 
-            {/* Suggestions Section */}
-            {selectedAccount && (
-                <div className="bg-transparent">
-                        <Suggestions 
-                            platformUserId={selectedAccount.platformUserId || ""}
-                            autoLoad={true}
-                            setPrompt={setPrompt}
-                        />
+                        <Separator />
+
+                        {/* Platform Selection */}
+                        <div className="space-y-4">
+                            <H3>Select Platforms</H3>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {/* X Platform */}
+                                {accountsByPlatform["X"] && (
+                                    <Card className="p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <XLogo size="sm" />
+                                                <span className="font-medium">X (Twitter)</span>
+                                            </div>
+                                            <Switch
+                                                checked={selectedPlatforms.some(p => p.platform === "X")}
+                                                onCheckedChange={() => togglePlatform("X")}
+                                            />
+                                        </div>
+
+                                        {selectedPlatforms.some(p => p.platform === "X") && (
+                                            <Select
+                                                value={selectedPlatforms.find(p => p.platform === "X")?.accountId || ""}
+                                                onValueChange={(value) => updatePlatformAccount("X", value)}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select X account" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {accountsByPlatform["X"].map((account) => (
+                                                        <SelectItem key={account.id} value={account.id}>
+                                                            <div className="flex items-center gap-2">
+                                                                <span>{account.name}</span>
+                                                                {account.userName && (
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        @{account.userName}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    </Card>
+                                )}
+
+                                {/* LinkedIn Platform */}
+                                {accountsByPlatform["LINKEDIN"] && (
+                                    <Card className="p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <User className="h-4 w-4" />
+                                                <span className="font-medium">LinkedIn</span>
+                                            </div>
+                                            <Switch
+                                                checked={selectedPlatforms.some(p => p.platform === "LINKEDIN")}
+                                                onCheckedChange={() => togglePlatform("LINKEDIN")}
+                                            />
+                                        </div>
+
+                                        {selectedPlatforms.some(p => p.platform === "LINKEDIN") && (
+                                            <Select
+                                                value={selectedPlatforms.find(p => p.platform === "LINKEDIN")?.accountId || ""}
+                                                onValueChange={(value) => updatePlatformAccount("LINKEDIN", value)}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select LinkedIn account" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {accountsByPlatform["LINKEDIN"].map((account) => (
+                                                        <SelectItem key={account.id} value={account.id}>
+                                                            <div className="flex items-center gap-2">
+                                                                <span>{account.name}</span>
+                                                                {account.userName && (
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        @{account.userName}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    </Card>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* AI Suggestions - Only show for X accounts with platformUserId */}
+                    {selectedPlatforms.some(p => p.platform === "X") && (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-1">
+                                <Sparkles className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-medium text-muted-foreground">Suggestions for you</span>
+                            </div>
+                            {(() => {
+                                const xSelection = selectedPlatforms.find(p => p.platform === "X");
+                                const xAccount = xSelection ? connectedAccounts.find(acc => acc.id === xSelection.accountId) : null;
+                                return xAccount?.platformUserId ? (
+                                    <Suggestions
+                                        platformUserId={xAccount.platformUserId}
+                                        autoLoad={true}
+                                        setPrompt={setPrompt}
+                                    />
+                                ) : (
+                                    <Card className="p-4">
+                                        <p className="text-sm text-muted-foreground">
+                                            Suggestions require a connected X account with platform data.
+                                        </p>
+                                    </Card>
+                                );
+                            })()}
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

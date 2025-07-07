@@ -1,13 +1,18 @@
 {
   "name": "@repo/logger",
-  "module": "src/index.ts",
+  "module": "dist/index.js",
   "type": "module",
+  "types": "dist/index.d.ts",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist",
+    "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && tsc",
+    "build:prod": "bun build src/index.ts --outdir dist --target bun",
     "start": "bun run src/index.ts",
     "dev": "bun --watch src/index.ts",
     "lint": "eslint . --max-warnings 0",
