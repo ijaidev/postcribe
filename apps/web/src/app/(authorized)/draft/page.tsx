@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, Sparkles, ImagePlus, X, Paperclip, Loader2 } from "lucide-react";
+import { Send, Sparkles, ImagePlus, X, Paperclip, Loader2, Globe } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -26,13 +26,16 @@ import { LinkedinLogo } from "@/components/ui/linkedin-logo";
 import { Select, SelectItem, SelectLabel, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import Link from "next/link";
+import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 interface UploadedImage {
     id: string;
     file: File;
     preview: string;
-    uploaded?: boolean;
-    base64Url?: string;
+    uploaded: boolean;
+    uploading: boolean;
+    imageUrl?: string;
 }
 
 interface PlatformSelection {
@@ -52,6 +55,7 @@ export default function DraftPage() {
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [generateImage, setGenerateImage] = useState(false);
+    const [forceWeb, setForceWeb] = useState(false);
     const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformSelection>({
         x: {
             selected: false,
@@ -77,6 +81,45 @@ export default function DraftPage() {
         },
     });
 
+    // Image upload mutation
+    const uploadImageMutation = useMutation({
+        mutationFn: async (image: UploadedImage) => {
+            const response = await client.post.draft.image.upload.$post({
+                form: {
+                    image: image.file
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to upload image');
+            }
+
+            if (!result.data?.imageUrl) {
+                throw new Error(result.message || 'No image URL returned');
+            }
+
+            return result.data.imageUrl;
+        },
+        onSuccess: (imageUrl, image) => {
+            // Update image with uploaded URL
+            setImages(prev => prev.map(img =>
+                img.id === image.id
+                    ? { ...img, uploaded: true, uploading: false, imageUrl }
+                    : img
+            ));
+            toast.success(`${image.file.name} uploaded successfully`);
+        },
+        onError: (error, image) => {
+            console.error('Upload error:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to upload image');
+
+            // Remove failed image
+            setImages(prev => prev.filter(img => img.id !== image.id));
+        }
+    });
+
     const connectedAccounts = socialAccounts?.data?.filter(
         (account) => account.isConnected
     ) || [];
@@ -88,6 +131,7 @@ export default function DraftPage() {
             file,
             preview: URL.createObjectURL(file),
             uploaded: false,
+            uploading: false,
         };
     };
 
@@ -101,7 +145,7 @@ export default function DraftPage() {
         }
 
         const validFiles = newFiles.filter(file => {
-            const isImage = file.type.startsWith('image/jpeg') || file.type.startsWith('image/png') || file.type.startsWith('image/jpg');
+            const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/webp';
             const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
 
             if (!isImage) {
@@ -117,12 +161,16 @@ export default function DraftPage() {
 
         if (validFiles.length > 0) {
             const newImages = validFiles.map(createImagePreview);
-            const base64Images = await Promise.all(newImages.map(async (image) => {
-                const base64 = await (image.file);
-                return base64;
-            }));
-            setImages(prev => [...prev, ...newImages]);
-            toast.success(`${validFiles.length} image(s) uploaded`);
+
+            // Add images with uploading state
+            setImages(prev => [...prev, ...newImages.map(img => ({ ...img, uploading: true }))]);
+
+            // Upload each image using mutation
+            newImages.forEach((image) => {
+                uploadImageMutation.mutate(image);
+            });
+
+            toast.success(`Starting upload of ${validFiles.length} image(s)`);
         }
     };
 
@@ -193,30 +241,19 @@ export default function DraftPage() {
                 throw new Error("Please select at least one platform");
             }
 
-            // Upload images first and get base64 URLs
-            let base64Images: string[] = [];
-            if (images.length > 0) {
-                const uploadPromises = images.map(async (image) => {
-                    const formData = new FormData();
-                    formData.append('image', image.file);
+            // Check if all images are uploaded
+            const uploadedImages = images.filter(img => img.uploaded && img.imageUrl);
+            const stillUploading = images.some(img => img.uploading);
 
-                    // Make direct fetch request to upload endpoint since Hono client path is complex
-                    const response = await fetch(`${API_URL}/v1/post/draft/image/upload`, {
-                        method: 'POST',
-                        body: formData,
-                        credentials: 'include'
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Failed to upload image: ${image.file.name}`);
-                    }
-
-                    const result = await response.json();
-                    return result.data.image;
-                });
-
-                base64Images = await Promise.all(uploadPromises);
+            if (stillUploading) {
+                throw new Error("Please wait for all images to finish uploading");
             }
+
+            if (images.length > 0 && uploadedImages.length !== images.length) {
+                throw new Error("Some images failed to upload. Please try again.");
+            }
+
+            const imageUrls = uploadedImages.map(img => img.imageUrl!);
 
             // Determine platform parameter
             const platforms = [selectedPlatforms.x.selected ? "x" : null, selectedPlatforms.linkedin.selected ? "linkedin" : null].filter(Boolean);
@@ -235,11 +272,11 @@ export default function DraftPage() {
             const formData = new FormData();
             formData.append("message", prompt);
             formData.append("platform", platform);
-            formData.append("forceWeb", "false");
+            formData.append("forceWeb", forceWeb.toString());
 
-            // Add base64 images as individual form entries
-            base64Images.forEach((base64Image) => {
-                formData.append("images", base64Image);
+            // Add image URLs as individual form entries
+            imageUrls.forEach((imageUrl) => {
+                formData.append("images", imageUrl);
             });
 
             const response = await fetch(`${API_URL}/v1/post/draft`, {
@@ -267,14 +304,14 @@ export default function DraftPage() {
             let draftId = "";
 
             try {
-                while (true) {
-                    const { done, value } = await reader.read();
+            while (true) {
+                const { done, value } = await reader.read();
                     if (done) break;
 
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split('\n').filter(line => line.trim());
 
-                    for (const line of lines) {
+                for (const line of lines) {
                         try {
                             const data = JSON.parse(line);
                             if (data.draftId && !draftId) {
@@ -382,18 +419,30 @@ export default function DraftPage() {
                                                 alt="Upload preview"
                                                 width={64}
                                                 height={64}
-                                                className="w-16 h-16 object-cover rounded-lg border-2 border-border shadow-sm"
+                                                className={`w-16 h-16 object-cover rounded-lg border-2 shadow-sm transition-opacity ${image.uploading && 'border-primary opacity-70'
+                                                    }`}
                                             />
+
+                                            {/* Upload loading overlay */}
+                                            {image.uploading && (
+                                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                                                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                                </div>
+                                            )}
+
                                             <button
                                                 onClick={() => removeImage(image.id)}
                                                 className="absolute -top-1 -right-1 p-0.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 text-xs"
                                             >
                                                 <X className="h-3 w-3" />
                                             </button>
-                                        </div>
-                                    ))}
+                                    </div>
+                                ))}
                                     <div className="text-xs text-muted-foreground flex items-center">
                                         {images.length}/5 images
+                                        {images.some(img => img.uploading) && (
+                                            <span className="ml-2 text-primary">Uploading...</span>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -420,25 +469,57 @@ export default function DraftPage() {
 
                             {/* Bottom actions */}
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    {/* Attach button */}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={images.length >= 5}
-                                        className="h-8 w-8 p-0 rounded-full hover:bg-muted/60"
-                                    >
-                                        <Paperclip className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
+                                <TooltipProvider>
+                                    <div className="flex items-center gap-3">
+                                        {/* Attach button */}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={images.length >= 5 || uploadImageMutation.isPending}
+                                                    className="h-8 w-8 p-0 rounded-full hover:bg-accent"
+                                                >
+                                                    <Paperclip className="h-15 w-15 text-muted-foreground" size={15}/>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <span>Attach images</span>
+                                            </TooltipContent>
+                                        </Tooltip>
 
-
-                                </div>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div>
+                                                    <Toggle
+                                                        pressed={forceWeb}
+                                                        onPressedChange={setForceWeb}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 rounded-full border-none bg-transparent"
+                                                    >
+                                                        <Globe className="h-15 w-15" size={15} />
+                                                    </Toggle>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <span>Toggle Web Search</span>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                </TooltipProvider>
 
                                 {/* Send button */}
                                 <Button
                                     onClick={handleCreatePost}
-                                    disabled={!prompt.trim() || !selectedPlatforms.x.selected || !selectedPlatforms.linkedin.selected || createPostMutation.isPending}
+                                    disabled={
+                                        !prompt.trim() ||
+                                        (!selectedPlatforms.x.selected && !selectedPlatforms.linkedin.selected) ||
+                                        createPostMutation.isPending ||
+                                        images.some(img => img.uploading) ||
+                                        uploadImageMutation.isPending
+                                    }
                                     size="sm"
                                     className="h-8 w-8 p-0 rounded-full"
                                 >
@@ -447,8 +528,8 @@ export default function DraftPage() {
                                     ) : (
                                         <Send className="h-3 w-3" />
                                     )}
-                                </Button>
-                            </div>
+                                                        </Button>
+                                                    </div>
 
                             {/* Enhanced Drag overlay */}
                             {isDragging && (
@@ -484,24 +565,24 @@ export default function DraftPage() {
                                 <SelectGroup>
                                     {
                                         (connectedAccounts.filter(account => account.provider === "X").length > 0) ? (
-                                        <>
-                                        <SelectLabel>Select X Account</SelectLabel>
-                                        {connectedAccounts.filter(account => account.provider === "X").map((account) => (
-                                            <SelectItem key={account.id} value={account.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <XLogo size="sm" />
-                                                    {account.name}
-                                                </div>
-                                            </SelectItem>
-                                        ))
-                                        }
-                                        </>
-                                    ) : (
-                                        <div className="flex items-center gap-2 justify-between w-full flex-col p-4">
-                                        <SelectLabel>No X accounts connected</SelectLabel>
-                                        <Link href="/connections" className={buttonVariants({ variant: "outline" })}>Connect X account</Link>
-                                        </div>
-                                    )}
+                                            <>
+                                                <SelectLabel>Select X Account</SelectLabel>
+                                                {connectedAccounts.filter(account => account.provider === "X").map((account) => (
+                                                    <SelectItem key={account.id} value={account.id}>
+                                                        <div className="flex items-center gap-2">
+                                                            <XLogo size="sm" />
+                                                            {account.name}
+                                                        </div>
+                                                    </SelectItem>
+                                                ))
+                                                }
+                                            </>
+                                        ) : (
+                                            <div className="flex items-center gap-2 justify-between w-full flex-col p-4">
+                                                <SelectLabel>No X accounts connected</SelectLabel>
+                                                <Link href="/connections" className={buttonVariants({ variant: "outline" })}>Connect X account</Link>
+                                            </div>
+                                        )}
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
@@ -582,7 +663,7 @@ export default function DraftPage() {
                                     <p className="text-sm text-muted-foreground">
                                         LinkedIn suggestions are not available yet. Coming soon!
                                     </p>
-                                </Card>
+                    </Card>
                             </TabsContent>
                         </Tabs>
                     </div>

@@ -8,6 +8,7 @@ import { stream } from "hono/streaming";
 import type { Draft } from "@prisma/client";
 import fileToBase64 from "../../utils/file-to-base64";
 import ApiResponse from "../../utils/api-response";
+import { uploadImages } from "@repo/s3";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -48,19 +49,34 @@ const imageUploadController = factory.createHandlers(
 
         try {
             const base64Image = await fileToBase64(image);
+            
+            // Extract base64 data from data URL (remove the data:image/...;base64, prefix)
+            const base64Data = base64Image.split(',')[1];
+            if (!base64Data) {
+                throw new Error("Invalid base64 image format");
+            }
+            
+            const uploadedImages = await uploadImages([
+                {
+                    base64: base64Data,
+                    contentType: image.type as "image/png" | "image/jpeg" | "image/webp",
+                },
+            ]);
+            
             return c.json(
                 new ApiResponse({
                     status: 200,
                     message: "Image uploaded successfully",
                     data: {
-                        image: base64Image,
+                        imageUrl: uploadedImages[0], // Return the first (and only) uploaded image URL
                     },
                 }),
                 200,
             );
         } catch (error) {
+            console.error("Image upload error:", error);
             throw new HTTPException(500, {
-                message: "Failed to generate post",
+                message: "Failed to upload image",
             });
         }
     },
