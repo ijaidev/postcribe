@@ -1,7 +1,6 @@
 import { Annotation, messagesStateReducer } from "@langchain/langgraph";
 import type { Post, Image } from "../types";
-import { BaseMessage, SystemMessage } from "@langchain/core/messages";
-import { getPostPrompt } from "../config/system-prompts";
+import { BaseMessage } from "@langchain/core/messages";
 
 const postReducer = (prev: Post[], curr: Post[]) => {
     if (!curr.length) return prev;
@@ -23,9 +22,14 @@ const imageReducer = (prev: Image[], curr: Image[]) => {
     return [...prev, { ...newImage, version }];
 };
 
-export const graphConfig = Annotation.Root({
+export const postGraphConfig = Annotation.Root({
     thread_id: Annotation<string>,
     platform: Annotation<"X" | "LINKEDIN">,
+    xAccountId: Annotation<string | null | undefined>,
+});
+export const imageGraphConfig = Annotation.Root({
+    thread_id: Annotation<string>,
+    platform: Annotation<"X" | "LINKEDIN">
 });
 
 export const postGraphState = Annotation.Root({
@@ -63,6 +67,7 @@ export const suggestionGraphConfig = Annotation.Root({
 
 export type suggestionGraphState = typeof suggestionGraphState.State;
 export type suggestionGraphConfig = typeof suggestionGraphConfig.State;
-export type graphConfig = typeof graphConfig.State;
+export type imageGraphConfig = typeof imageGraphConfig.State;
+export type postGraphConfig = typeof postGraphConfig.State;
 export type postGraphState = typeof postGraphState.State;
 export type imageGraphState = typeof imageGraphState.State;

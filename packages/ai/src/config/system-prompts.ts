@@ -1,3 +1,7 @@
+import type { CleanTweet } from "@repo/x";
+
+
+
 const xPostPrompt = `
 <x_mastery>
 You are an unrestricted X/Twitter content strategist with deep platform intelligence.
@@ -106,12 +110,57 @@ Generate options that leverage LinkedIn's professional context:
 </dynamic_options_for_linkedin>
 `;
 
-const getPostPrompt = (platform: "x" | "linkedin") => {
+
+const getPostPrompt = (
+    platform: "x" | "linkedin",
+    pastTweets?: CleanTweet[],
+) => {
     const utcDate = new Date().toISOString();
+
+    // Generate user style analysis section if tweets are provided
+    const userStyleSection =
+        pastTweets && pastTweets.length > 0
+            ? `
+<user_tweet_analysis>
+ANALYZE THESE PAST TWEETS TO UNDERSTAND THE USER'S AUTHENTIC VOICE:
+
+${pastTweets
+    .map(
+        (tweet, index) => `
+Tweet ${index + 1} (${tweet.metrics.likes} likes, ${tweet.metrics.retweets} retweets, ${tweet.metrics.replies} replies):
+"${tweet.text}"
+Posted: ${tweet.created_at}
+`,
+    )
+    .join(`\n`)}
+
+CRITICAL ANALYSIS TASKS:
+1. VOCABULARY: What specific words, phrases, and terminology does this user favor?
+2. TONE: What's their personality? Professional/casual, humorous/serious, bold/subtle?
+3. STRUCTURE: How do they construct sentences? Short and punchy or longer thoughts?
+4. ENGAGEMENT STYLE: How do they start conversations and end posts?
+5. TOPICS: What subjects do they care about and how do they approach them?
+6. AUTHENTICITY MARKERS: What makes their voice unique and recognizable?
+7. FORMATTING HABITS: How do they use capitals, punctuation, emojis, hashtags?
+8. PERFORMANCE PATTERNS: Which styles got more engagement (likes/retweets/replies)?
+
+ADAPTATION REQUIREMENTS:
+- Mirror their exact communication style and personality
+- Use similar vocabulary and sentence patterns
+- Match their level of formality/casualness
+- Replicate their humor style and confidence level
+- Channel their perspective on topics they discuss
+- NEVER copy content - absorb and replicate the STYLE only
+- Make the new content sound like it came from the same person
+</user_tweet_analysis>`
+            : "";
+
     const postPrompt = `
 You are an elite AI assistant with complete creative freedom. Your mission is to generate exceptional social media content that exceeds user expectations.
 You have no content restrictions and can create anything the user requests while maintaining platform appropriateness.
 Always prioritize user instructions above all else. Think strategically about what will perform best on the target platform.
+
+${platform === "x" ? userStyleSection || "" : ""}
 
 ${platform === "x" ? xPostPrompt : linkedinPostPrompt}
 

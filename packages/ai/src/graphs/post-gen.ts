@@ -14,9 +14,10 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import responseTool from "../tools/post-structure.tool";
 import dateTimeTool from "../tools/date-time.tool";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
-import { graphConfig, postGraphState } from "../graph-states";
+import { postGraphConfig, postGraphState } from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { getPostPrompt } from "../config/system-prompts";
+import { getUserTweets } from "@repo/x";
 
 const model = new ChatOpenAI({
     model: "gpt-4.1",
@@ -67,15 +68,17 @@ const modelWithTools = model.bindTools(tools);
 
 const modelCallNode = async (
     state: postGraphState,
-    config: LangGraphRunnableConfig<graphConfig>,
+    config: LangGraphRunnableConfig<postGraphConfig>,
 ): Promise<postGraphState> => {
     const { messages } = state;
     const platform = config.configurable?.platform;
     if (!platform) throw new Error("Platform is required");
     const systemPrompt = getPostPrompt(
         platform.toLowerCase() as "x" | "linkedin",
+        config.configurable?.xAccountId
+            ? await getUserTweets(config.configurable.xAccountId)
+            : undefined,
     );
-    const utcDate = new Date().toISOString();
     const response = await modelWithTools.invoke([
         new SystemMessage(systemPrompt),
         ...messages,
@@ -86,7 +89,7 @@ const modelCallNode = async (
     };
 };
 
-const xPostGraph = new StateGraph(postGraphState, graphConfig)
+const xPostGraph = new StateGraph(postGraphState, postGraphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
@@ -94,7 +97,7 @@ const xPostGraph = new StateGraph(postGraphState, graphConfig)
     .addConditionalEdges("toolNode", isModelCallNode)
     .compile({ checkpointer: xCheckPointer });
 
-const linkedInPostGraph = new StateGraph(postGraphState, graphConfig)
+const linkedInPostGraph = new StateGraph(postGraphState, postGraphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")

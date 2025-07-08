@@ -32,7 +32,7 @@ interface UploadedImage {
     file: File;
     preview: string;
     uploaded?: boolean;
-    uploadedUrl?: string;
+    base64Url?: string;
 }
 
 interface PlatformSelection {
@@ -87,11 +87,11 @@ export default function DraftPage() {
             id: Math.random().toString(36).substring(7),
             file,
             preview: URL.createObjectURL(file),
-            uploaded: false
+            uploaded: false,
         };
     };
 
-    const handleFiles = (files: FileList | File[]) => {
+    const handleFiles = async (files: FileList | File[]) => {
         const newFiles = Array.from(files);
 
         // Check if adding these files would exceed the limit
@@ -101,15 +101,15 @@ export default function DraftPage() {
         }
 
         const validFiles = newFiles.filter(file => {
-            const isImage = file.type.startsWith('image/');
-            const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+            const isImage = file.type.startsWith('image/jpeg') || file.type.startsWith('image/png') || file.type.startsWith('image/jpg');
+            const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
 
             if (!isImage) {
                 toast.error(`${file.name} is not an image file`);
                 return false;
             }
             if (!isValidSize) {
-                toast.error(`${file.name} is too large (max 10MB)`);
+                toast.error(`${file.name} is too large (max 5MB)`);
                 return false;
             }
             return true;
@@ -117,6 +117,10 @@ export default function DraftPage() {
 
         if (validFiles.length > 0) {
             const newImages = validFiles.map(createImagePreview);
+            const base64Images = await Promise.all(newImages.map(async (image) => {
+                const base64 = await (image.file);
+                return base64;
+            }));
             setImages(prev => [...prev, ...newImages]);
             toast.success(`${validFiles.length} image(s) uploaded`);
         }
@@ -358,10 +362,6 @@ export default function DraftPage() {
                                 ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
                                 : "border-border hover:shadow-xl"
                                 }`}
-                            onDragEnter={handleDragEnter}
-                            onDragLeave={handleDragLeave}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
                         >
                             <input
                                 ref={fileInputRef}
@@ -411,6 +411,10 @@ export default function DraftPage() {
                                         handleCreatePost();
                                     }
                                 }}
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
                                 className="min-h-30 max-h-30 resize-none! border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl leading-relaxed p-6"
                             />
 
@@ -448,7 +452,7 @@ export default function DraftPage() {
 
                             {/* Enhanced Drag overlay */}
                             {isDragging && (
-                                <div className="absolute inset-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center border-2 border-dashed border-primary animate-pulse">
+                                <div className="absolute inset-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center border-2 border-dashed border-primary animate-pulse pointer-events-none">
                                     <div className="text-center space-y-3">
                                         <div className="relative">
                                             <ImagePlus className="h-12 w-12 text-primary mx-auto animate-bounce" />

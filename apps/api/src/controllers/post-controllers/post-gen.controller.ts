@@ -6,8 +6,6 @@ import db from "@repo/db";
 import { postGen, type PostGenOptions } from "@repo/ai";
 import { stream } from "hono/streaming";
 import type { Draft } from "@prisma/client";
-import fileToBase64 from "../../utils/file-to-base64";
-import { base64 } from "zod/v4";
 import { getZodErrorMessage } from "../../utils/zod-error-message";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -15,7 +13,8 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const bodySchema = z.object({
     id: z.string().optional(),
-    platform: z.enum(["linkedin", "x", "all"]),
+    platform: z.enum(["LINKEDIN", "X", "ALL"]),
+    xLoginId: z.string().optional(),
     message: z.string(),
     images: z
         .union([
@@ -96,7 +95,7 @@ const postGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const user = c.get("user")!;
-        const { id, message, forceWeb, version, platform, images } =
+        const { id, message, forceWeb, version, platform, images, xLoginId } =
             c.req.valid("form");
 
         // Images are already validated base64 strings from Zod schema
@@ -133,12 +132,28 @@ const postGenController = factory.createHandlers(
             images: base64Images.length > 0 ? base64Images : undefined,
         };
 
+        if (platform === "X" || platform === "ALL") {
+            const xAccount = await db.socialLogin.findFirst({
+                where: {
+                    userId: user.id,
+                    provider: "X",
+                    id: xLoginId,
+                },
+            });
+            if (!xAccount) {
+                throw new HTTPException(404, {
+                    message: "X account not found",
+                });
+            }
+            options.xAccountId = xAccount.platformUserId || undefined;
+        }
+
         if (version) {
             options.version = version;
         }
 
         try {
-            if (platform === "all") {
+            if (platform === "ALL") {
                 const [xPostGenResult, linkedinPostGenResult] =
                     await Promise.all([
                         postGen(options, "X"),

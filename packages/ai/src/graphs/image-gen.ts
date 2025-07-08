@@ -7,7 +7,7 @@ import {
 } from "@langchain/langgraph";
 import { AIMessage, SystemMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { graphConfig, imageGraphState } from "../graph-states";
+import { imageGraphConfig, imageGraphState } from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import imageEditTool from "../tools/image-edit-tool";
 import ImageGenTool from "../tools/image-gen.tool";
@@ -54,7 +54,7 @@ const modelWithTools = model.bindTools(tools);
 
 const modelCallNode = async (
     state: imageGraphState,
-    config: LangGraphRunnableConfig<graphConfig>,
+    config: LangGraphRunnableConfig<imageGraphConfig>,
 ): Promise<imageGraphState> => {
     const { messages } = state;
     const platform = config.configurable?.platform;
@@ -83,7 +83,7 @@ const modelCallNode = async (
     };
 };
 
-const xImageGraph = new StateGraph(imageGraphState, graphConfig)
+const xImageGraph = new StateGraph(imageGraphState, imageGraphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")
@@ -91,7 +91,7 @@ const xImageGraph = new StateGraph(imageGraphState, graphConfig)
     .addEdge("toolNode", END)
     .compile({ checkpointer: xCheckPointer });
 
-const linkedInImageGraph = new StateGraph(imageGraphState, graphConfig)
+const linkedInImageGraph = new StateGraph(imageGraphState, imageGraphConfig)
     .addNode("modelCall", modelCallNode)
     .addNode("toolNode", toolNode)
     .addEdge(START, "modelCall")

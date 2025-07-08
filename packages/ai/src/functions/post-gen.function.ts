@@ -5,7 +5,7 @@ import {
     RemoveMessage,
 } from "@langchain/core/messages";
 import type { LangGraphRunnableConfig } from "@langchain/langgraph";
-import type { graphConfig, postGraphState } from "../graph-states";
+import type { postGraphConfig, postGraphState } from "../graph-states";
 
 interface PostGenOptions {
     message: string;
@@ -13,6 +13,7 @@ interface PostGenOptions {
     version?: number;
     draftId: string;
     images?: string[];
+    xAccountId?: string;
 }
 
 interface PostGenResponse {
@@ -21,14 +22,15 @@ interface PostGenResponse {
 }
 
 const postGen = async (options: PostGenOptions, platform: "X" | "LINKEDIN") => {
-    const { message, forceWeb = false, version, draftId, images } = options;
+    const { message, forceWeb = false, version, draftId, images, xAccountId } = options;
 
     // Create thread ID based on apply version or generate new on
 
-    const config: LangGraphRunnableConfig<graphConfig> = {
+    const config: LangGraphRunnableConfig<postGraphConfig> = {
         configurable: {
             thread_id: draftId,
             platform,
+            xAccountId,
         },
     };
 

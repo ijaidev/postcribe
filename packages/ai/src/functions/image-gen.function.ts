@@ -3,11 +3,9 @@ import {
     HumanMessage,
     isToolMessage,
     RemoveMessage,
-    ToolMessage,
 } from "@langchain/core/messages";
 import type { LangGraphRunnableConfig } from "@langchain/langgraph";
-import type { graphConfig, imageGraphState } from "../graph-states";
-import { logger } from "@repo/logger";
+import type { imageGraphConfig, imageGraphState } from "../graph-states";
 
 interface ImageGenOptions {
     message: string;
@@ -26,7 +24,7 @@ const imageGen = async (
 ): Promise<ImageGenResponse> => {
     const { message, version, draftId, images } = options;
 
-    const config: LangGraphRunnableConfig<graphConfig> = {
+    const config: LangGraphRunnableConfig<imageGraphConfig> = {
         configurable: {
             thread_id: draftId,
             platform,
