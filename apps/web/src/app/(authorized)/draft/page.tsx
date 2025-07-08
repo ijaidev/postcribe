@@ -5,25 +5,17 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, Sparkles, User, ImagePlus, X, Paperclip, Loader2 } from "lucide-react";
+import { Send, Sparkles, ImagePlus, X, Paperclip, Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
     Card,
 } from "@/components/ui/card";
 import { ThreeDotLoader } from "@/components/ui/loaders";
-import { H1, H2, H3 } from "@/components/ui/headings";
+import { H2 } from "@/components/ui/headings";
 import { XLogo } from "@/components/ui/x-logo";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import client from "@/lib/hono-client";
 import { API_URL } from "@/config";
@@ -32,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
+import Link from "next/link";
 
 interface UploadedImage {
     id: string;
@@ -39,15 +32,6 @@ interface UploadedImage {
     preview: string;
     uploaded?: boolean;
     uploadedUrl?: string;
-}
-
-interface SocialAccount {
-    id: string;
-    name: string;
-    provider: "X" | "LINKEDIN";
-    userName?: string | null;
-    isConnected: boolean;
-    platformUserId?: string | null;
 }
 
 interface PlatformSelection {
@@ -66,7 +50,7 @@ export default function DraftPage() {
     const [prompt, setPrompt] = useState("");
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [isDragging, setIsDragging] = useState(false);
-    const [generateImages, setGenerateImages] = useState(false);
+    const [generateImage, setGenerateImage] = useState(false);
     const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformSelection>({
         x: {
             selected: false,
@@ -95,9 +79,6 @@ export default function DraftPage() {
     const connectedAccounts = socialAccounts?.data?.filter(
         (account) => account.isConnected
     ) || [];
-
-
-
 
     // Image handling functions
     const createImagePreview = (file: File): UploadedImage => {
@@ -329,6 +310,15 @@ export default function DraftPage() {
         }
     }, [prompt]);
 
+    useEffect(() => {
+        if (socialAccounts && socialAccounts.data && socialAccounts.data.length > 0) {
+            setSelectedPlatforms(prev => ({
+                ...prev,
+                x: { ...prev.x, accountId: socialAccounts?.data?.[0]?.id ?? null }
+            }));
+        }
+    }, [socialAccounts]);
+
     // Cleanup URLs on unmount
     useEffect(() => {
         return () => {
@@ -502,17 +492,29 @@ export default function DraftPage() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuGroup>
                                             {
-                                                connectedAccounts.filter(account => account.provider === "X").map(account => (
-                                                    <DropdownMenuItem key={account.id} onClick={() => setSelectedPlatforms(prev => ({
-                                                        ...prev,
-                                                        x: { ...prev.x, accountId: account.id }
-                                                    }))}>
-                                                        <XLogo size="sm" />
-                                                        {account.name}
-                                                    </DropdownMenuItem>
-                                                ))
+                                                connectedAccounts.length === 0 ? (
+                                                    <>
+                                                        <DropdownMenuItem className="hover:bg-transparent!">
+                                                            <p className="text-sm text-muted-foreground">
+                                                                No accounts found. Please connect an account to get started.
+                                                            </p>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem className="hover:bg-transparent!">
+                                                            <Link href="/connections" className={buttonVariants({ variant: "outline" })}> Connect Account </Link>
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                ) : (
+                                                    connectedAccounts.filter(account => account.provider === "X").map(account => (
+                                                        <DropdownMenuItem key={account.id} onClick={() => setSelectedPlatforms(prev => ({
+                                                            ...prev,
+                                                            x: { ...prev.x, accountId: account.id }
+                                                        }))}>
+                                                            <XLogo size="sm" />
+                                                            {account.name}
+                                                        </DropdownMenuItem>
+                                                    )))
                                             }
-                                            
+
                                         </DropdownMenuGroup>
 
                                     </DropdownMenuContent>
@@ -533,60 +535,61 @@ export default function DraftPage() {
                         </div>
                         <div className="flex-1"></div>
                         <div className="flex items-center gap-2">
-                            <Switch id="generateImages" />
-                            <Label htmlFor="generateImages">Generate images</Label>
+                            <Switch id="generateImage"
+                                checked={generateImage}
+                                onCheckedChange={setGenerateImage}
+                            />
+                            <Label htmlFor="generateImage">Generate images</Label>
                         </div>
                     </div>
 
                     {/* AI Suggestions with Tabs */}
 
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 px-1">
-                                <Sparkles className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-medium text-muted-foreground">Suggestions for you</span>
-                            </div>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Suggestions for you</span>
+                        </div>
 
-                            <Tabs value={suggestionsTab} onValueChange={setSuggestionsTab} className="w-full gap-4">
-                                <TabsList className="grid w-full grid-cols-2 bg-transparent">
-                                    <TabsTrigger
-                                        value="x"
-                                        disabled={!selectedPlatforms.x.selected}
-                                        className="flex items-center gap-2 p-3 hover:cursor-pointer hover:bg-background"
-                                    >
-                                        <XLogo size="2xl" />
-                                        X (Twitter)
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                        value="linkedin"
-                                        disabled={!selectedPlatforms.linkedin.selected}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <LinkedinLogo size="2xl" />
-                                        LinkedIn
-                                    </TabsTrigger>
-                                </TabsList>
+                        <Tabs value={suggestionsTab} onValueChange={setSuggestionsTab} className="w-full gap-4">
+                            <TabsList className="grid w-full grid-cols-2 bg-transparent">
+                                <TabsTrigger
+                                    value="x"
+                                    className="flex items-center gap-2 p-3 hover:cursor-pointer hover:bg-background"
+                                >
+                                    <XLogo size="2xl" />
+                                    X (Twitter)
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="linkedin"
+                                    className="flex items-center gap-2"
+                                >
+                                    <LinkedinLogo size="2xl" />
+                                    LinkedIn
+                                </TabsTrigger>
+                            </TabsList>
 
-                                <TabsContent value="x" className="mt-4">
-                                    {selectedPlatforms.x.accountId ? (
-                                        <Suggestions platformUserId={selectedPlatforms.x.accountId} autoLoad={true} setPrompt={setPrompt} />
-                                    ) : (
-                                        <Card className="p-4">
-                                            <p className="text-sm text-muted-foreground">
-                                                Please select an account to get post suggestions.
-                                            </p>
-                                        </Card>
-                                    )}  
-                                </TabsContent>
-
-                                <TabsContent value="linkedin" className="mt-4">
+                            <TabsContent value="x" className="mt-4">
+                                {selectedPlatforms.x.accountId ? (
+                                    <Suggestions socialLoginId={selectedPlatforms.x.accountId} autoLoad={true} setPrompt={setPrompt} />
+                                ) : (
                                     <Card className="p-4">
                                         <p className="text-sm text-muted-foreground">
-                                            LinkedIn suggestions are not available yet. Coming soon!
+                                            Please select an account to get post suggestions.
                                         </p>
                                     </Card>
-                                </TabsContent>
-                            </Tabs>
-                        </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="linkedin" className="mt-4">
+                                <Card className="p-4">
+                                    <p className="text-sm text-muted-foreground">
+                                        LinkedIn suggestions are not available yet. Coming soon!
+                                    </p>
+                                </Card>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
                 </div>
             </div>
         </div>

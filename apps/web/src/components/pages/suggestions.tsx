@@ -12,13 +12,13 @@ import { parse, Allow } from "partial-json";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 
 
-export default function Suggestions({ platformUserId, autoLoad = true, setPrompt }: { platformUserId: string, autoLoad?: boolean, setPrompt: (prompt: string) => void }) {
+export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt }: { socialLoginId: string, autoLoad?: boolean, setPrompt: (prompt: string) => void }) {
     const [suggestions, setSuggestions] = useState<Suggestions["suggestions"]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const generateSuggestions = useCallback(async (refresh = false) => {
-        if (!platformUserId) return;
+        if (!socialLoginId) return;
 
         setIsLoading(true);
         if (refresh) {
@@ -28,7 +28,7 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
         try {
             const response = await client.post.suggestions.$post({
                 json: {
-                    platformUserId,
+                    socialLoginId: socialLoginId,
                     refresh,
                 },
             });
@@ -57,7 +57,7 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
                     buffer += parsedChunk.content;
                     const parsed = parse(buffer, Allow.ALL) as Partial<Suggestions>;
                     const newSuggestions = parsed.suggestions || [];
-                    setSuggestions((prev) => [...prev, ...newSuggestions]);
+                    setSuggestions(() => newSuggestions);
                 }
             }
         } catch (error) {
@@ -66,14 +66,14 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
         } finally {
             setIsLoading(false);
         }
-    }, [platformUserId]);
+    }, [socialLoginId]);
 
     // Auto-load suggestions on mount
     useEffect(() => {
-        if (autoLoad && platformUserId) {
+        if (autoLoad && socialLoginId) {
             generateSuggestions(false);
         }
-    }, [platformUserId, autoLoad, generateSuggestions]);
+    }, [socialLoginId, autoLoad, generateSuggestions]);
 
     const handleRefresh = () => {
         generateSuggestions(true);
@@ -93,9 +93,11 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
 
     const renderSkeletons = () => {
         return Array.from({ length: 8 }, (_, index) => (
-            <Card key={`skeleton-${index}`} className="flex-shrink-0 w-48 min-h-[36px] border-dashed bg-muted/30 flex items-center justify-center">
-                <CardContent className="p-3 flex items-center">
-                    <Skeleton className="h-3 w-36" />
+            <Card key={`skeleton-${index}`} className="flex-shrink-0 w-96 min-h-40 border-dashed bg-muted/30 flex items-center justify-center">
+                <CardContent className="p-3 flex items-center flex-col gap-4 justify-center">
+                    <Skeleton className="h-3 w-90" />
+                    <Skeleton className="h-3 w-80" />
+                    <Skeleton className="h-3 w-50" />
                 </CardContent>
             </Card>
         ));
@@ -105,7 +107,7 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
         return suggestions.map((suggestion, index) => (
             <Card
                 key={index}
-                className="flex-shrink-0 min-w-fit min-h-[36px] border-0 bg-muted/50 hover:bg-muted transition-all cursor-pointer flex items-center justify-center p-0 shadow-sm hover:shadow-md"
+                className="flex-shrink-0 min-w-fit min-h-40 border-0 bg-muted/50 hover:bg-muted transition-all cursor-pointer flex items-center justify-center p-0 shadow-sm hover:shadow-md"
                 onClick={() => setPrompt(suggestion)}
             >
                 <CardContent className="flex items-center justify-center px-4 py-2">
@@ -134,15 +136,15 @@ export default function Suggestions({ platformUserId, autoLoad = true, setPrompt
                 <div
                     ref={scrollContainerRef}
                     className="flex gap-3 overflow-x-auto flex-1 py-1"
-                    style={{ 
-                        scrollbarWidth: 'none', 
+                    style={{
+                        scrollbarWidth: 'none',
                         msOverflowStyle: 'none',
                         scrollBehavior: 'smooth'
                     }}
                 >
                     {suggestions.length === 0 ? renderSkeletons() : renderSuggestions()}
                 </div>
-                
+
                 <Button
                     variant="ghost"
                     size="sm"

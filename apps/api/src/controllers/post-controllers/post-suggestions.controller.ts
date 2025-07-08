@@ -9,7 +9,7 @@ import { getZodErrorMessage } from "../../utils/zod-error-message";
 import db from "@repo/db";
 
 const bodySchema = z.object({
-    platformUserId: z.string().min(1, "Platform User ID is required"),
+    socialLoginId: z.string().min(1, "Social Login ID is required"),
     refresh: z.boolean().optional(),
 });
 
@@ -25,27 +25,27 @@ const postSuggestionsController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const user = c.get("user")!;
-        const { platformUserId, refresh } = c.req.valid("json");
+        const { socialLoginId, refresh } = c.req.valid("json");
 
         try {
-            const socialLoginId = await db.socialLogin.findFirst({
+            const socialLogin = await db.socialLogin.findFirst({
                 where: {
                     userId: user.id,
                     provider: "X",
-                    platformUserId: platformUserId,
+                    id: socialLoginId,
                 },
             });
 
-            if (!socialLoginId) {
+            if (!socialLogin?.platformUserId) {
                 throw new HTTPException(404, {
                     message: "Social login not found",
                 });
             }
 
             const suggestionResult = await generatePostSuggestions(
-                platformUserId,
-                10,
-                refresh,
+                socialLogin.platformUserId,
+                10, 
+                refresh,    
             );
 
             return streamText(c, async stream => {
@@ -60,7 +60,7 @@ const postSuggestionsController = factory.createHandlers(
                     }
                 } catch (streamError) {
                     logger.error(
-                        { error: streamError, platformUserId },
+                        { error: streamError, platformUserId: socialLogin.platformUserId },
                         "Error during suggestion streaming",
                     );
                     await stream.write(
@@ -75,7 +75,7 @@ const postSuggestionsController = factory.createHandlers(
             });
         } catch (error) {
             logger.error(
-                { error, platformUserId },
+                { error, socialLoginId },
                 "Failed to generate post suggestions",
             );
 
