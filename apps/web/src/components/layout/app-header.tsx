@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Settings, LogOut, User } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 
 import { useUser } from "@/components/providers/user-provider";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -52,7 +52,8 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-sidebar">
-      <div className="container flex h-14 items-center px-6">
+      <div className="container flex h-14 items-center px-6 relative">
+        {/* <div className="h-5 rounded-tl-2xl bg-black absolute top-12 -left-0.5 right-0 z-10 overflow-hidden" /> */}
         {/* Left side - Sidebar trigger */}
         <div className="mr-4 flex">
           <SidebarTrigger />

@@ -21,9 +21,7 @@ export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt 
         if (!socialLoginId) return;
 
         setIsLoading(true);
-        if (refresh) {
-            setSuggestions([]);
-        }
+        setSuggestions([]);
 
         try {
             const response = await client.post.suggestions.$post({
@@ -57,7 +55,11 @@ export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt 
                     buffer += parsedChunk.content;
                     const parsed = parse(buffer, Allow.ALL) as Partial<Suggestions>;
                     const newSuggestions = parsed.suggestions || [];
-                    setSuggestions(() => newSuggestions);
+                    setSuggestions(prev => {
+                        if (newSuggestions.length < prev.length) return prev;
+                        if (newSuggestions.length > prev.length) return [...prev, ...newSuggestions.slice(prev.length)];
+                        return [...prev.slice(0, -1), newSuggestions[newSuggestions.length - 1]];
+                    });
                 }
             }
         } catch (error) {

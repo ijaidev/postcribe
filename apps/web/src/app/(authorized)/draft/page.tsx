@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Send, Sparkles, ImagePlus, X, Paperclip, Loader2 } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
     Card,
 } from "@/components/ui/card";
@@ -22,9 +22,9 @@ import { API_URL } from "@/config";
 import Suggestions from "@/components/pages/suggestions";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
-import Link from "next/link";
+import { Select, SelectItem, SelectLabel, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Image from "next/image";
 
 interface UploadedImage {
     id: string;
@@ -324,7 +324,7 @@ export default function DraftPage() {
         return () => {
             images.forEach(image => URL.revokeObjectURL(image.preview));
         };
-    }, []);
+    }, [images]);
 
     if (isLoadingAccounts) {
         return (
@@ -384,9 +384,11 @@ export default function DraftPage() {
                                 <div className="flex flex-wrap gap-2 mb-4">
                                     {images.map((image) => (
                                         <div key={image.id} className="relative group">
-                                            <img
+                                            <Image
                                                 src={image.preview}
                                                 alt="Upload preview"
+                                                width={64}
+                                                height={64}
                                                 className="w-16 h-16 object-cover rounded-lg border-2 border-border shadow-sm"
                                             />
                                             <button
@@ -468,58 +470,47 @@ export default function DraftPage() {
                     </div>
 
                     {/* Platform & Settings Section */}
-                    <div className="flex items-start flex-row gap-4 p-2">
-                        <div className="flex items-center gap-1 flex-col min-h-10">
-                            <div className="flex items-center gap-2 flex-row">
-                                <Checkbox id="x/twitter"
-                                    checked={selectedPlatforms.x.selected}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedPlatforms(prev => ({
-                                            ...prev,
-                                            x: { ...prev.x, selected: checked === "indeterminate" ? false : checked }
-                                        }));
-                                    }}
-                                />
-                                <Label htmlFor="x/twitter">X (Twitter)</Label>
-                            </div>
-                            {selectedPlatforms.x.selected && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <span className="text-xs w-full underline underline-offset-4 text-muted-foreground text-right hover:cursor-pointer hover:text-primary">{connectedAccounts.find(account => account.id === selectedPlatforms.x.accountId)?.name ?? "Select Account"}</span>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-56" align="center">
-                                        <DropdownMenuLabel>Select Account</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuGroup>
-                                            {
-                                                connectedAccounts.length === 0 ? (
-                                                    <>
-                                                        <DropdownMenuItem className="hover:bg-transparent!">
-                                                            <p className="text-sm text-muted-foreground">
-                                                                No accounts found. Please connect an account to get started.
-                                                            </p>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="hover:bg-transparent!">
-                                                            <Link href="/connections" className={buttonVariants({ variant: "outline" })}> Connect Account </Link>
-                                                        </DropdownMenuItem>
-                                                    </>
-                                                ) : (
-                                                    connectedAccounts.filter(account => account.provider === "X").map(account => (
-                                                        <DropdownMenuItem key={account.id} onClick={() => setSelectedPlatforms(prev => ({
-                                                            ...prev,
-                                                            x: { ...prev.x, accountId: account.id }
-                                                        }))}>
-                                                            <XLogo size="sm" />
-                                                            {account.name}
-                                                        </DropdownMenuItem>
-                                                    )))
-                                            }
-
-                                        </DropdownMenuGroup>
-
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            )}
+                    <div className="flex items-center flex-row gap-4 p-2">
+                        <Select
+                            onValueChange={(value) => {
+                                setSelectedPlatforms(prev => ({
+                                    ...prev,
+                                    x: { ...prev.x, accountId: value }
+                                }));
+                            }}
+                            value={selectedPlatforms.x.accountId ?? ""}
+                        >
+                            <SelectTrigger className="w-[180px] items-center">
+                                <SelectValue placeholder={<span className="flex items-center gap-2"><XLogo size="sm" />Select Account</span>} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectLabel>Select X Account</SelectLabel>
+                                    {
+                                        connectedAccounts.filter(account => account.provider === "X").map((account) => (
+                                            <SelectItem key={account.id} value={account.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <XLogo size="sm" />
+                                                    {account.name}
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    }
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                        <div className="flex-1"></div>
+                        <div className="flex items-center gap-2 flex-row">
+                            <Checkbox id="x/twitter"
+                                checked={selectedPlatforms.x.selected}
+                                onCheckedChange={(checked) => {
+                                    setSelectedPlatforms(prev => ({
+                                        ...prev,
+                                        x: { ...prev.x, selected: checked === "indeterminate" ? false : checked }
+                                    }));
+                                }}
+                            />
+                            <Label htmlFor="x/twitter">X (Twitter)</Label>
                         </div>
                         <div className="flex items-center gap-2">
                             <Checkbox id="linkedin"
@@ -533,8 +524,7 @@ export default function DraftPage() {
                             />
                             <Label htmlFor="linkedin">LinkedIn</Label>
                         </div>
-                        <div className="flex-1"></div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 pl-4">
                             <Switch id="generateImage"
                                 checked={generateImage}
                                 onCheckedChange={setGenerateImage}
