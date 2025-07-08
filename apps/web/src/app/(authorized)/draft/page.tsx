@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Send, Sparkles, ImagePlus, X, Paperclip, Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
     Card,
 } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
 import { Select, SelectItem, SelectLabel, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
+import Link from "next/link";
 
 interface UploadedImage {
     id: string;
@@ -302,14 +303,6 @@ export default function DraftPage() {
         createPostMutation.mutate();
     };
 
-    // Auto-resize textarea
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-        }
-    }, [prompt]);
-
     useEffect(() => {
         if (socialAccounts && socialAccounts.data && socialAccounts.data.length > 0) {
             setSelectedPlatforms(prev => ({
@@ -374,7 +367,7 @@ export default function DraftPage() {
                                 ref={fileInputRef}
                                 type="file"
                                 multiple
-                                accept="image/*"
+                                accept="image/jpeg, image/png, image/jpg"
                                 onChange={handleFileInput}
                                 className="hidden"
                             />
@@ -418,11 +411,11 @@ export default function DraftPage() {
                                         handleCreatePost();
                                     }
                                 }}
-                                className="min-h-[120px] max-h-[300px] resize-none border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl overflow-hidden leading-relaxed p-6 pb-16 "
+                                className="min-h-30 max-h-30 resize-none! border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl leading-relaxed p-6"
                             />
 
                             {/* Bottom actions */}
-                            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
+                            <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     {/* Attach button */}
                                     <Button
@@ -462,7 +455,7 @@ export default function DraftPage() {
                                             <div className="absolute inset-0 h-12 w-12 bg-primary/20 rounded-full animate-ping"></div>
                                         </div>
                                         <p className="text-lg font-semibold text-primary">Drop your images here</p>
-                                        <p className="text-sm text-primary/70">Support JPG, PNG, GIF up to 10MB (max 5 images)</p>
+                                        <p className="text-sm text-primary/70">Support JPG, PNG up to 5MB (max 5 images)</p>
                                     </div>
                                 </div>
                             )}
@@ -485,9 +478,11 @@ export default function DraftPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    <SelectLabel>Select X Account</SelectLabel>
                                     {
-                                        connectedAccounts.filter(account => account.provider === "X").map((account) => (
+                                        (connectedAccounts.filter(account => account.provider === "X").length > 0) ? (
+                                        <>
+                                        <SelectLabel>Select X Account</SelectLabel>
+                                        {connectedAccounts.filter(account => account.provider === "X").map((account) => (
                                             <SelectItem key={account.id} value={account.id}>
                                                 <div className="flex items-center gap-2">
                                                     <XLogo size="sm" />
@@ -495,7 +490,14 @@ export default function DraftPage() {
                                                 </div>
                                             </SelectItem>
                                         ))
-                                    }
+                                        }
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center gap-2 justify-between w-full flex-col p-4">
+                                        <SelectLabel>No X accounts connected</SelectLabel>
+                                        <Link href="/connections" className={buttonVariants({ variant: "outline" })}>Connect X account</Link>
+                                        </div>
+                                    )}
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
