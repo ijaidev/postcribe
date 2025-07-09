@@ -1,13 +1,9 @@
 import { logger } from "@repo/logger";
-import {
-    imageGen,
-    type ImageGenOptions,
-    type ImageGenResponse,
-} from "./image-gen.function";
+import { imageGen, type ImageGenOptions, type ImageGenResponse } from "./image-gen.function";
 import {
     postGen,
     type PostGenOptions,
-    type PostGenResponse,
+    type PostGenStreamResponse,
 } from "./post-gen.function";
 
 export interface CronPostGenOptions {
@@ -40,7 +36,7 @@ export const cronPostGen = async (
     try {
         // First generate posts
         const postGenPromises: Promise<{
-            stream(): AsyncGenerator<PostGenResponse>;
+            stream(): AsyncGenerator<PostGenStreamResponse>;
         }>[] = [];
 
         if (platform === "X" || platform === "ALL") {

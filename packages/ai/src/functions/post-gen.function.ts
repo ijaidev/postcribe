@@ -16,8 +16,8 @@ interface PostGenOptions {
     xAccountId?: string;
 }
 
-interface PostGenResponse {
-    event: string;
+interface PostGenStreamResponse {
+    event: "start" | "search" | "extract" | "response" | "end" | "error";
     content: string;
 }
 
@@ -95,7 +95,7 @@ const postGen = async (options: PostGenOptions, platform: "X" | "LINKEDIN") => {
 
     let isResponse = false;
     return {
-        async *stream(): AsyncGenerator<PostGenResponse> {
+        async *stream(): AsyncGenerator<PostGenStreamResponse> {
             for await (const chunk of stream) {
                 const { data, event } = chunk;
                 if (event === "on_chat_model_stream") {
@@ -140,4 +140,4 @@ const postGen = async (options: PostGenOptions, platform: "X" | "LINKEDIN") => {
 };
 
 export { postGen };
-export type { PostGenOptions, PostGenResponse };
+export type { PostGenOptions, PostGenStreamResponse };

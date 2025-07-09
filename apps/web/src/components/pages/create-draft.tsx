@@ -28,6 +28,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { InferRequestType } from "hono";
+
 
 interface UploadedImage {
     id: string;
@@ -49,8 +51,14 @@ interface PlatformSelection {
     }
 }
 
-export default function DraftPage() {
-    const router = useRouter();
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const $post = client.post.draft.$post
+type DraftCreate = InferRequestType<typeof $post>['json']
+
+export default function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost: (data: DraftCreate) => void, isCreating: boolean }) {
+
+
+
     const [prompt, setPrompt] = useState("");
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -66,7 +74,6 @@ export default function DraftPage() {
             accountId: null
         }
     });
-    const [isCreating, setIsCreating] = useState(false);
     const [suggestionsTab, setSuggestionsTab] = useState<string>("x"); // Default to X tab
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -229,121 +236,26 @@ export default function DraftPage() {
         });
     };
 
-
-    // Post creation mutation
-    const createPostMutation = useMutation({
-        mutationFn: async () => {
-            if (!prompt.trim()) {
-                throw new Error("Please enter a prompt");
-            }
-
-            if (!selectedPlatforms.x.selected && !selectedPlatforms.linkedin.selected) {
-                throw new Error("Please select at least one platform");
-            }
-
-            // Check if all images are uploaded
-            const uploadedImages = images.filter(img => img.uploaded && img.imageUrl);
-            const stillUploading = images.some(img => img.uploading);
-
-            if (stillUploading) {
-                throw new Error("Please wait for all images to finish uploading");
-            }
-
-            if (images.length > 0 && uploadedImages.length !== images.length) {
-                throw new Error("Some images failed to upload. Please try again.");
-            }
-
-            const imageUrls = uploadedImages.map(img => img.imageUrl!);
-
-            // Determine platform parameter
-            const platforms = [selectedPlatforms.x.selected ? "x" : null, selectedPlatforms.linkedin.selected ? "linkedin" : null].filter(Boolean);
-            let platform: string;
-            if (platforms.length === 2) {
-                platform = "all";
-            } else if (platforms.includes("x")) {
-                platform = "x";
-            } else if (platforms.includes("linkedin")) {
-                platform = "linkedin";
-            } else {
-                throw new Error("No valid platforms selected");
-            }
-
-            // Create form data with proper structure
-            const formData = new FormData();
-            formData.append("message", prompt);
-            formData.append("platform", platform);
-            formData.append("forceWeb", forceWeb.toString());
-
-            // Add image URLs as individual form entries
-            imageUrls.forEach((imageUrl) => {
-                formData.append("images", imageUrl);
-            });
-
-            const response = await fetch(`${API_URL}/v1/post/draft`, {
-                method: 'POST',
-                body: formData,
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to create post");
-            }
-
-            return response;
-        },
-        onSuccess: async (response) => {
-            setIsCreating(true);
-
-            // Parse the streaming response
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error("No response stream available");
-            }
-
-            const decoder = new TextDecoder();
-            let draftId = "";
-
-            try {
-            while (true) {
-                const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n').filter(line => line.trim());
-
-                for (const line of lines) {
-                        try {
-                            const data = JSON.parse(line);
-                            if (data.draftId && !draftId) {
-                                draftId = data.draftId;
-                            }
-                        } catch {
-                            // Ignore JSON parse errors for streaming chunks
-                        }
-                    }
-                }
-
-                if (draftId) {
-                    toast.success("Post created successfully!");
-                    router.push(`/draft/${draftId}`);
-                } else {
-                    throw new Error("No draft ID received");
-                }
-            } catch (error) {
-                console.error("Streaming error:", error);
-                throw new Error("Failed to process response");
-            }
-        },
-        onError: (error) => {
-            setIsCreating(false);
-            toast.error(error.message || "Failed to create post");
+    const createPost = () => {
+        let platform = "ALL";
+        if (selectedPlatforms.x.selected && selectedPlatforms.linkedin.selected) {
+            platform = "ALL";
+        } else if (selectedPlatforms.x.selected) {
+            platform = "X";
+        } else if (selectedPlatforms.linkedin.selected) {
+            platform = "LINKEDIN";
         }
-    });
-
-    const handleCreatePost = () => {
-        createPostMutation.mutate();
+        else {
+            toast.error("Please select at least one platform");
+            return;
+        }
+        handleCreatePost({
+            message: prompt,
+            platform: platform as "ALL" | "X" | "LINKEDIN",
+            images: images.map(img => img.imageUrl!),
+            forceWeb: forceWeb
+        });
     };
-
     useEffect(() => {
         if (socialAccounts && socialAccounts.data && socialAccounts.data.length > 0) {
             setSelectedPlatforms(prev => ({
@@ -367,22 +279,6 @@ export default function DraftPage() {
                     <ThreeDotLoader size="lg" />
                     <span className="ml-3 text-muted-foreground">Loading accounts...</span>
                 </div>
-            </div>
-        );
-    }
-
-    if (isCreating) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Card className="w-full max-w-md p-8">
-                    <div className="text-center space-y-4">
-                        <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-                        <H2>Creating Your Post</H2>
-                        <p className="text-muted-foreground">
-                            AI is generating your content...
-                        </p>
-                    </div>
-                </Card>
             </div>
         );
     }
@@ -436,8 +332,8 @@ export default function DraftPage() {
                                             >
                                                 <X className="h-3 w-3" />
                                             </button>
-                                    </div>
-                                ))}
+                                        </div>
+                                    ))}
                                     <div className="text-xs text-muted-foreground flex items-center">
                                         {images.length}/5 images
                                         {images.some(img => img.uploading) && (
@@ -457,7 +353,7 @@ export default function DraftPage() {
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                                         e.preventDefault();
-                                        handleCreatePost();
+                                        createPost();
                                     }
                                 }}
                                 onDragEnter={handleDragEnter}
@@ -481,7 +377,7 @@ export default function DraftPage() {
                                                     disabled={images.length >= 5 || uploadImageMutation.isPending}
                                                     className="h-8 w-8 p-0 rounded-full hover:bg-accent"
                                                 >
-                                                    <Paperclip className="h-15 w-15 text-muted-foreground" size={15}/>
+                                                    <Paperclip className="h-15 w-15 text-muted-foreground" size={15} />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -512,24 +408,23 @@ export default function DraftPage() {
 
                                 {/* Send button */}
                                 <Button
-                                    onClick={handleCreatePost}
+                                    onClick={createPost}
                                     disabled={
                                         !prompt.trim() ||
                                         (!selectedPlatforms.x.selected && !selectedPlatforms.linkedin.selected) ||
-                                        createPostMutation.isPending ||
                                         images.some(img => img.uploading) ||
-                                        uploadImageMutation.isPending
+                                        isCreating
                                     }
                                     size="sm"
                                     className="h-8 w-8 p-0 rounded-full"
                                 >
-                                    {createPostMutation.isPending ? (
+                                    {isCreating ? (
                                         <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
                                         <Send className="h-3 w-3" />
                                     )}
-                                                        </Button>
-                                                    </div>
+                                </Button>
+                            </div>
 
                             {/* Enhanced Drag overlay */}
                             {isDragging && (
@@ -663,7 +558,7 @@ export default function DraftPage() {
                                     <p className="text-sm text-muted-foreground">
                                         LinkedIn suggestions are not available yet. Coming soon!
                                     </p>
-                    </Card>
+                                </Card>
                             </TabsContent>
                         </Tabs>
                     </div>

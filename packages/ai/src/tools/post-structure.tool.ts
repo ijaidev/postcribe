@@ -64,4 +64,5 @@ const responseTool = tool(
     postStructureToolSchema,
 );
 
+export type { PostStructureArgs as Post };
 export default responseTool;

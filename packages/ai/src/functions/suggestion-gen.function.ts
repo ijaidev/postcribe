@@ -5,12 +5,12 @@ import type { suggestionGraphConfig } from "../graph-states";
 import { logger } from "@repo/logger";
 import { getRedisClient } from "@repo/redis";
 
-export interface SuggestionGenStreamResponse {
+interface SuggestionGenStreamResponse {
     event: "start" | "search" | "extract" | "response" | "end" | "error";
     content: string;
 }
 
-export interface Suggestions {
+interface Suggestions {
     suggestions: string[];
 }
 
@@ -194,3 +194,5 @@ export const generatePostSuggestions = async (
         throw error;
     }
 };
+
+export type { SuggestionGenStreamResponse, Suggestions };
