@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Send, Sparkles, ImagePlus, X, Paperclip, Loader2, Globe } from "lucide-react";
 
@@ -12,13 +11,11 @@ import {
     Card,
 } from "@/components/ui/card";
 import { ThreeDotLoader } from "@/components/ui/loaders";
-import { H2 } from "@/components/ui/headings";
 import { XLogo } from "@/components/ui/x-logo";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import client from "@/lib/hono-client";
-import { API_URL } from "@/config";
 import Suggestions from "@/components/pages/suggestions";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";

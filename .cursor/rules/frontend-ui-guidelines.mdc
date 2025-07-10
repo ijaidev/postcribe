@@ -22,6 +22,9 @@ PostCribe is an AI-powered social media post creator and scheduler built with Ne
 - **Data Fetching**: React Query (TanStack Query) for server state management
 - **Form Handling**: react-hook-form with Zod validation
 - **TypeScript**: Version 5.8.2+ with strict mode
+- **Streaming**: Real-time AI response streaming with partial JSON parsing
+- **Partial JSON**: Version 0.1.7 for streaming JSON parsing
+- **Version Control**: Undo/redo functionality for content management
 
 ## Design Philosophy
 - **DRY Principle**: Don't Repeat Yourself - always check existing components first
@@ -33,6 +36,7 @@ PostCribe is an AI-powered social media post creator and scheduler built with Ne
 - **Consistency**: Maintain visual and behavioral consistency across the app
 - **Mobile-First**: Responsive design optimized for content creators on all devices
 - **Direct Usage**: Use shadcn/ui components directly without custom wrappers
+- **Real-time UX**: Streaming responses with live updates and progress indicators
 
 ## Development Workflow (MUST FOLLOW)
 
@@ -41,25 +45,50 @@ PostCribe is an AI-powered social media post creator and scheduler built with Ne
 
 1. **Check [components/ui/](mdc:apps/web/src/components/ui)** - Look for existing components first (all custom components are now in ui/)
 2. **Check [components/layout/](mdc:apps/web/src/components/layout)** - Layout-specific components like AppSidebar
-3. **Read component documentation** - Understand props and usage before implementing
-4. **Check existing patterns** - Look at `headings.tsx`, `loaders/`, `resend-verification-email.tsx`, `timezone.tsx` for examples
-5. **Install missing shadcn components** if needed: `bunx shadcn@latest add component-name`
-6. **Create new components** only if truly unique functionality is needed
+3. **Check [components/pages/](mdc:apps/web/src/components/pages)** - Page-specific components like CreateDraft, Suggestions
+4. **Read component documentation** - Understand props and usage before implementing
+5. **Check existing patterns** - Look at draft system, streaming patterns, file upload patterns
+6. **Install missing shadcn components** if needed: `bunx shadcn@latest add component-name`
+7. **Create new components** only if truly unique functionality is needed
 
 ### 2. Before Using Any Component
 ```bash
 # Read the component file to understand its props and usage
-# All components are now in ui/ directory:
+# Check all relevant directories:
+
+# UI Components (shadcn + custom)
 cat apps/web/src/components/ui/component-name.tsx
 
-# Check for existing patterns:
-cat apps/web/src/components/ui/headings.tsx        # Typography components (H1, H2, H3, Subtitle)
+# Layout Components
+cat apps/web/src/components/layout/app-sidebar.tsx # Main app sidebar implementation
+cat apps/web/src/components/layout/app-header.tsx  # Navigation header with theme toggle
+
+# Page-specific Components (NEW)
+cat apps/web/src/components/pages/create-draft.tsx # Complete draft creation (567 lines)
+cat apps/web/src/components/pages/suggestions.tsx  # AI suggestions system (180 lines)
+
+# Core patterns to understand:
+cat apps/web/src/components/ui/headings.tsx        # Typography (H1-H6, Subtitle)
 cat apps/web/src/components/ui/loaders/three-dot-loader.tsx  # Loading states
 cat apps/web/src/components/ui/resend-verification-email.tsx # Email verification UI
-cat apps/web/src/components/ui/timezone.tsx        # Timezone selection (1451 timezones)
+cat apps/web/src/components/ui/timezone.tsx        # Timezone selection (1451 entries)
 cat apps/web/src/components/ui/login-checker.tsx   # Route protection
-cat apps/web/src/components/ui/sidebar.tsx         # Sidebar system components
-cat apps/web/src/components/layout/app-sidebar.tsx # Main app sidebar implementation
+cat apps/web/src/components/ui/sidebar.tsx         # Sidebar system (727 lines)
+cat apps/web/src/components/ui/x-logo.tsx          # X/Twitter logo (65 lines, theme-aware)
+cat apps/web/src/components/ui/linkedin-logo.tsx   # LinkedIn logo (63 lines, theme-aware)
+cat apps/web/src/components/ui/theme-button.tsx    # Theme toggle (40 lines)
+
+# Advanced implementations:
+cat apps/web/src/app/(authorized)/draft/page.tsx   # Complete draft system (790 lines)
+                                                    # Streaming, version control, state management
+
+# Form components:
+cat apps/web/src/components/ui/textarea.tsx        # Text area input
+cat apps/web/src/components/ui/tabs.tsx            # Tab navigation
+cat apps/web/src/components/ui/toggle.tsx          # Toggle button
+cat apps/web/src/components/ui/checkbox.tsx        # Checkbox input
+cat apps/web/src/components/ui/switch.tsx          # Switch toggle
+cat apps/web/src/components/ui/dropdown-menu.tsx   # Dropdown menu
 ```
 
 ## API Integration & Data Fetching
@@ -91,208 +120,386 @@ function useSocialAccounts() {
     gcTime: 10 * 60 * 1000,   // 10 minutes
   })
 }
+```
 
-function useConnectXAccount() {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: async (username: string) => {
-      const response = await client.social.login.x.$post({
-        json: { username }
-      })
-      if (!response.ok) {
-        throw new Error('Failed to connect X account')
-      }
-      return response.json()
-    },
-    onSuccess: (result) => {
-      // Update query cache optimistically
-      queryClient.setQueryData(
-        ['social-accounts'],
-        (oldData: InferResponseType<typeof client.social.accounts.$get>) => {
-          if (!oldData?.data) return oldData
-          return {
-            ...oldData,
-            data: [...oldData.data, result.data!.account],
-          }
-        }
-      )
-      toast.success('X account connected successfully!')
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to connect X account')
-    }
-  })
+### Streaming Response Patterns (NEW)
+**For AI-generated content with real-time updates:**
+
+```tsx
+import { parse, Allow } from 'partial-json'
+import { type PostGenStreamResponse } from '@repo/ai'
+
+interface StreamData extends PostGenStreamResponse {
+  platform: "X" | "LINKEDIN"
+  draftId: string
 }
 
-// Usage in component
-function ConnectionsPage() {
-  const { data: socialAccounts, isLoading, error } = useSocialAccounts()
-  const connectXMutation = useConnectXAccount()
+interface DraftState {
+  posts: { post: string; version: number }[]
+  images: { url: string; version: number }[]
+  currentPostVersion: number
+  currentImageVersion: number
+}
 
-  if (isLoading) {
-    return <ThreeDotLoader size="lg" />
+// Complete streaming mutation with advanced state management
+const createPostMutation = useMutation({
+  mutationFn: async (data: DraftCreate) => {
+    const response = await client.post.draft.$post({ json: data })
+    if (!response.ok) throw new Error("Failed to create post")
+    return response
+  },
+  onMutate: () => {
+    // Reset streaming state for regeneration
+    setCurrentEvent({ x: null, linkedin: null })
+    setOptions({ x: [], linkedin: [] })
+    hasStarted.current = { x: false, linkedin: false }
+  },
+  onSuccess: async (response) => {
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error("No response stream available")
+
+    const decoder = new TextDecoder()
+    let receivedDraftId = ""
+    const buffer = { x: "", linkedin: "" }
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n').filter(line => line.trim())
+
+        for (const line of lines) {
+          try {
+            const data: StreamData = JSON.parse(line)
+            console.log(`🌊 STREAM - Raw data:`, data)
+
+            // Handle draft ID for URL management
+            if (data.draftId && !receivedDraftId) {
+              receivedDraftId = data.draftId
+              if (!draftId) {
+                const newUrl = `/draft?draftId=${data.draftId}`
+                window.history.replaceState(null, '', newUrl)
+                setDraftId(data.draftId)
+              }
+            }
+
+            const platformKey = data.platform.toLowerCase() as 'x' | 'linkedin'
+            
+            // Update current event for UI indicators
+            setCurrentEvent(prev => ({
+              ...prev,
+              [platformKey]: data.event
+            }))
+
+            // Handle different event types
+            if (data.event === "search") {
+              // Show search indicator
+              console.log(`🔍 SEARCH - ${data.platform}: ${data.content}`)
+            } else if (data.event === "extract") {
+              // Show extraction indicator
+              console.log(`📝 EXTRACT - ${data.platform}: ${data.content}`)
+            } else if (data.event === "response") {
+              // Accumulate response content
+              buffer[platformKey] += data.content
+              
+              // Parse partial JSON for real-time updates
+              const parsed = parse(buffer[platformKey], Allow.ALL) as any
+              const newContent = parsed?.post || ""
+              const newOptions = parsed?.options || []
+              
+              // Determine if this is a new post or update
+              const isFirstTime = !hasStarted.current[platformKey]
+              if (isFirstTime) {
+                hasStarted.current[platformKey] = true
+              }
+              
+              // Update draft state with streaming content
+              setDraftState(prev => ({
+                ...prev,
+                [platformKey]: {
+                  ...prev[platformKey],
+                  posts: isFirstTime 
+                    ? [...prev[platformKey].posts, { 
+                        post: newContent, 
+                        version: prev[platformKey].posts.length 
+                      }]
+                    : prev[platformKey].posts.map((p, i) => 
+                        i === prev[platformKey].posts.length - 1 
+                          ? { ...p, post: newContent } 
+                          : p
+                      ),
+                  currentPostVersion: isFirstTime 
+                    ? prev[platformKey].posts.length 
+                    : prev[platformKey].currentPostVersion
+                }
+              }))
+              
+              // Update options if available
+              if (newOptions.length > 0) {
+                setOptions(prev => ({
+                  ...prev,
+                  [platformKey]: newOptions
+                }))
+              }
+            }
+          } catch (err) {
+            // Ignore JSON parse errors for partial streaming chunks
+            console.log('JSON parse error (expected during streaming):', err)
+          }
+        }
+      }
+    } finally {
+      // Clear streaming indicators
+      setCurrentEvent({ x: null, linkedin: null })
+      toast.success("Post generated successfully!")
+    }
+  }
+})
+
+// Real-time UI indicators during streaming
+function StreamingIndicator({ platform, event }: { platform: string, event: string | null }) {
+  if (!event) return null
+
+  const icons = {
+    search: <Search className="h-4 w-4 animate-spin" />,
+    extract: <FileText className="h-4 w-4 animate-pulse" />,
+    response: <Edit className="h-4 w-4 animate-bounce" />
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>Failed to load accounts</AlertDescription>
-      </Alert>
-    )
+  const labels = {
+    search: "Searching web...",
+    extract: "Extracting content...", 
+    response: "Generating post..."
   }
 
   return (
-    <div className="space-y-4">
-      <Button 
-        onClick={() => connectXMutation.mutate('username')}
-        disabled={connectXMutation.isPending}
-      >
-        {connectXMutation.isPending ? <ThreeDotLoader size="sm" /> : 'Connect X'}
-      </Button>
-      
-      {socialAccounts?.data?.map(account => (
-        <Card key={account.id}>
-          <CardContent>
-            <H3>{account.name}</H3>
-            <Badge variant={account.isConnected ? "default" : "destructive"}>
-              {account.isConnected ? "Connected" : "Disconnected"}
-            </Badge>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      {icons[event as keyof typeof icons]}
+      <span>{labels[event as keyof typeof labels]}</span>
+      <Badge variant="outline" className="text-xs">
+        {platform}
+      </Badge>
     </div>
   )
 }
-
-// ❌ WRONG: Direct fetch calls without type safety or caching
-async function fetchAccounts() {
-  const response = await fetch('/api/accounts') // No type safety
-  return response.json() // No caching, no error handling
-}
 ```
 
-### React Query Patterns
-```tsx
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
-import client from '@/lib/hono-client'
-
-// Standard query pattern
-function useResource(id: string) {
-  return useQuery({
-    queryKey: ['resource', id],
-    queryFn: async () => {
-      const response = await client.v1.resource[':id'].$get({ param: { id } })
-      if (!response.ok) throw new Error('Failed to fetch')
-      return response.json()
-    },
-    enabled: !!id, // Only run if id exists
-  })
-}
-
-// Mutation with optimistic updates
-function useUpdateResource() {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await client.v1.resource[':id'].$put({ 
-        param: { id }, 
-        json: data 
-      })
-      if (!response.ok) throw new Error('Update failed')
-      return response.json()
-    },
-    onMutate: async ({ id, data }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['resource', id] })
-      
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData(['resource', id])
-      
-      // Optimistically update
-      queryClient.setQueryData(['resource', id], data)
-      
-      return { previousData }
-    },
-    onError: (err, { id }, context) => {
-      // Rollback on error
-      if (context?.previousData) {
-        queryClient.setQueryData(['resource', id], context.previousData)
-      }
-    },
-    onSettled: (data, error, { id }) => {
-      // Always refetch after mutation
-      queryClient.invalidateQueries({ queryKey: ['resource', id] })
-    }
-  })
-}
-
-// Infinite queries for pagination
-function useInfinitePosts() {
-  return useInfiniteQuery({
-    queryKey: ['posts', 'infinite'],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await client.v1.posts.$get({ 
-        query: { 
-          page: pageParam.toString(),
-          limit: '10'
-        }
-      })
-      if (!response.ok) throw new Error('Failed to fetch')
-      return response.json()
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.hasMore ? allPages.length : undefined
-    }
-  })
-}
-```
-
-### Authentication with Better-Auth
-**Use the centralized auth system with proper error handling:**
+### File Upload Patterns (NEW)
+**For drag-and-drop file uploads with progress tracking:**
 
 ```tsx
-import { authClient } from '@/lib/auth-client'
-import { useUser } from '@/components/providers/user-provider'
+interface UploadedImage {
+  id: string
+  file: File
+  preview: string
+  uploaded: boolean
+  uploading: boolean
+  imageUrl?: string
+}
 
-// ✅ CORRECT: Use UserProvider for auth state
-function useAuthActions() {
-  const { refreshUser } = useUser()
-  const queryClient = useQueryClient()
+// Complete file upload system with validation and progress
+const uploadImageMutation = useMutation({
+  mutationFn: async (image: UploadedImage) => {
+    const response = await client.post.draft.image.upload.$post({
+      form: { image: image.file }
+    })
+    const result = await response.json()
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to upload image')
+    }
+    if (!result.data?.imageUrl) {
+      throw new Error(result.message || 'No image URL returned')
+    }
+    return result.data.imageUrl
+  },
+  onSuccess: (imageUrl, image) => {
+    // Update image with uploaded URL
+    setImages(prev => prev.map(img =>
+      img.id === image.id
+        ? { ...img, uploaded: true, uploading: false, imageUrl }
+        : img
+    ))
+    toast.success(`${image.file.name} uploaded successfully`)
+  },
+  onError: (error, image) => {
+    console.error('Upload error:', error)
+    toast.error(error instanceof Error ? error.message : 'Failed to upload image')
+    // Remove failed image
+    setImages(prev => prev.filter(img => img.id !== image.id))
+  }
+})
+
+// File handling with comprehensive validation
+const handleFiles = async (files: FileList | File[]) => {
+  const newFiles = Array.from(files)
+
+  // Check if adding these files would exceed the limit
+  if (images.length + newFiles.length > 5) {
+    toast.error(`You can only upload up to 5 images. Currently have ${images.length} images.`)
+    return
+  }
+
+  const validFiles = newFiles.filter(file => {
+    const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/webp'
+    const isValidSize = file.size <= 5 * 1024 * 1024 // 5MB limit
+
+    if (!isImage) {
+      toast.error(`${file.name} is not an image file`)
+      return false
+    }
+    if (!isValidSize) {
+      toast.error(`${file.name} is too large (max 5MB)`)
+      return false
+    }
+    return true
+  })
+
+  if (validFiles.length > 0) {
+    const newImages = validFiles.map(createImagePreview)
+    
+    // Add images with uploading state
+    setImages(prev => [...prev, ...newImages.map(img => ({ ...img, uploading: true }))])
+    
+    // Upload each image using mutation
+    newImages.forEach((image) => {
+      uploadImageMutation.mutate(image)
+    })
+    
+    toast.success(`Starting upload of ${validFiles.length} image(s)`)
+  }
+}
+
+// Complete drag and drop handlers
+const handleDragEnter = (e: React.DragEvent) => {
+  e.preventDefault()
+  e.stopPropagation()
+  setIsDragging(true)
+}
+
+const handleDragLeave = (e: React.DragEvent) => {
+  e.preventDefault()
+  e.stopPropagation()
+  setIsDragging(false)
+}
+
+const handleDragOver = (e: React.DragEvent) => {
+  e.preventDefault()
+  e.stopPropagation()
+}
+
+const handleDrop = (e: React.DragEvent) => {
+  e.preventDefault()
+  e.stopPropagation()
+  setIsDragging(false)
   
-  const signIn = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const { data, error } = await authClient.signIn.email({ email, password })
-      if (error) throw new Error(error.message)
-      return data
-    },
-    onSuccess: async () => {
-      await refreshUser() // Refresh user context
-      queryClient.clear() // Clear all queries on login
-      toast.success('Signed in successfully!')
-    }
-  })
-
-  const signOut = useMutation({
-    mutationFn: async () => {
-      await authClient.signOut()
-    },
-    onSuccess: async () => {
-      await refreshUser() // Clear user context
-      queryClient.clear() // Clear all queries on logout
-      toast.success('Signed out successfully!')
-    }
-  })
-
-  return { signIn, signOut }
+  if (e.dataTransfer.files) {
+    handleFiles(e.dataTransfer.files)
+  }
 }
 
-// ❌ WRONG: Direct authClient usage without context integration
-const handleSignIn = async () => {
-  await authClient.signIn.email({ email, password }) // Missing error handling and context refresh
+// Paste functionality for images from clipboard
+const handlePaste = (e: React.ClipboardEvent) => {
+  const items = Array.from(e.clipboardData.items)
+  const imageFiles = items
+    .filter(item => item.type.startsWith('image/'))
+    .map(item => item.getAsFile())
+    .filter((file): file is File => file !== null)
+
+  if (imageFiles.length > 0) {
+    handleFiles(imageFiles)
+  }
 }
+
+// Image preview creation
+const createImagePreview = (file: File): UploadedImage => {
+  return {
+    id: Math.random().toString(36).substring(7),
+    file,
+    preview: URL.createObjectURL(file),
+    uploaded: false,
+    uploading: false,
+  }
+}
+
+// Remove image with cleanup
+const removeImage = (id: string) => {
+  setImages(prev => {
+    const imageToRemove = prev.find(img => img.id === id)
+    if (imageToRemove) {
+      URL.revokeObjectURL(imageToRemove.preview)
+    }
+    return prev.filter(img => img.id !== id)
+  })
+}
+
+// UI component with drag states
+<Card
+  className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-6 ${
+    isDragging
+      ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
+      : "border-border hover:shadow-xl"
+  }`}
+  onDragEnter={handleDragEnter}
+  onDragLeave={handleDragLeave}  
+  onDragOver={handleDragOver}
+  onDrop={handleDrop}
+>
+  {/* Image previews with upload progress */}
+  {images.length > 0 && (
+    <div className="flex flex-wrap gap-2 mb-4">
+      {images.map((image) => (
+        <div key={image.id} className="relative group">
+          <Image
+            src={image.preview}
+            alt="Upload preview"
+            width={64}
+            height={64}
+            className={`w-16 h-16 object-cover rounded-lg border-2 shadow-sm transition-opacity ${
+              image.uploading && 'border-primary opacity-70'
+            }`}
+          />
+          
+          {/* Upload loading overlay */}
+          {image.uploading && (
+            <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+              <Loader2 className="h-4 w-4 animate-spin text-white" />
+            </div>
+          )}
+          
+          {/* Remove button */}
+          <button
+            onClick={() => removeImage(image.id)}
+            className="absolute -top-1 -right-1 p-0.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 text-xs"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      <div className="text-xs text-muted-foreground flex items-center">
+        {images.length}/5 images
+        {images.some(img => img.uploading) && (
+          <span className="ml-2 text-primary">Uploading...</span>
+        )}
+      </div>
+    </div>
+  )}
+
+  {/* Enhanced Drag overlay */}
+  {isDragging && (
+    <div className="absolute inset-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center border-2 border-dashed border-primary animate-pulse pointer-events-none">
+      <div className="text-center space-y-3">
+        <div className="relative">
+          <ImagePlus className="h-12 w-12 text-primary mx-auto animate-bounce" />
+          <div className="absolute inset-0 h-12 w-12 bg-primary/20 rounded-full animate-ping"></div>
+        </div>
+        <p className="text-lg font-semibold text-primary">Drop your images here</p>
+        <p className="text-sm text-primary/70">Support JPG, PNG up to 5MB (max 5 images)</p>
+      </div>
+    </div>
+  )}
+</Card>
 ```
 
 ## User Management & Authentication
@@ -361,30 +568,8 @@ function MyComponent() {
 }
 ```
 
-### User Data Interface
-```tsx
-interface User {
-  id: string
-  email: string
-  name?: string | null
-  timeZone?: string | null
-  emailVerified: boolean
-  image?: string | null
-}
+## Current App Architecture (Next.js 15 App Router)
 
-interface UserContextType {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  emailVerified: boolean
-  error: string | null
-  refreshUser: () => Promise<void>
-}
-```
-
-## Folder Structure & Component Organization
-
-### Current App Architecture (Next.js 15 App Router)
 ```
 apps/web/src/
 ├── app/                           # Next.js 15 App Router
@@ -392,7 +577,7 @@ apps/web/src/
 │   │   ├── dashboard/            # Main dashboard page
 │   │   ├── settings/             # User settings page (814 lines - fully implemented)
 │   │   ├── connections/          # Social media connections (458 lines - fully implemented)
-│   │   ├── draft/                # Draft creation page (empty - needs implementation)
+│   │   ├── draft/                # ✅ Draft creation & editing page (790 lines - COMPLETE IMPLEMENTATION)
 │   │   └── layout.tsx            # Auth wrapper layout with sidebar
 │   ├── signin/                   # Email/Google login page
 │   ├── signup/                   # Registration with timezone selection
@@ -404,7 +589,12 @@ apps/web/src/
 │   └── page.tsx                  # Landing page
 ├── components/
 │   ├── layout/                   # Layout-specific components
-│   │   └── app-sidebar.tsx       # ✅ Main app sidebar (313 lines - fully implemented)
+│   │   ├── app-sidebar.tsx       # ✅ Main app sidebar (313 lines - fully implemented)
+│   │   └── app-header.tsx        # ✅ Header with user actions and theme toggle
+│   ├── pages/                    # Page-specific components
+│   │   ├── create-draft.tsx      # ✅ Draft creation with file upload (567 lines - COMPLETE)
+│   │   ├── suggestions.tsx       # ✅ AI suggestions with streaming (180 lines - COMPLETE)
+│   │   └── index.ts              # Page component exports
 │   ├── ui/                       # All UI components (shadcn + custom)
 │   │   ├── loaders/              # Loading components
 │   │   │   ├── three-dot-loader.tsx  # ✅ Animated 3-dot loader (3 sizes)
@@ -414,7 +604,9 @@ apps/web/src/
 │   │   ├── resend-verification-email.tsx # ✅ Email verification UI with cooldown
 │   │   ├── timezone.tsx          # ✅ Timezone selection (1451 entries)
 │   │   ├── x-logo.tsx            # ✅ X/Twitter logo component (transparent, theme-aware)
+│   │   ├── linkedin-logo.tsx     # ✅ LinkedIn logo component (NEW - theme-aware)
 │   │   ├── sidebar.tsx           # ✅ Complete sidebar system (727 lines)
+│   │   ├── theme-button.tsx      # ✅ Theme toggle dropdown
 │   │   ├── avatar.tsx            # ✅ User avatar component
 │   │   ├── skeleton.tsx          # ✅ Loading skeleton component
 │   │   ├── tooltip.tsx           # ✅ Tooltip component
@@ -432,6 +624,12 @@ apps/web/src/
 │   │   ├── popover.tsx           # ✅ Floating content panels
 │   │   ├── select.tsx            # ✅ Dropdown selection
 │   │   ├── separator.tsx         # ✅ Visual dividers
+│   │   ├── textarea.tsx          # ✅ Multi-line text input
+│   │   ├── tabs.tsx              # ✅ Tab navigation
+│   │   ├── toggle.tsx            # ✅ Toggle switches
+│   │   ├── checkbox.tsx          # ✅ Checkbox inputs
+│   │   ├── switch.tsx            # ✅ Switch controls
+│   │   ├── dropdown-menu.tsx     # ✅ Context menus
 │   │   └── sonner.tsx            # ✅ Toast notifications
 │   └── providers/                # React context providers
 │       ├── theme-provider.tsx    # ✅ Dark/light theme with next-themes
@@ -447,88 +645,66 @@ apps/web/src/
 └── config.ts                     # ✅ Environment variables (CLIENT_URL, API_URL, BETTER_AUTH_URL)
 ```
 
-## Sidebar System & Layout
+## Draft System Architecture (NEW)
 
-### Sidebar Implementation
-**The app uses a sophisticated sidebar system with collapsible functionality:**
+### Key Features Implemented
+- **Real-time Streaming**: Live AI content generation with progress indicators
+- **Version Control**: Full undo/redo functionality for posts and images
+- **Platform-specific Content**: Separate X and LinkedIn content generation
+- **File Upload System**: Drag-and-drop with progress tracking
+- **Suggestions System**: AI-powered suggestions with click-to-apply
+- **Event Tracking**: Search, extract, and response events with UI feedback
 
+### State Management Pattern
 ```tsx
-import { AppSidebar } from '@/components/layout/app-sidebar'
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
-
-// ✅ CORRECT: Main layout pattern
-function AuthorizedLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6">{children}</div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+interface DraftState {
+  posts: PostVersion[]
+  images: ImageVersion[]
+  currentPostVersion: number
+  currentImageVersion: number
 }
 
-// ✅ CORRECT: Using sidebar state in components
-function MyComponent() {
-  const { state, toggleSidebar } = useSidebar()
-  
-  return (
-    <div>
-      <p>Sidebar is {state}</p>
-      <Button onClick={toggleSidebar}>Toggle Sidebar</Button>
-    </div>
-  )
-}
+const [draftState, setDraftState] = useState<{
+  x: DraftState
+  linkedin: DraftState
+}>({
+  x: { posts: [], images: [], currentPostVersion: 0, currentImageVersion: 0 },
+  linkedin: { posts: [], images: [], currentPostVersion: 0, currentImageVersion: 0 }
+})
+
+// Event tracking for streaming
+const [currentEvent, setCurrentEvent] = useState<{
+  x: StreamData["event"] | null
+  linkedin: StreamData["event"] | null
+}>({ x: null, linkedin: null })
 ```
 
-### Sidebar Features
-- **Collapsible**: Icon-only mode with tooltips
-- **Mobile responsive**: Sheet overlay on mobile
-- **Navigation sections**: Main nav, platforms, account settings
-- **User section**: Avatar, name, email, verification status
-- **Platform links**: Twitter/X, LinkedIn with custom icons
-- **Quick actions**: Create post button
-- **Keyboard shortcut**: Cmd/Ctrl + B to toggle
+## Component Usage Rules
 
-### Component Usage Rules
-
-#### 0. Existing Components First (HIGHEST PRIORITY)
+### 0. Existing Components First (HIGHEST PRIORITY)
 **ALWAYS check existing components before creating anything new**
 
 ```tsx
-// ✅ CORRECT: Check and use existing components with user context
+// ✅ CORRECT: Check and use existing components with proper patterns
 import { useUser } from '@/components/providers/user-provider'
 import { H1, H2, H3, Subtitle } from '@/components/ui/headings'
 import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
 import { ThreeDotLoader } from '@/components/ui/loaders'
 import TimezoneSelect from '@/components/ui/timezone'
 import { XLogo } from '@/components/ui/x-logo'
+import { LinkedinLogo } from '@/components/ui/linkedin-logo'
+import CreateDraft from '@/components/pages/create-draft'
+import Suggestions from '@/components/pages/suggestions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { useQuery } from '@tanstack/react-query'
-import client from '@/lib/hono-client'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Toggle } from '@/components/ui/toggle'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 
 function MyPage() {
   const { user, isLoading, isAuthenticated, emailVerified } = useUser()
-  const [timezone, setTimezone] = useState(user?.timeZone || "")
   
-  // Use React Query for API calls
-  const { data: posts, isLoading: postsLoading } = useQuery({
-    queryKey: ['posts'],
-    queryFn: async () => {
-      const response = await client.v1.post.$get()
-      return response.json()
-    },
-    enabled: isAuthenticated
-  })
-
-  if (isLoading || postsLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <ThreeDotLoader size="lg" />
@@ -536,113 +712,202 @@ function MyPage() {
     )
   }
 
-  if (!isAuthenticated) {
-    return <div>Please sign in</div>
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src={user?.image || undefined} />
-            <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
-          </Avatar>
-          <div>
-            <H1>Welcome, {user?.name}!</H1>
-            <Subtitle>Manage your account settings</Subtitle>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!emailVerified && (
-          <ResendVerificationEmail email={user?.email || ""} />
-        )}
-        <TimezoneSelect value={timezone} onValueChange={setTimezone} />
-        <div className="flex items-center gap-2">
-          <XLogo size="sm" />
-          <span>Connect X Account</span>
-        </div>
-        <Button>Save Changes</Button>
-      </CardContent>
-    </Card>
-  )
-}
-
-// ❌ WRONG: Creating duplicates or not using proper patterns
-function MyPage() {
-  // Don't use authClient directly - use useUser hook instead
-  const { data: session } = authClient.useSession()
-  
-  // Don't use fetch directly - use Hono client with React Query
-  const [posts, setPosts] = useState([])
-  useEffect(() => {
-    fetch('/api/posts').then(res => res.json()).then(setPosts)
-  }, [])
-  
-  return (
-    <div className="border rounded-lg p-4">  {/* Don't recreate Card */}
-      <h1 className="text-4xl font-bold">Title</h1>  {/* Don't recreate H1 */}
-      <div className="flex gap-2">  {/* Don't recreate ResendVerificationEmail */}
-        <button>Resend Email</button>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <XLogo size="md" />
+        <LinkedinLogo size="md" />
+        <H1>Social Media Manager</H1>
       </div>
+      
+      <Tabs defaultValue="create">
+        <TabsList>
+          <TabsTrigger value="create">Create</TabsTrigger>
+          <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="create">
+          <CreateDraft 
+            handleCreatePost={handleCreatePost} 
+            isCreating={isCreating} 
+          />
+        </TabsContent>
+        
+        <TabsContent value="suggestions">
+          <Suggestions 
+            socialLoginId={selectedAccount} 
+            setPrompt={setPrompt} 
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
 ```
 
-### Available shadcn/ui Components (Install as needed)
-```bash
-# Core components (already installed)
-bunx --bun shadcn@latest add alert
-bunx --bun shadcn@latest add alert-dialog  
-bunx --bun shadcn@latest add avatar
-bunx --bun shadcn@latest add badge
-bunx --bun shadcn@latest add button
-bunx --bun shadcn@latest add card
-bunx --bun shadcn@latest add command
-bunx --bun shadcn@latest add dialog
-bunx --bun shadcn@latest add form
-bunx --bun shadcn@latest add input
-bunx --bun shadcn@latest add label
-bunx --bun shadcn@latest add popover
-bunx --bun shadcn@latest add select
-bunx --bun shadcn@latest add separator
-bunx --bun shadcn@latest add sheet
-bunx --bun shadcn@latest add sidebar
-bunx --bun shadcn@latest add skeleton
-bunx --bun shadcn@latest add sonner
-bunx --bun shadcn@latest add tooltip
+### Logo Components Usage
+```tsx
+import { XLogo } from '@/components/ui/x-logo'
+import { LinkedinLogo } from '@/components/ui/linkedin-logo'
 
-# Additional components (install when needed)
-bunx --bun shadcn@latest add accordion
-bunx --bun shadcn@latest add breadcrumb
-bunx --bun shadcn@latest add calendar
-bunx --bun shadcn@latest add carousel
-bunx --bun shadcn@latest add checkbox
-bunx --bun shadcn@latest add collapsible
-bunx --bun shadcn@latest add combobox
-bunx --bun shadcn@latest add context-menu
-bunx --bun shadcn@latest add data-table
-bunx --bun shadcn@latest add date-picker
-bunx --bun shadcn@latest add drawer
-bunx --bun shadcn@latest add dropdown-menu
-bunx --bun shadcn@latest add hover-card
-bunx --bun shadcn@latest add input-otp
-bunx --bun shadcn@latest add menubar
-bunx --bun shadcn@latest add navigation-menu
-bunx --bun shadcn@latest add pagination
-bunx --bun shadcn@latest add progress
-bunx --bun shadcn@latest add radio-group
-bunx --bun shadcn@latest add resizable
-bunx --bun shadcn@latest add scroll-area
-bunx --bun shadcn@latest add slider
-bunx --bun shadcn@latest add switch
-bunx --bun shadcn@latest add table
-bunx --bun shadcn@latest add tabs
-bunx --bun shadcn@latest add textarea
-bunx --bun shadcn@latest add toggle
-bunx --bun shadcn@latest add toggle-group
+// Basic usage
+<XLogo size="md" />
+<LinkedinLogo size="md" />
+
+// Available sizes for both: xs, sm, md, lg, xl, 2xl, 3xl
+<XLogo size="lg" className="text-blue-500" />
+<LinkedinLogo size="xl" />
+
+// Both are automatically theme-aware (black on light, white on dark)
+```
+
+### Suggestions Component Usage (NEW)
+```tsx
+import Suggestions from '@/components/pages/suggestions'
+
+// Basic usage with streaming AI suggestions
+<Suggestions 
+  socialLoginId={selectedAccount} 
+  autoLoad={true}
+  setPrompt={setPrompt} 
+/>
+
+// Features:
+// - Real-time streaming suggestions via partial JSON parsing
+// - Horizontal scrolling with navigation buttons
+// - Refresh functionality 
+// - Click-to-apply suggestions
+// - Skeleton loading states
+// - Auto-load on mount
+
+// Implementation includes:
+// - ReadableStream processing with TextDecoder
+// - JsonOutputParser for parsing streaming chunks
+// - Dynamic array updates during streaming
+// - Smooth scroll behavior with custom styling
+```
+
+### File Upload Pattern (NEW)
+```tsx
+// Complete drag-and-drop file upload implementation
+const [images, setImages] = useState<UploadedImage[]>([])
+const [isDragging, setIsDragging] = useState(false)
+
+const handleDrop = (e: React.DragEvent) => {
+  e.preventDefault()
+  setIsDragging(false)
+  if (e.dataTransfer.files) {
+    handleFiles(e.dataTransfer.files)
+  }
+}
+
+const handlePaste = (e: React.ClipboardEvent) => {
+  const imageFiles = Array.from(e.clipboardData.items)
+    .filter(item => item.type.startsWith('image/'))
+    .map(item => item.getAsFile())
+    .filter((file): file is File => file !== null)
+
+  if (imageFiles.length > 0) {
+    handleFiles(imageFiles)
+  }
+}
+
+// Enhanced card with drag states
+<Card
+  className={`${isDragging 
+    ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
+    : "border-border hover:shadow-xl"}`}
+  onDragEnter={handleDragEnter}
+  onDragOver={handleDragOver}
+  onDrop={handleDrop}
+>
+  <textarea onPaste={handlePaste} />
+  
+  {isDragging && (
+    <div className="absolute inset-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center border-2 border-dashed border-primary animate-pulse">
+      <div className="text-center space-y-3">
+        <ImagePlus className="h-12 w-12 text-primary mx-auto animate-bounce" />
+        <p className="text-lg font-semibold text-primary">Drop your images here</p>
+      </div>
+    </div>
+  )}
+</Card>
+```
+
+### Streaming UI Patterns (NEW)
+```tsx
+// Real-time streaming indicators
+{currentEvent.x && (
+  <div className="mt-4 p-3 bg-muted/50 rounded">
+    <div className="flex gap-2 mb-2">
+      {currentEvent.x === "search" && (
+        <Badge variant="secondary" className="text-xs">
+          <Globe className="h-3 w-3 mr-1" />
+          Web Search
+        </Badge>
+      )}
+      {currentEvent.x === "response" && (
+        <Badge variant="secondary" className="text-xs">
+          <Sparkles className="h-3 w-3 mr-1" />
+          Generating...
+        </Badge>
+      )}
+    </div>
+  </div>
+)}
+
+// Loading skeletons during streaming
+{isLoading && !content ? (
+  <div className="space-y-2">
+    <Skeleton className="h-4 w-full" />
+    <Skeleton className="h-4 w-3/4" />
+    <Skeleton className="h-4 w-1/2" />
+  </div>
+) : (
+  <div className="whitespace-pre-wrap text-sm">{content}</div>
+)}
+```
+
+### Version Control Pattern (NEW)
+```tsx
+// Undo/Redo functionality
+const canUndo = (type: 'post' | 'image') => {
+  const state = draftState[activeTab]
+  return type === 'post' 
+    ? state.currentPostVersion > 0
+    : state.currentImageVersion > 0
+}
+
+const handleUndo = (type: 'post' | 'image') => {
+  setDraftState(prev => ({
+    ...prev,
+    [activeTab]: {
+      ...prev[activeTab],
+      [`current${type === 'post' ? 'Post' : 'Image'}Version`]: 
+        prev[activeTab][`current${type === 'post' ? 'Post' : 'Image'}Version`] - 1
+    }
+  }))
+}
+
+// Undo/Redo buttons
+<div className="flex items-center gap-2">
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => handleUndo('post')}
+    disabled={!canUndo('post')}
+  >
+    <Undo2 className="h-4 w-4" />
+  </Button>
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => handleRedo('post')}
+    disabled={!canRedo('post')}
+  >
+    <RotateCcw className="h-4 w-4" />
+  </Button>
+</div>
 ```
 
 ## Form Handling with react-hook-form + Zod
@@ -668,10 +933,7 @@ type FormData = z.infer<typeof formSchema>
 function PostForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: '',
-      content: '',
-    },
+    defaultValues: { title: '', content: '' },
   })
 
   const createPost = useMutation({
@@ -683,19 +945,12 @@ function PostForm() {
     onSuccess: () => {
       toast.success('Post created successfully!')
       form.reset()
-    },
-    onError: (error) => {
-      toast.error(error.message)
     }
   })
 
-  const onSubmit = (data: FormData) => {
-    createPost.mutate(data)
-  }
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(data => createPost.mutate(data))}>
         <FormField
           control={form.control}
           name="title"
@@ -704,24 +959,6 @@ function PostForm() {
               <FormLabel>Title</FormLabel>
               <FormControl>
                 <Input placeholder="Enter post title" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Content</FormLabel>
-              <FormControl>
-                <textarea 
-                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Enter post content"
-                  {...field} 
-                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -737,197 +974,6 @@ function PostForm() {
 }
 ```
 
-## Authentication Patterns
-
-### Better-Auth Integration (Use Through UserProvider)
-```tsx
-import { useUser } from '@/components/providers/user-provider'
-import { LoginChecker } from '@/components/ui/login-checker'
-import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
-import TimezoneSelect from '@/components/ui/timezone'
-import { authClient } from '@/lib/auth-client'
-import { useMutation } from '@tanstack/react-query'
-
-// Route protection (already implemented in (authorized) layout)
-<LoginChecker>
-  {children}
-</LoginChecker>
-
-// Get current user data - ALWAYS USE THIS
-const { user, isLoading, isAuthenticated, emailVerified, error, refreshUser } = useUser()
-
-// Sign up with email/password (in signup pages)
-const signUpMutation = useMutation({
-  mutationFn: async (values: { email: string; password: string; name: string }) => {
-    const { data, error } = await authClient.signUp.email({
-      email: values.email,
-      password: values.password,
-      name: values.name,
-      timeZone: "", // Set in step 2
-    })
-    if (error) throw new Error(error.message)
-    return data
-  },
-  onSuccess: async () => {
-    await refreshUser() // Refresh user context after successful signup
-    toast.success('Account created successfully!')
-  }
-})
-
-// Sign in with email/password (in signin pages)
-const signInMutation = useMutation({
-  mutationFn: async (values: { email: string; password: string }) => {
-    const { data, error } = await authClient.signIn.email({
-      email: values.email,
-      password: values.password,
-    })
-    if (error) throw new Error(error.message)
-    return data
-  },
-  onSuccess: async () => {
-    await refreshUser() // Refresh user context after successful signin
-    toast.success('Signed in successfully!')
-  }
-})
-
-// Google OAuth (in auth pages)
-const handleGoogleAuth = async () => {
-  const { data, error } = await authClient.signIn.social({
-    provider: "google",
-    callbackURL: "/dashboard"
-  })
-}
-
-// Update user profile - ALWAYS refresh context after
-const updateProfileMutation = useMutation({
-  mutationFn: async (data: { name: string; timeZone: string }) => {
-    const { error } = await authClient.updateUser({
-      name: data.name,
-      timeZone: data.timeZone,
-    })
-    if (error) throw new Error(error.message)
-  },
-  onSuccess: async () => {
-    await refreshUser() // Refresh user context after successful update
-    toast.success('Profile updated successfully!')
-  }
-})
-```
-
-### Custom Components Usage
-
-#### Email Verification Component
-```tsx
-import { ResendVerificationEmail } from '@/components/ui/resend-verification-email'
-
-// Basic usage
-<ResendVerificationEmail email="user@example.com" />
-
-// With custom styling and callbacks
-<ResendVerificationEmail
-  email="user@example.com"
-  callbackURL="/dashboard"
-  variant="default"
-  size="default"
-  helperText="Need a new verification email?"
-  onSuccess={() => {
-    toast.success('Verification email sent!')
-    refreshUser() // Optionally refresh user data
-  }}
-  onError={(err) => {
-    console.error('Failed:', err)
-    toast.error('Failed to send verification email')
-  }}
-/>
-```
-
-#### Timezone Selection Component
-```tsx
-import TimezoneSelect from '@/components/ui/timezone'
-import { useUser } from '@/components/providers/user-provider'
-
-function TimezoneForm() {
-  const { user } = useUser()
-  const [timezone, setTimezone] = useState(user?.timeZone || "")
-
-  return (
-    <TimezoneSelect
-      value={timezone}
-      onValueChange={setTimezone}
-      className="w-full"
-    />
-  )
-}
-```
-
-#### X Logo Component
-```tsx
-import { XLogo } from '@/components/ui/x-logo'
-
-// Basic usage
-<XLogo size="md" />
-
-// With custom styling (automatically theme-aware)
-<XLogo size="lg" className="text-blue-500" />
-
-// Available sizes: sm, md, lg, xl
-// Automatically shows black on light mode, white on dark mode
-```
-
-#### Loading States
-```tsx
-import { ThreeDotLoader } from '@/components/ui/loaders'
-
-// In buttons
-<Button disabled={isLoading}>
-  {isLoading ? <ThreeDotLoader size="sm" /> : 'Submit'}
-</Button>
-
-// In mutations
-const mutation = useMutation({
-  mutationFn: async () => { /* ... */ },
-  // ...
-})
-
-<Button disabled={mutation.isPending}>
-  {mutation.isPending ? <ThreeDotLoader size="sm" /> : 'Save'}
-</Button>
-
-// Standalone loading with user context
-const { isLoading } = useUser()
-
-if (isLoading) {
-  return (
-    <div className="flex items-center justify-center py-8">
-      <ThreeDotLoader size="lg" />
-      <span className="ml-2 text-sm text-muted-foreground">Loading user data...</span>
-    </div>
-  )
-}
-```
-
-#### Typography Components
-```tsx
-import { H1, H2, H3, H4, H5, H6, Subtitle } from '@/components/ui/headings'
-import { useUser } from '@/components/providers/user-provider'
-
-function WelcomePage() {
-  const { user, isAuthenticated } = useUser()
-
-  return (
-    <div className="space-y-4">
-      <H1>Welcome{isAuthenticated && user?.name ? `, ${user.name}` : ''}!</H1>
-      <Subtitle>Start creating amazing social media content</Subtitle>
-      <H2>Getting Started</H2>
-      <H3>Step 1: Set up your profile</H3>
-      <H4>Configure your timezone</H4>
-      <H5>Connect social accounts</H5>
-      <H6>Create your first post</H6>
-    </div>
-  )
-}
-```
-
 ## Styling Guidelines
 
 ### Animation Principles
@@ -937,6 +983,7 @@ function WelcomePage() {
 - **Hover States**: Gentle scale/shadow changes (`hover:scale-[1.02]`, `hover:shadow-lg`)
 - **Focus States**: Clear focus indicators for accessibility
 - **Loading States**: Use custom `ThreeDotLoader` for consistent loading indicators
+- **Streaming States**: Real-time progress indicators during AI generation
 
 ### Common Styling Patterns
 - **Modern Cards**: `bg-card/50 backdrop-blur-sm border-0 shadow-sm`
@@ -944,6 +991,8 @@ function WelcomePage() {
 - **Focus States**: `focus-visible:ring-2 focus-visible:ring-primary`
 - **Transitions**: `transition-all duration-200 ease-out`
 - **Loading States**: `ThreeDotLoader` with three sizes (sm, md, lg)
+- **Drag States**: `border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20`
+- **Streaming States**: `bg-muted/50 rounded` with animated badges
 
 ## Quality Standards
 
@@ -957,6 +1006,19 @@ function WelcomePage() {
 - **Follow TypeScript best practices** with strict type checking
 - **Implement proper error handling** with toast notifications
 - **Use InferResponseType** for proper API response typing
+- **Implement streaming patterns** for real-time AI content
+- **Use version control patterns** for undo/redo functionality
+
+### Advanced Patterns (NEW)
+- **Streaming Response Handling**: Use TextDecoder and partial JSON parsing with ReadableStream
+- **File Upload Management**: Implement drag-and-drop with progress tracking and image validation
+- **Version Control State**: Track changes with undo/redo capabilities for posts and images
+- **Real-time UI Updates**: Update UI during streaming operations with event indicators
+- **Platform-specific Logic**: Handle X and LinkedIn content separately with buffered streaming
+- **Event-driven UI**: Respond to streaming events (search, extract, response) with visual feedback
+- **Suggestions Streaming**: Real-time AI suggestions with horizontal scroll and refresh
+- **Buffer Management**: Platform-specific content buffers for simultaneous streaming
+- **URL State Management**: Dynamic URL updates with draft IDs from streaming responses
 
 ### UX Standards
 - **Loading states** for all async operations using ThreeDotLoader
@@ -967,85 +1029,9 @@ function WelcomePage() {
 - **User context awareness** - always consider user state and authentication
 - **Toast notifications** for all user actions using Sonner
 - **Sidebar navigation** for easy app navigation
-
-### Performance
-- **Leverage React Query caching** for optimal data fetching
-- **Use proper loading states** with ThreeDotLoader
-- **Implement optimistic updates** where appropriate
-- **Use proper query invalidation** patterns
-- **Optimize images and assets**
-- **Use UserProvider efficiently** - avoid unnecessary refreshUser calls
-- **Sidebar state management** with cookies for persistence
-
-### Accessibility
-- **Maintain shadcn's built-in accessibility features**
-- **Use proper ARIA labels and roles**
-- **Ensure keyboard navigation works**
-- **Test with screen readers**
-- **Proper focus management** in modals and forms
-- **Sidebar keyboard shortcuts** (Cmd/Ctrl + B)
-
-## Route Protection & Navigation
-
-### Protected Route Pattern
-```tsx
-// Already implemented in (authorized) layout - use this pattern for new protected routes
-import { LoginChecker } from '@/components/ui/login-checker'
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/layout/app-sidebar'
-
-export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6">{children}</div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
-  )
-}
-
-// LoginChecker automatically handles:
-// - Loading states with ThreeDotLoader
-// - Redirecting unauthenticated users to /signin
-// - Email verification checks
-// - Error handling with Alert components
-```
-
-### User-Aware Navigation
-```tsx
-import { useUser } from '@/components/providers/user-provider'
-
-function Navigation() {
-  const { user, isAuthenticated, isLoading } = useUser()
-
-  if (isLoading) {
-    return <ThreeDotLoader size="sm" />
-  }
-
-  return (
-    <nav className="flex items-center gap-4">
-      {isAuthenticated ? (
-        <>
-          <span>Welcome, {user?.name || 'User'}!</span>
-          <Button onClick={handleSignOut}>Sign Out</Button>
-        </>
-      ) : (
-        <>
-          <Button asChild variant="ghost">
-            <Link href="/signin">Sign In</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/signup">Sign Up</Link>
-          </Button>
-        </>
-      )}
-    </nav>
-  )
-}
-```
+- **Real-time feedback** during streaming operations
+- **Version control indicators** showing current state
+- **File upload progress** with visual feedback
 
 ## Environment Configuration
 
@@ -1062,6 +1048,13 @@ function Navigation() {
 - **React Query**: 5.80.7 for server state
 - **Hono**: 4.7.11 for type-safe API calls
 - **Luxon**: 3.6.1 for timezone handling
+- **Sonner**: 2.0.5 for toast notifications
+- **react-hook-form**: 7.57.0 with Zod validation
+- **partial-json**: 0.1.7 for streaming JSON parsing (NEW)
+- **@langchain/core**: For JsonOutputParser in streaming operations (NEW)
+
+This comprehensive approach ensures we leverage all available components while maintaining design consistency, following DRY principles, properly integrating user context, using React Query for optimal data fetching and caching, implementing advanced streaming patterns, and providing exceptional real-time user experiences throughout the PostCribe application.
+
 - **Sonner**: 2.0.5 for toast notifications
 - **react-hook-form**: 7.57.0 with Zod validation
 

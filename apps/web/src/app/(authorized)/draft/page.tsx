@@ -5,10 +5,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import CreateDraft from "@/components/pages/create-draft";
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { XLogo } from "@/components/ui/x-logo";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type PostGenStreamResponse, type Post, Suggestions } from "@repo/ai";
+import { type PostGenStreamResponse, type Post } from "@repo/ai";
 import { Allow, parse } from "partial-json";
 
 interface StreamData extends PostGenStreamResponse {
@@ -82,17 +81,16 @@ const Page = () => {
         linkedin: null
     });
 
-    const router = useRouter();
-    const params = useParams();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
-        if (params.id && params.id.length > 0) {
-            setDraftId(params.id[0]);
+        const draftIdFromUrl = searchParams.get('draftId');
+        if (draftIdFromUrl) {
+            setDraftId(draftIdFromUrl);
         }
-    }, [params.id]);
+    }, [searchParams]);
 
     const $post = client.post.draft.$post;
-    const $imageGen = client.post.draft.image.generate.$post;
     type DraftCreate = InferRequestType<typeof $post>['json'];
 
     // Load existing draft data when draftId is available
@@ -137,11 +135,6 @@ const Page = () => {
             });
         }
     }, [draftData]);
-
-
-     
-
-
 
     // Post creation/regeneration mutation
     const createPostMutation = useMutation({
@@ -197,10 +190,11 @@ const Page = () => {
                                 receivedDraftId = data.draftId;
                                 console.log(`🆔 STREAM - Draft ID received:`, data.draftId);
                                 if (!draftId) {
-                                    // First time creation - update URL
-                                    router.replace(`/draft/${data.draftId}/`);
+                                    // First time creation - update URL with query param
+                                    const newUrl = `/draft?draftId=${data.draftId}`;
+                                    window.history.replaceState(null, '', newUrl);
                                     setDraftId(data.draftId);
-                                    console.log(`🔄 STREAM - URL updated to /draft/${data.draftId}/`);
+                                    console.log(`🔄 STREAM - URL updated to ${newUrl}`);
                                 }
                             }
 
@@ -535,7 +529,7 @@ const Page = () => {
                                 </div>
                             </div>
 
-                            {currentEvent.x === "response" || createPostMutation.isPending && !draftState.x.posts.length ? (
+                            {createPostMutation.isPending && !draftState.x.posts.length ? (
                                 <div className="space-y-2">
                                     <Skeleton className="h-4 w-full" />
                                     <Skeleton className="h-4 w-3/4" />
@@ -766,7 +760,7 @@ const Page = () => {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Confirm Action</AlertDialogTitle>
                             <AlertDialogDescription>
-                                You have undone some content. If you proceed, you won't be able to recover the next posts or images. Are you sure you want to continue?
+                                You have undone some content. If you proceed, you won&apos;t be able to recover the next posts or images. Are you sure you want to continue?
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
