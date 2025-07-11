@@ -133,6 +133,8 @@
         "@eslint/eslintrc": "^3",
         "@repo/ai": "workspace:*",
         "@repo/typescript-config": "workspace:*",
+        "@stagewise-plugins/react": "^0.5.1",
+        "@stagewise/toolbar-next": "^0.5.1",
         "@tailwindcss/postcss": "^4",
         "@types/luxon": "^3.6.2",
         "@types/node": "^20",
@@ -857,6 +859,14 @@
     "@smithy/util-utf8": ["@smithy/util-utf8@4.0.0", "", { "dependencies": { "@smithy/util-buffer-from": "^4.0.0", "tslib": "^2.6.2" } }, "sha512-b+zebfKCfRdgNJDknHCob3O7FpeYQN6ZG6YLExMcasDHsCXlsXCEuiPZeLnJLpwa5dvPetGlnGCiMHuLwGvFow=="],
 
     "@smithy/util-waiter": ["@smithy/util-waiter@4.0.3", "", { "dependencies": { "@smithy/abort-controller": "^4.0.2", "@smithy/types": "^4.2.0", "tslib": "^2.6.2" } }, "sha512-JtaY3FxmD+te+KSI2FJuEcfNC9T/DGGVf551babM7fAaXhjJUt7oSYurH1Devxd2+BOSUACCgt3buinx4UnmEA=="],
+
+    "@stagewise-plugins/react": ["@stagewise-plugins/react@0.5.1", "", { "peerDependencies": { "@stagewise/toolbar": "0.5.1" } }, "sha512-8OeM/nF8qyn8zBQxTtupG49sXBm9sCxugTl6KTkjgQacg7mP7zN/F5iHKFHwE4HnyZMoC0UjWt/HeRyxnQsYiQ=="],
+
+    "@stagewise/toolbar": ["@stagewise/toolbar@0.5.1", "", {}, "sha512-4B7g5fuFAs30Di0J9Lb1rt7uSWx/WcnXB+WGlyB7VbVhBEqkpnKPlytDl+yQIgnrHobcfwr0BTmzmmAXb/kc8A=="],
+
+    "@stagewise/toolbar-next": ["@stagewise/toolbar-next@0.5.1", "", { "dependencies": { "@stagewise/toolbar-react": "0.5.1" }, "peerDependencies": { "@types/react": ">=18.0.0", "next": ">=14.0.0", "react": ">=18.0.0" } }, "sha512-XAiuIjUI2kcfmxVi3uQ0JOm/lspmVid/8XUWSE5qEYqj6LigQg5u4Hn3oot5W2s5d8rHq1HwdrKwNhZVVaZyEQ=="],
+
+    "@stagewise/toolbar-react": ["@stagewise/toolbar-react@0.5.1", "", { "dependencies": { "@stagewise/toolbar": "0.5.1" }, "peerDependencies": { "@types/react": ">=18.0.0", "react": ">=18.0.0" } }, "sha512-R25kkgU22ueO+jcb5Uc47NrxQVnKxmoepJzjs2bROUiVeU5wIb1MNiioKzN5IA2TucY75Sq8Q7TjHGYyHuFOpQ=="],
 
     "@standard-schema/utils": ["@standard-schema/utils@0.3.0", "", {}, "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g=="],
 

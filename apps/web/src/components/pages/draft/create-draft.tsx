@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import client from "@/lib/hono-client";
-import Suggestions from "@/components/pages/suggestions";
+import Suggestions from "@/components/pages/draft/suggestions";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
@@ -52,7 +52,7 @@ interface PlatformSelection {
 const $post = client.post.draft.$post
 type DraftCreate = InferRequestType<typeof $post>['json']
 
-export default function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost: (data: DraftCreate) => void, isCreating: boolean }) {
+export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost: (data: DraftCreate) => void, isCreating: boolean }) {
 
 
 
@@ -286,7 +286,7 @@ export default function CreateDraft({ handleCreatePost, isCreating }: { handleCr
                 {/* Main Chat Interface */}
                 <div className="space-y-6">
                     {/* Input */}
-                    <div className="sticky bottom-4">
+                    <div className="bottom-4">
                         <Card
                             className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-6 ${isDragging
                                 ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"

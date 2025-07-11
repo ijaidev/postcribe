@@ -3,6 +3,8 @@ import "./globals.css";
 import Providers from "@/components/providers/providers";
 import { Toaster } from "sonner";
 import { LoginChecker } from "@/components/ui/login-checker";
+import { StagewiseToolbar } from "@stagewise/toolbar-next";
+import ReactPlugin from "@stagewise-plugins/react";
 
 export const metadata: Metadata = {
     title: "PostCribe",
@@ -22,6 +24,11 @@ export default async function RootLayout({
                     {children}
                     <LoginChecker />
                     <Toaster />
+                    <StagewiseToolbar 
+                        config={{
+                            plugins: [ReactPlugin]
+                        }}
+                    />
                 </Providers>
             </body>
         </html>
