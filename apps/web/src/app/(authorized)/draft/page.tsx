@@ -73,7 +73,7 @@ const Page = () => {
         linkedin: { posts: [], images: [], currentPostVersion: 0, currentImageVersion: 0 }
     });
 
-    const [newPrompt, setNewPrompt] = useState("");
+    const [prompt, setPrompt] = useState("");
     const [activeTab, setActiveTab] = useState("x");
     const [applyOn, setApplyOn] = useState("Post");
     const [platform, setPlatform] = useState("ALL");
@@ -527,7 +527,7 @@ const Page = () => {
     };
 
     const handleSendMessage = () => {
-        if (!newPrompt.trim()) {
+        if (!prompt.trim()) {
             toast.error("Please enter a prompt");
             return;
         }
@@ -541,7 +541,7 @@ const Page = () => {
         const sendRequest = () => {
             const data: DraftCreate = {
                 id: draftId!,
-                message: newPrompt,
+                message: prompt,
                 platform: platform as "ALL" | "X" | "LINKEDIN",
                 images: images.filter(img => img.uploaded).map(img => img.imageUrl!),
                 forceWeb: forceWeb,
@@ -551,7 +551,7 @@ const Page = () => {
             };
 
             createPostMutation.mutate(data);
-            setNewPrompt("");
+            setPrompt("");
         };
 
         if (hasUndoneContent()) {
@@ -652,14 +652,7 @@ const Page = () => {
                                 </div>
                             ) : draftState[platformKey].posts[draftState[platformKey].currentPostVersion]?.post ? (
                                 <div className="relative">
-                                    <div className="h-48 overflow-y-auto 
-                                                        [&::-webkit-scrollbar]:w-2 
-                                                        [&::-webkit-scrollbar-track]:rounded-full
-                                                        [&::-webkit-scrollbar-track]:bg-muted
-                                                        [&::-webkit-scrollbar-thumb]:rounded-full
-                                                        [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20
-                                                        dark:[&::-webkit-scrollbar-track]:bg-muted-foreground/20
-                                                        dark:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
+                                    <div className="h-48 overflow-y-auto scroll-bar">
                                         <div className="whitespace-pre-wrap text-sm leading-relaxed pr-4 pb-12">
                                             {draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post}
                                         </div>
@@ -710,7 +703,7 @@ const Page = () => {
                                                 size="sm"
                                                 className="justify-start text-left h-auto p-3 whitespace-normal"
                                                 onClick={() => {
-                                                    setNewPrompt(option);
+                                                    setPrompt(option);
                                                     textareaRef.current?.focus();
                                                 }}
                                             >
@@ -949,24 +942,20 @@ const Page = () => {
                 </div>
             </div>
 
-            {/* Sticky Bottom Input - Enhanced textarea card from create-draft.tsx */}
-            <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4">
-                <div className="container max-w-4xl mx-auto">
+            {/* Sticky Bottom Input  */}
+            <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4">
+                <div>
                     <Card
                         className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-6 ${isDragging
                             ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
                             : "border-border hover:shadow-xl"
                             }`}
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
                     >
                         <input
                             ref={fileInputRef}
                             type="file"
                             multiple
-                            accept="image/jpeg, image/png, image/jpg, image/webp"
+                            accept="image/jpeg, image/png, image/jpg"
                             onChange={handleFileInput}
                             className="hidden"
                         />
@@ -1013,15 +1002,24 @@ const Page = () => {
                         <Textarea
                             ref={textareaRef}
                             placeholder="What's on your mind?"
-                            value={newPrompt}
-                            onChange={(e) => setNewPrompt(e.target.value)}
+                            value={prompt[activeTab as keyof typeof prompt]}
+                            onChange={(e) => setPrompt(prev => ({ ...prev, [activeTab]: e.target.value }))}
                             onPaste={handlePaste}
-                            onKeyDown={handleKeyDown}
-                            className="min-h-12 max-h-32 resize-none border-0 bg-transparent text-base placeholder:text-muted-foreground focus-visible:ring-0 shadow-none"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            className="min-h-15 max-h-15 resize-none! border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl leading-relaxed p-6 scroll-bar"
                         />
 
                         {/* Bottom actions */}
-                        <div className="flex items-center justify-between mt-3">
+                        <div className="flex items-center justify-between">
                             <TooltipProvider>
                                 <div className="flex items-center gap-3">
                                     {/* Attach button */}
@@ -1034,7 +1032,7 @@ const Page = () => {
                                                 disabled={images.length >= 5 || uploadImageMutation.isPending}
                                                 className="h-8 w-8 p-0 rounded-full hover:bg-accent"
                                             >
-                                                <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                                <Paperclip className="h-15 w-15 text-muted-foreground" size={15} />
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -1052,7 +1050,7 @@ const Page = () => {
                                                     size="sm"
                                                     className="h-8 w-8 p-0 rounded-full border-none bg-transparent"
                                                 >
-                                                    <Globe className="h-4 w-4" />
+                                                    <Globe className="h-15 w-15" size={15} />
                                                 </Toggle>
                                             </div>
                                         </TooltipTrigger>
@@ -1067,7 +1065,7 @@ const Page = () => {
                             <Button
                                 onClick={handleSendMessage}
                                 disabled={
-                                    !newPrompt.trim() ||
+                                    !prompt[activeTab as keyof typeof prompt] ||
                                     images.some(img => img.uploading) ||
                                     createPostMutation.isPending
                                 }

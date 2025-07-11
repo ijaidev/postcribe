@@ -223,3 +223,7 @@
         @apply bg-background text-foreground;
     }
 }
+
+@utility scroll-bar {
+    @apply [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 dark:[&::-webkit-scrollbar-track]:bg-muted-foreground/20 dark:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40;
+  }
