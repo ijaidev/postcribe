@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build:dev": "bun run db:generate && bun build src/*.ts --outdir dist --target bun --packages external --root src && tsc",
+    "build:dev": "bun run db:generate && bun build src/index.ts --outdir dist --target bun --packages external && tsc",
     "build:prod": "bun build src/index.ts --outdir dist --target bun",
     "lint": "eslint --max-warnings 0",
     "typecheck": "tsc --noEmit",
@@ -26,12 +26,12 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/bun": "latest",
-    "prisma": "^6.11.1"
+    "prisma": "^6.9.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@prisma/client": "^6.11.1"
+    "@prisma/client": "^6.9.0"
   }
 }
