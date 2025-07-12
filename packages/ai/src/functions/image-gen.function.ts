@@ -56,7 +56,9 @@ const imageGen = async (
         }
     }
     const lastImage =
-        images && images.length > 0 ? images[images.length - 1] : undefined;
+        values.images && values.images.length > 0
+            ? values.images[values.images.length - 1]
+            : undefined;
 
     const inputMessage = [
         new HumanMessage({
@@ -90,26 +92,21 @@ const imageGen = async (
     const stream = await graph.stream(
         { messages: inputMessage },
         {
-            streamMode: "updates",
+            streamMode: "values",
             ...config,
         },
     );
-    for await (const chunk of stream) {
-        for (const [node, values] of Object.entries(chunk)) {
-            if (
-                node !== "toolNode" ||
-                values.messages?.length === 0 ||
-                !isToolMessage(values.messages![0]!)
-            )
-                continue;
 
-            if (!values.images || values.images.length === 0) continue;
-            const imageUrl = values.images[values.images.length - 1]?.imageUrl;
-            if (!imageUrl) continue;
-            return {
-                imageUrl,
-            };
-        }
+    const currentImagesLength = values.images?.length || 0;
+
+    for await (const values of stream) {
+        if (!values.images || values.images.length === 0) continue;
+        if (currentImagesLength >= values.images.length) continue;
+        const imageUrl = values.images[values.images.length - 1]?.imageUrl;
+        if (!imageUrl) continue;
+        return {
+            imageUrl,
+        };
     }
     throw new Error("No image URL found");
 };

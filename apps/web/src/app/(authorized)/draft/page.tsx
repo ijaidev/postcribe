@@ -704,9 +704,9 @@ const Page = () => {
                 <div className="flex gap-4 lg:flex-row flex-col w-full">
                     <div className="w-full lg:w-1/2">
                         {/* Post Card */}
-                        <Card className="h-full">
+                        <Card className="py-2 mb-2">
                             <CardHeader>
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         {platformKey === "x" ? <XLogo size="md" /> : <LinkedinLogo size="md" />}
                                         <span className="font-medium">{platformKey === "x" ? "X Post" : "LinkedIn Post"}</span>
@@ -736,16 +736,17 @@ const Page = () => {
                                     </div>
                                 </div>
                             </CardHeader>
-
+                        </Card>
+                        <Card>
                             <CardContent>
                                 {createPostMutation.isPending && !draftState[platformKey].posts.length ? (
-                                    <div className="space-y-2 h-60">
+                                    <div className="space-y-2">
                                         <Skeleton className="h-4 w-full" />
                                         <Skeleton className="h-4 w-3/4" />
                                         <Skeleton className="h-4 w-1/2" />
                                     </div>
                                 ) : draftState[platformKey].posts[draftState[platformKey].currentPostVersion]?.post ? (
-                                    <div className="h-60 flex items-center justify-center overflow-y-auto scroll-bar">
+                                    <div className="h-96 flex items-center justify-center overflow-y-auto scroll-bar">
                                         <div className="overflow-y-auto scroll-bar">
                                             <div className="whitespace-pre-wrap text-sm leading-relaxed pr-4 pb-12">
                                                 {draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post}
@@ -757,34 +758,9 @@ const Page = () => {
                                         No post generated yet
                                     </div>
                                 )}
-
-                                {currentEvent[platformKey] && (
-                                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                                        <div className="flex gap-2 mb-2">
-                                            {currentEvent[platformKey] === "search" && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    <Globe className="h-3 w-3 mr-1" />
-                                                    Web Search
-                                                </Badge>
-                                            )}
-                                            {currentEvent[platformKey] === "extract" && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    <Sparkles className="h-3 w-3 mr-1" />
-                                                    Content Extract
-                                                </Badge>
-                                            )}
-                                            {currentEvent[platformKey] === "response" && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    <Sparkles className="h-3 w-3 mr-1" />
-                                                    Generating...
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
                             </CardContent>
 
-                            <CardFooter className="flex items-center justify-end">
+                            <CardFooter className="flex items-center justify-end ">
                                 <TooltipProvider delayDuration={0}>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -827,9 +803,10 @@ const Page = () => {
 
                     <div className="w-full lg:w-1/2">
                         {/* Image Card */}
-                        <Card className="h-full">
+
+                        <Card className="mb-2 py-2">
                             <CardHeader>
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <ImagePlus className="h-5 w-5" />
                                         <span className="font-medium">Generated Images</span>
@@ -860,23 +837,24 @@ const Page = () => {
                                 </div>
                             </CardHeader>
 
-
-                            <CardContent className="relative flex items-center justify-center">
+                        </Card>
+                        <Card>
+                            <div className="relative flex items-center justify-center">
                                 {draftState[platformKey].images[draftState[platformKey].currentImageVersion] ? (
-                                    <div className="relative group h-60 w-60 flex items-center justify-center">
+                                    <div className="relative group h-96 w-full flex items-center justify-center">
                                         <Image
                                             src={draftState[platformKey].images[draftState[platformKey].currentImageVersion].url}
                                             alt="Generated image"
                                             fill
-                                            className="w-full h-full mx-auto rounded-lg border shadow-sm object-cover"
+                                            className="w-full h-full mx-auto rounded-lg object-contain"
                                         />
                                     </div>
-                                ) : createImageMutation.isPending ? (
+                                ) : createImageMutation.isPending || (createPostMutation.isPending && !draftState[platformKey].images.length) ? (
                                     <div className="h-60 w-60">
                                         <Skeleton className="w-full h-full" />
                                     </div>
                                 ) : (
-                                    <div className="h-60 w-60 flex items-center justify-center">
+                                    <div className="h-96 w-96 flex items-center justify-center">
                                         <Button variant="outline"
                                             onClick={() => {
                                                 if (draftId) {
@@ -897,7 +875,7 @@ const Page = () => {
                                         </Button>
                                     </div>
                                 )}
-                            </CardContent>
+                            </div>
 
 
                             <CardFooter className="flex items-center justify-end">
@@ -1001,6 +979,7 @@ const Page = () => {
                             value="x"
                             className="flex items-center gap-2 p-3 hover:cursor-pointer hover:bg-background"
                             disabled={platform !== "X" && platform !== "ALL"}
+                            defaultChecked={platform === "X"}
                         >
                             <XLogo size="2xl" />
                             X (Twitter)
@@ -1009,6 +988,7 @@ const Page = () => {
                             value="linkedin"
                             className="flex items-center gap-2"
                             disabled={platform !== "LINKEDIN" && platform !== "ALL"}
+                            defaultChecked={platform === "LINKEDIN"}
                         >
                             <LinkedinLogo size="2xl" />
                             LinkedIn
@@ -1023,71 +1003,6 @@ const Page = () => {
                         <Content platformKey="linkedin" />
                     </TabsContent>
                 </Tabs>
-
-                {/* Bottom Controls */}
-                <div className="space-y-4">
-                    {/* Select Controls */}
-                    <div className="flex gap-4">
-                        <div className="flex-1">
-                            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                Apply on
-                            </label>
-                            <Select value={applyOn} onValueChange={setApplyOn}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Post">Post</SelectItem>
-                                    <SelectItem value="Image">Image</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex-1">
-                            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                Platform
-                            </label>
-                            <Select value={platform} onValueChange={setPlatform}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="X">X</SelectItem>
-                                    <SelectItem value="LINKEDIN">LinkedIn</SelectItem>
-                                    <SelectItem value="ALL">All</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {/* X Account Selection */}
-                        {(platform === "X" || platform === "ALL") && (
-                            <div className="flex-1">
-                                <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                    X Account
-                                </label>
-                                <Select value={selectedXAccount || ""} onValueChange={setSelectedXAccount}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select X account" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {connectedXAccounts.length > 0 ? (
-                                            connectedXAccounts.map((account) => (
-                                                <SelectItem key={account.id} value={account.id}>
-                                                    <div className="flex items-center gap-2">
-                                                        <XLogo size="sm" />
-                                                        {account.name}
-                                                    </div>
-                                                </SelectItem>
-                                            ))
-                                        ) : (
-                                            <SelectItem value="" disabled>
-                                                No X accounts connected
-                                            </SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </div>
-                </div>
             </div>
 
             {/* Sticky Bottom Input  */}
