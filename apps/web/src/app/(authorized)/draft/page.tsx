@@ -25,6 +25,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 
 interface StreamData extends PostGenStreamResponse {
     platform: "X" | "LINKEDIN";
@@ -699,6 +700,20 @@ const Page = () => {
     }: {
         platformKey: "x" | "linkedin";
     }) => {
+
+        const getEventText = (currentEvent: StreamData["event"]) => {
+            switch (currentEvent) {
+                case "response":
+                    return "Generating...";
+                case "search":
+                    return "Searching...";
+                case "extract":
+                    return "Browsing...";
+                default:
+                    return "Generating...";
+            }
+        }
+
         return (
             <div className="flex flex-col items-center">
                 <div className="flex gap-4 lg:flex-row flex-col w-full">
@@ -707,10 +722,22 @@ const Page = () => {
                         <Card className="py-2 mb-2">
                             <CardHeader>
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        {platformKey === "x" ? <XLogo size="md" /> : <LinkedinLogo size="md" />}
-                                        <span className="font-medium">{platformKey === "x" ? "X Post" : "LinkedIn Post"}</span>
-                                    </div>
+                                    {
+                                        (createPostMutation.isPending && currentEvent[platformKey]) ? (
+                                            <div className="flex items-center gap-3">
+                                                <TextShimmer className='font-mono text-sm' duration={1}>
+                                                    {getEventText(currentEvent[platformKey])}
+                                                </TextShimmer>
+                                            </div>
+                                        ) :
+                                            (
+                                                <div className="flex items-center gap-3">
+                                                    {platformKey === "x" ? <XLogo size="md" /> : <LinkedinLogo size="md" />}
+                                                    <span className="font-medium">{platformKey === "x" ? "X Post" : "LinkedIn Post"}</span>
+                                                </div>
+                                            )
+                                    }
+
                                     <div className="flex items-center gap-2">
                                         <Button
                                             variant="ghost"
@@ -740,7 +767,7 @@ const Page = () => {
                         <Card>
                             <CardContent>
                                 {createPostMutation.isPending && !draftState[platformKey].posts.length ? (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 h-96">
                                         <Skeleton className="h-4 w-full" />
                                         <Skeleton className="h-4 w-3/4" />
                                         <Skeleton className="h-4 w-1/2" />
@@ -748,13 +775,13 @@ const Page = () => {
                                 ) : draftState[platformKey].posts[draftState[platformKey].currentPostVersion]?.post ? (
                                     <div className="h-96 flex items-center justify-center overflow-y-auto scroll-bar">
                                         <div className="overflow-y-auto scroll-bar">
-                                            <div className="whitespace-pre-wrap text-sm leading-relaxed pr-4 pb-12">
+                                            <div className="whitespace-pre-wrap text-sm leading-relaxed pr-4 pt-4">
                                                 {draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post}
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-center h-60 text-muted-foreground text-sm py-8 text-center">
+                                    <div className="flex items-center justify-center h-96 text-muted-foreground text-sm py-8 text-center">
                                         No post generated yet
                                     </div>
                                 )}
@@ -809,7 +836,14 @@ const Page = () => {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <ImagePlus className="h-5 w-5" />
-                                        <span className="font-medium">Generated Images</span>
+                                        {
+                                            createImageMutation.isPending || (createPostMutation.isPending && !draftState[platformKey].images.length) ? (
+                                                <TextShimmer className='font-mono text-sm' duration={1}>
+                                                    Creating Image...
+                                                </TextShimmer>
+                                            ) :
+                                                <span className="font-medium">Images</span>
+                                        }
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Button
@@ -850,7 +884,7 @@ const Page = () => {
                                         />
                                     </div>
                                 ) : createImageMutation.isPending || (createPostMutation.isPending && !draftState[platformKey].images.length) ? (
-                                    <div className="h-60 w-60">
+                                    <div className="h-96 w-96">
                                         <Skeleton className="w-full h-full" />
                                     </div>
                                 ) : (
