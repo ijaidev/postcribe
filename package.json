@@ -11,7 +11,11 @@
     "packageManager": "bun@1.2.13",
     "private": true,
     "scripts": {
-        "build": "turbo run build",
+        "build:prod": "turbo run build:prod",
+        "build:dev": "turbo run build:dev",
+        "clean:build": "find . -name 'dist' -type d -exec rm -rf {} + 2>/dev/null || true && find . -name '.turbo' -type d -exec rm -rf {} + 2>/dev/null || true && find . -name '.next' -type d -exec rm -rf {} + 2>/dev/null || true",
+        "clean:modules": "find . -name 'node_modules' -type d -exec rm -rf {} + 2>/dev/null || true",
+        "clean:all": "bun run clean:build && bun run clean:modules",
         "dev": "turbo run dev",
         "lint": "turbo run lint",
         "format": "prettier --write \"**/*.{ts,tsx,md}\"",
@@ -20,9 +24,5 @@
     "workspaces": [
         "apps/*",
         "packages/*"
-    ],
-    "dependencies": {
-        "@hookform/resolvers": "^5.0.1",
-        "zod": "^3.25.51"
-    }
+    ]
 }

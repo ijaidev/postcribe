@@ -1,4 +1,4 @@
-import { ChatOpenAI } from "@langchain/openai";
+import { AzureChatOpenAI, ChatOpenAI } from "@langchain/openai";
 import {
     END,
     START,
@@ -16,10 +16,19 @@ import { suggestionGraphState, suggestionGraphConfig } from "../graph-states";
 import { getSuggestionPrompt } from "../config/system-prompts";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
 
-const model = new ChatOpenAI({
+// const model = new ChatOpenAI({
+//     model: "gpt-4.1-mini",
+//     apiKey: process.env.OPENAI_API_KEY,
+//     temperature: 0.7,
+// });
+
+const model = new AzureChatOpenAI({
     model: "gpt-4.1-mini",
-    apiKey: process.env.OPENAI_API_KEY,
-    temperature: 0.7,
+    temperature: 0.9,
+    azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
+    azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
+    azureOpenAIApiDeploymentName: "gpt-4.1-mini",
+    azureOpenAIApiVersion: "2024-04-01-preview",
 });
 
 const tools = [suggestionResponseTool, tavilyExtract, tavilySearch];

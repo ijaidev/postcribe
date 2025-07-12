@@ -1,4 +1,4 @@
-import { ChatOpenAI } from "@langchain/openai";
+import { AzureChatOpenAI, ChatOpenAI } from "@langchain/openai";
 import {
     END,
     START,
@@ -14,10 +14,19 @@ import ImageGenTool from "../tools/image-gen.tool";
 import { getImagePrompt } from "../config/system-prompts";
 import { linkedInPostGraph, xPostGraph } from "./post-gen";
 
-const model = new ChatOpenAI({
+// const model = new ChatOpenAI({
+//     model: "gpt-4.1",
+//     apiKey: process.env.OPENAI_API_KEY,
+//     temperature: 0.9,
+// });
+
+const model = new AzureChatOpenAI({
     model: "gpt-4.1",
-    apiKey: process.env.OPENAI_API_KEY,
     temperature: 0.9,
+    azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
+    azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
+    azureOpenAIApiDeploymentName: "gpt-4.1",
+    azureOpenAIApiVersion: "2024-04-01-preview",
 });
 
 const xCheckPointer = PostgresSaver.fromConnString(

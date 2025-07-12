@@ -12,7 +12,7 @@ import { XLogo } from "@/components/ui/x-logo";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Sparkles, Globe, Undo2, RotateCcw, ImagePlus, X, Paperclip, Copy, Download, Check, Redo2 } from "lucide-react";
+import { Send, Loader2, Sparkles, Globe, Undo2, ImagePlus, X, Paperclip, Copy, Download, Check, Redo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ThreeDotLoader } from "@/components/ui/loaders";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,8 +48,6 @@ export interface DraftState {
     currentImageVersion: number;
 }
 
-
-
 interface UploadedImage {
     id: string;
     file: File;
@@ -58,10 +56,6 @@ interface UploadedImage {
     uploading: boolean;
     imageUrl?: string;
 }
-
-
-
-
 
 const Page = () => {
     const [draftId, setDraftId] = useState<string | null>(null);
@@ -73,10 +67,18 @@ const Page = () => {
         linkedin: { posts: [], images: [], currentPostVersion: 0, currentImageVersion: 0 }
     });
 
-    const [prompt, setPrompt] = useState("");
-    const [activeTab, setActiveTab] = useState("x");
+    const [prompt, setPrompt] = useState<{
+        x: string;
+        linkedin: string;
+    }>({
+        x: "",
+        linkedin: ""
+    });
+
+    const [activeTab, setActiveTab] = useState<"x" | "linkedin">("x");
     const [applyOn, setApplyOn] = useState("Post");
-    const [platform, setPlatform] = useState("ALL");
+    const [platform, setPlatform] = useState<"ALL" | "X" | "LINKEDIN">("ALL");
+    const [selectedXAccount, setSelectedXAccount] = useState<string | null>(null);
     const [showUndoAlert, setShowUndoAlert] = useState(false);
     const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
     const [forceWeb, setForceWeb] = useState(false);
@@ -119,7 +121,31 @@ const Page = () => {
     }, [searchParams]);
 
     const $post = client.post.draft.$post;
+    const $createImage = client.post.draft.image.generate.$post;
+    type CreateImage = InferRequestType<typeof $createImage>['json'];
     type DraftCreate = InferRequestType<typeof $post>['json'];
+
+    // Load connected social accounts
+    const { data: socialAccounts, isLoading: isLoadingAccounts } = useQuery({
+        queryKey: ["social-accounts"],
+        queryFn: async () => {
+            const response = await client.social.accounts.$get();
+            if (!response.ok) throw new Error('Failed to fetch accounts');
+            return response.json();
+        },
+    });
+
+    // Auto-select first X account when accounts are loaded
+    useEffect(() => {
+        if (socialAccounts?.data && !selectedXAccount) {
+            const xAccounts = socialAccounts.data.filter(account =>
+                account.provider === "X" && account.isConnected
+            );
+            if (xAccounts.length > 0) {
+                setSelectedXAccount(xAccounts[0].id);
+            }
+        }
+    }, [socialAccounts, selectedXAccount]);
 
     // Load existing draft data when draftId is available
     const { data: draftData, isLoading: isDraftLoading, error: draftError } = useQuery({
@@ -175,27 +201,33 @@ const Page = () => {
 
     useEffect(() => {
         if (draftData?.data) {
-            const xPosts = draftData.data.x.posts;
-            const linkedinPosts = draftData.data.linkedin.posts;
-            const xImages = draftData.data.x.images;
-            const linkedinImages = draftData.data.linkedin.images;
+            // Update platform from the backend response
+            if (draftData.data.platform) {
+                setPlatform(draftData.data.platform);
+            }
+
+            const postsData = draftData.data.posts
+            const xPosts = postsData?.x?.posts || [];
+            const linkedinPosts = postsData?.linkedin?.posts || [];
+            const xImages = postsData?.x?.images || [];
+            const linkedinImages = postsData?.linkedin?.images || [];
 
             setDraftState({
                 x: {
-                    posts: xPosts.map((post, index) => ({
+                    posts: xPosts.map((post: { content: string; version?: number }, index: number) => ({
                         post: post.content,
                         version: post.version ?? index,
-                    })) || [],
-                    images: xImages || [],
+                    })),
+                    images: xImages,
                     currentPostVersion: xPosts.length > 0 ? xPosts.length - 1 : 0,
                     currentImageVersion: xImages.length > 0 ? xImages.length - 1 : 0
                 },
                 linkedin: {
-                    posts: linkedinPosts.map((post, index) => ({
+                    posts: linkedinPosts.map((post: { content: string; version?: number }, index: number) => ({
                         post: post.content,
                         version: post.version ?? index,
-                    })) || [],
-                    images: linkedinImages || [],
+                    })),
+                    images: linkedinImages,
                     currentPostVersion: linkedinPosts.length > 0 ? linkedinPosts.length - 1 : 0,
                     currentImageVersion: linkedinImages.length > 0 ? linkedinImages.length - 1 : 0
                 }
@@ -317,12 +349,16 @@ const Page = () => {
 
     // Post creation/regeneration mutation
     const createPostMutation = useMutation({
-        mutationFn: async (data: DraftCreate) => {
+        // create image is used for only first time post creation, while editing it should be false
+        mutationFn: async ({ data, createImage }: { data: DraftCreate; createImage: boolean }) => {
             const response = await $post({ json: data });
             if (!response.ok) {
                 throw new Error("Failed to create post");
             }
-            return response;
+            return {
+                response,
+                createImage
+            };
         },
         onMutate: () => {
             if (draftId) {
@@ -339,7 +375,7 @@ const Page = () => {
             }
             hasStarted.current = { x: false, linkedin: false };
         },
-        onSuccess: async (response) => {
+        onSuccess: async ({ response, createImage }) => {
             const reader = response.body?.getReader();
             if (!reader) {
                 throw new Error("No response stream available");
@@ -355,7 +391,17 @@ const Page = () => {
             try {
                 while (true) {
                     const { done, value } = await reader.read();
-                    if (done) break;
+                    if (done) {
+                        if (createImage && (draftId || receivedDraftId)) {
+                            createImageMutation.mutate({
+                                message: "create a related images for this post",
+                                id: draftId || receivedDraftId,
+                                platform: platform.toLowerCase() as "all" | "x" | "linkedin",
+                                images: images.filter(img => img.uploaded).map(img => img.imageUrl!)
+                            });
+                        }
+                        break;
+                    };
 
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split('\n').filter(line => line.trim());
@@ -363,44 +409,34 @@ const Page = () => {
                     for (const line of lines) {
                         try {
                             const data: StreamData = JSON.parse(line);
-                            console.log(`🌊 STREAM - Raw data:`, data);
 
                             if (data.draftId && !receivedDraftId) {
                                 receivedDraftId = data.draftId;
-                                console.log(`🆔 STREAM - Draft ID received:`, data.draftId);
                                 if (!draftId) {
                                     // First time creation - update URL with query param
                                     const newUrl = `/draft?draftId=${data.draftId}`;
                                     window.history.replaceState(null, '', newUrl);
-                                    // setDraftId(data.draftId);
-                                    console.log(`🔄 STREAM - URL updated to ${newUrl}`);
+                                    setDraftId(data.draftId);
                                 }
                             }
 
                             if (data.event === "end") {
-                                console.log(`🏁 STREAM - End event received for ${data.platform}`);
                                 continue;
                             }
 
                             const platformKey = data.platform.toLowerCase() as "x" | "linkedin";
-                            console.log(`🎯 STREAM - Platform: ${platformKey}, Event: ${data.event}`);
 
                             setCurrentEvent(prev => {
                                 const newEvent = { ...prev, [platformKey]: data.event };
-                                console.log(`📡 STREAM - Setting current event:`, newEvent);
                                 return newEvent;
                             });
 
                             if (data.event === "response") {
-                                console.log(`🔄 [${platformKey}] Response event:`, data.content);
                                 buffer[platformKey] += data.content;
-                                console.log(`📝 [${platformKey}] Buffer now:`, buffer[platformKey]);
 
                                 const parsed = parse(buffer[platformKey], Allow.ALL) as Partial<Post>;
                                 const newPostContent = parsed.post || "";
                                 const newOptions = parsed.options || [];
-                                console.log(`✅ [${platformKey}] Parsed content:`, newPostContent);
-                                console.log(`🎯 [${platformKey}] Parsed options:`, newOptions);
 
                                 // Update options if available
                                 if (newOptions.length > 0) {
@@ -409,7 +445,6 @@ const Page = () => {
                                         [platformKey]: newOptions
                                     }));
                                 }
-                                console.log(`🔄 [${platformKey}] options:`, options);
 
                                 if (newPostContent) {
                                     const isFirstTime = !hasStarted.current[platformKey];
@@ -454,6 +489,7 @@ const Page = () => {
                         }
                     }
                 }
+
             } catch (err) {
                 console.error("Stream reading error:", err);
                 toast.error("An error occurred while processing the post.");
@@ -471,12 +507,55 @@ const Page = () => {
         }
     });
 
-    const handleCreatePost = (data: DraftCreate) => {
-        createPostMutation.mutate(data);
+    const createImageMutation = useMutation({
+        mutationFn: async (data: CreateImage) => {
+            const response = await $createImage({ json: data });
+            if (!response.ok) {
+                throw new Error("Failed to create image");
+            }
+            return response.json();
+        },
+        onSuccess: (response) => {
+            const linkedinImages = response.data?.linkedin;
+            const xImages = response.data?.x;
+            if (linkedinImages) {
+                setDraftState(prev => {
+                    const newImage = {
+                        url: linkedinImages,
+                        version: prev.linkedin.images.length
+                    }
+                    const newState = { ...prev };
+                    newState.linkedin.images = [...prev.linkedin.images, newImage];
+                    newState.linkedin.currentImageVersion = newState.linkedin.images.length - 1;
+                    return newState;
+                });
+            }
+            if (xImages) {
+                setDraftState(prev => {
+                    const newImage = {
+                        url: xImages,
+                        version: prev.x.images.length
+                    }
+                    const newState = { ...prev };
+                    newState.x.images = [...prev.x.images, newImage];
+                    newState.x.currentImageVersion = newState.x.images.length - 1;
+                    return newState;
+                });
+            }
+            toast.success("Image created successfully");
+        },
+        onError: (error) => {
+            toast.error(error.message || "Failed to create image");
+        }
+    });
+
+    const handleCreatePost = (data: DraftCreate, createImage: boolean = false) => {
+        setPlatform(data.platform as "ALL" | "X" | "LINKEDIN");
+        createPostMutation.mutate({ data, createImage });
     };
 
     const canUndo = (type: 'post' | 'image') => {
-        const state = draftState[activeTab as keyof typeof draftState];
+        const state = draftState[activeTab];
         if (type === 'post') {
             return state.currentPostVersion > 0;
         }
@@ -484,7 +563,7 @@ const Page = () => {
     };
 
     const canRedo = (type: 'post' | 'image') => {
-        const state = draftState[activeTab as keyof typeof draftState];
+        const state = draftState[activeTab];
         if (type === 'post') {
             return state.currentPostVersion < state.posts.length - 1;
         }
@@ -492,7 +571,7 @@ const Page = () => {
     };
 
     const handleUndo = (type: 'post' | 'image') => {
-        const platformKey = activeTab as keyof typeof draftState;
+        const platformKey = activeTab;
         setDraftState(prev => {
             const currentState = prev[platformKey];
             const currentVersionKey = type === 'post' ? 'currentPostVersion' : 'currentImageVersion';
@@ -509,7 +588,7 @@ const Page = () => {
     };
 
     const handleRedo = (type: 'post' | 'image') => {
-        const platformKey = activeTab as keyof typeof draftState;
+        const platformKey = activeTab;
         setDraftState(prev => {
             const currentState = prev[platformKey];
             const currentVersionKey = type === 'post' ? 'currentPostVersion' : 'currentImageVersion';
@@ -527,31 +606,49 @@ const Page = () => {
     };
 
     const handleSendMessage = () => {
-        if (!prompt.trim()) {
+        const currentPrompt = prompt[activeTab];
+        if (!currentPrompt.trim()) {
             toast.error("Please enter a prompt");
             return;
         }
 
+        // Check for X account selection if targeting X platform
+        if ((platform === "X" || platform === "ALL") && !selectedXAccount) {
+            toast.error("Please select an X account");
+            return;
+        }
+
         const hasUndoneContent = () => {
-            const state = draftState[activeTab as keyof typeof draftState];
+            const state = draftState[activeTab];
             return (state.currentPostVersion < state.posts.length - 1) ||
                 (state.currentImageVersion < state.images.length - 1);
         };
 
         const sendRequest = () => {
             const data: DraftCreate = {
-                id: draftId!,
-                message: prompt,
-                platform: platform as "ALL" | "X" | "LINKEDIN",
+                message: currentPrompt,
                 images: images.filter(img => img.uploaded).map(img => img.imageUrl!),
                 forceWeb: forceWeb,
                 version: applyOn === "Post" ?
-                    draftState[activeTab as keyof typeof draftState].currentPostVersion :
-                    draftState[activeTab as keyof typeof draftState].currentImageVersion
+                    draftState[activeTab].currentPostVersion :
+                    draftState[activeTab].currentImageVersion,
+                ...(selectedXAccount && (platform === "X" || platform === "ALL") && { xLoginId: selectedXAccount })
             };
 
-            createPostMutation.mutate(data);
-            setPrompt("");
+            // Only include draftId and platform for existing drafts and new drafts respectively
+            if (draftId) {
+                // For existing drafts, include ID but not platform (backend gets it from draft)
+                data.id = draftId;
+            } else {
+                // For new drafts, include platform but not ID
+                data.platform = platform as "ALL" | "X" | "LINKEDIN";
+            }
+
+            createPostMutation.mutate({
+                data,
+                createImage: false
+            });
+            setPrompt(prev => ({ ...prev, [activeTab]: "" }));
         };
 
         if (hasUndoneContent()) {
@@ -559,13 +656,6 @@ const Page = () => {
             setShowUndoAlert(true);
         } else {
             sendRequest();
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            handleSendMessage();
         }
     };
 
@@ -600,6 +690,9 @@ const Page = () => {
         }
     };
 
+    const connectedXAccounts = socialAccounts?.data?.filter(
+        account => account.provider === "X" && account.isConnected
+    ) || [];
 
     const Content = ({
         platformKey,
@@ -607,226 +700,259 @@ const Page = () => {
         platformKey: "x" | "linkedin";
     }) => {
         return (
-            <>
-                {/* Post Card */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                {platformKey === "x" ? <XLogo size="md" /> : <LinkedinLogo size="md" />}
-                                <span className="font-medium">{platformKey === "x" ? "X Post" : "LinkedIn Post"}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleUndo('post')}
-                                    disabled={!canUndo('post')}
-                                    className="h-8 w-8 p-0"
-                                >
-                                    <Undo2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRedo('post')}
-                                    disabled={!canRedo('post')}
-                                    className="h-8 w-8 p-0"
-                                >
-                                    <Redo2 className="h-4 w-4" />
-                                </Button>
-                                <span className="text-xs text-muted-foreground">
-                                    {draftState[platformKey].posts.length > 0 ? `${draftState[platformKey].currentPostVersion + 1}/${draftState[platformKey].posts.length}` : '0/0'}
-                                </span>
-                            </div>
-                        </div>
-                    </CardHeader>
-
-                    <CardContent>
-                        <div className="relative">
-                            {createPostMutation.isPending && !draftState[platformKey].posts.length ? (
-                                <div className="space-y-2">
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-4 w-3/4" />
-                                    <Skeleton className="h-4 w-1/2" />
+            <div className="flex flex-col items-center">
+                <div className="flex gap-4 lg:flex-row flex-col w-full">
+                    <div className="w-full lg:w-1/2">
+                        {/* Post Card */}
+                        <Card className="h-full">
+                            <CardHeader>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        {platformKey === "x" ? <XLogo size="md" /> : <LinkedinLogo size="md" />}
+                                        <span className="font-medium">{platformKey === "x" ? "X Post" : "LinkedIn Post"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleUndo('post')}
+                                            disabled={!canUndo('post')}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Undo2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRedo('post')}
+                                            disabled={!canRedo('post')}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Redo2 className="h-4 w-4" />
+                                        </Button>
+                                        <span className="text-xs text-muted-foreground">
+                                            {draftState[platformKey].posts.length > 0 ? `${draftState[platformKey].currentPostVersion + 1}/${draftState[platformKey].posts.length}` : '0/0'}
+                                        </span>
+                                    </div>
                                 </div>
-                            ) : draftState[platformKey].posts[draftState[platformKey].currentPostVersion]?.post ? (
-                                <div className="relative">
-                                    <div className="h-48 overflow-y-auto scroll-bar">
-                                        <div className="whitespace-pre-wrap text-sm leading-relaxed pr-4 pb-12">
-                                            {draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post}
+                            </CardHeader>
+
+                            <CardContent>
+                                {createPostMutation.isPending && !draftState[platformKey].posts.length ? (
+                                    <div className="space-y-2 h-60">
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-3/4" />
+                                        <Skeleton className="h-4 w-1/2" />
+                                    </div>
+                                ) : draftState[platformKey].posts[draftState[platformKey].currentPostVersion]?.post ? (
+                                    <div className="h-60 flex items-center justify-center overflow-y-auto scroll-bar">
+                                        <div className="overflow-y-auto scroll-bar">
+                                            <div className="whitespace-pre-wrap text-sm leading-relaxed pr-4 pb-12">
+                                                {draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="text-muted-foreground text-sm py-8 text-center">
-                                    No post generated yet
-                                </div>
-                            )}
-
-                            {currentEvent[platformKey] && (
-                                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                                    <div className="flex gap-2 mb-2">
-                                        {currentEvent[platformKey] === "search" && (
-                                            <Badge variant="secondary" className="text-xs">
-                                                <Globe className="h-3 w-3 mr-1" />
-                                                Web Search
-                                            </Badge>
-                                        )}
-                                        {currentEvent[platformKey] === "extract" && (
-                                            <Badge variant="secondary" className="text-xs">
-                                                <Sparkles className="h-3 w-3 mr-1" />
-                                                Content Extract
-                                            </Badge>
-                                        )}
-                                        {currentEvent[platformKey] === "response" && (
-                                            <Badge variant="secondary" className="text-xs">
-                                                <Sparkles className="h-3 w-3 mr-1" />
-                                                Generating...
-                                            </Badge>
-                                        )}
+                                ) : (
+                                    <div className="flex items-center justify-center h-60 text-muted-foreground text-sm py-8 text-center">
+                                        No post generated yet
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Suggestions */}
-                            {options[platformKey].length > 0 && !currentEvent[platformKey] && (
-                                <div className="mt-6 space-y-3">
-                                    <div className="text-sm font-medium text-muted-foreground">
-                                        Suggestions for improvement:
+                                {currentEvent[platformKey] && (
+                                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                                        <div className="flex gap-2 mb-2">
+                                            {currentEvent[platformKey] === "search" && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                    <Globe className="h-3 w-3 mr-1" />
+                                                    Web Search
+                                                </Badge>
+                                            )}
+                                            {currentEvent[platformKey] === "extract" && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                    <Sparkles className="h-3 w-3 mr-1" />
+                                                    Content Extract
+                                                </Badge>
+                                            )}
+                                            {currentEvent[platformKey] === "response" && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                    <Sparkles className="h-3 w-3 mr-1" />
+                                                    Generating...
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="grid gap-2">
-                                        {options[platformKey].map((option, index) => (
+                                )}
+                            </CardContent>
+
+                            <CardFooter className="flex items-center justify-end">
+                                <TooltipProvider delayDuration={0}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
                                             <Button
-                                                key={index}
-                                                variant="outline"
+                                                variant="ghost"
                                                 size="sm"
-                                                className="justify-start text-left h-auto p-3 whitespace-normal"
-                                                onClick={() => {
-                                                    setPrompt(option);
-                                                    textareaRef.current?.focus();
-                                                }}
+                                                className="h-8 w-8 p-0 disabled:opacity-100"
+                                                onClick={() => handleCopyPost(draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post, `${platformKey}-post`)}
+                                                aria-label={copiedStates[`${platformKey}-post`] ? "Copied" : "Copy to clipboard"}
+                                                disabled={copiedStates[`${platformKey}-post`] || !draftState[platformKey].posts[draftState[platformKey].currentPostVersion]?.post}
                                             >
-                                                <Sparkles className="h-3 w-3 mr-2 flex-shrink-0 mt-0.5" />
-                                                {option}
+                                                <div
+                                                    className={cn(
+                                                        "transition-all",
+                                                        copiedStates[`${platformKey}-post`] ? "scale-100 opacity-100" : "scale-0 opacity-0",
+                                                    )}
+                                                >
+                                                    <Check className="stroke-emerald-500" size={16} strokeWidth={2} aria-hidden="true" />
+                                                </div>
+                                                <div
+                                                    className={cn(
+                                                        "absolute transition-all",
+                                                        copiedStates[`${platformKey}-post`] ? "scale-0 opacity-0" : "scale-100 opacity-100",
+                                                    )}
+                                                >
+                                                    <Copy size={16} strokeWidth={2} aria-hidden="true" />
+                                                </div>
                                             </Button>
-                                        ))}
+                                        </TooltipTrigger>
+                                        <TooltipContent className="px-2 py-1 text-xs">
+                                            {copiedStates[`${platformKey}-post`] ? "Copied!" : "Copy post"}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </CardFooter>
+                        </Card>
+
+                    </div>
+
+
+                    <div className="w-full lg:w-1/2">
+                        {/* Image Card */}
+                        <Card className="h-full">
+                            <CardHeader>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <ImagePlus className="h-5 w-5" />
+                                        <span className="font-medium">Generated Images</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleUndo('image')}
+                                            disabled={!canUndo('image')}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Undo2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRedo('image')}
+                                            disabled={!canRedo('image')}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Redo2 className="h-4 w-4" />
+                                        </Button>
+                                        <span className="text-xs text-muted-foreground">
+                                            {draftState[platformKey].images.length > 0 ? `${draftState[platformKey].currentImageVersion + 1}/${draftState[platformKey].images.length}` : '0/0'}
+                                        </span>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    </CardContent>
+                            </CardHeader>
 
-                    <CardFooter className="flex items-center justify-end">
 
-                        <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0 disabled:opacity-100"
-                                        onClick={() => handleCopyPost(draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post, 'x-post')}
-                                        aria-label={copiedStates['x-post'] ? "Copied" : "Copy to clipboard"}
-                                        disabled={copiedStates['x-post']}
-                                    >
-                                        <div
-                                            className={cn(
-                                                "transition-all",
-                                                copiedStates['x-post'] ? "scale-100 opacity-100" : "scale-0 opacity-0",
-                                            )}
+                            <CardContent className="relative flex items-center justify-center">
+                                {draftState[platformKey].images[draftState[platformKey].currentImageVersion] ? (
+                                    <div className="relative group h-60 w-60 flex items-center justify-center">
+                                        <Image
+                                            src={draftState[platformKey].images[draftState[platformKey].currentImageVersion].url}
+                                            alt="Generated image"
+                                            fill
+                                            className="w-full h-full mx-auto rounded-lg border shadow-sm object-cover"
+                                        />
+                                    </div>
+                                ) : createImageMutation.isPending ? (
+                                    <div className="h-60 w-60">
+                                        <Skeleton className="w-full h-full" />
+                                    </div>
+                                ) : (
+                                    <div className="h-60 w-60 flex items-center justify-center">
+                                        <Button variant="outline"
+                                            onClick={() => {
+                                                if (draftId) {
+                                                    createImageMutation.mutate({
+                                                        message: "create a related images for this post",
+                                                        id: draftId,
+                                                        platform: platform.toLowerCase() as "all" | "x" | "linkedin",
+                                                        images: images.filter(img => img.uploaded).map(img => img.imageUrl!)
+                                                    });
+                                                    return;
+                                                }
+                                                toast.error("Please create a post first");
+                                            }}
+                                            disabled={!draftId || draftState[platformKey].posts.length === 0}
+
                                         >
-                                            <Check className="stroke-emerald-500" size={16} strokeWidth={2} aria-hidden="true" />
-                                        </div>
-                                        <div
-                                            className={cn(
-                                                "absolute transition-all",
-                                                copiedStates['x-post'] ? "scale-0 opacity-0" : "scale-100 opacity-100",
-                                            )}
-                                        >
-                                            <Copy size={16} strokeWidth={2} aria-hidden="true" />
-                                        </div>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="px-2 py-1 text-xs">
-                                    {copiedStates['x-post'] ? "Copied!" : "Copy post"}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-
-                    </CardFooter>
+                                            Create Image
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
 
 
-
-                </Card>
-
-                {/* Image Card */}
-                {draftState[platformKey].images.length > 0 && (
-                    <Card className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <ImagePlus className="h-5 w-5" />
-                                <span className="font-medium">Generated Images</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleUndo('image')}
-                                    disabled={!canUndo('image')}
-                                    className="h-8 w-8 p-0"
-                                >
-                                    <Undo2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRedo('image')}
-                                    disabled={!canRedo('image')}
-                                    className="h-8 w-8 p-0"
-                                >
-                                    <RotateCcw className="h-4 w-4" />
-                                </Button>
-                                <span className="text-xs text-muted-foreground">
-                                    {draftState[platformKey].images.length > 0 ? `${draftState[platformKey].currentImageVersion + 1}/${draftState[platformKey].images.length}` : '0/0'}
-                                </span>
-                            </div>
+                            <CardFooter className="flex items-center justify-end">
+                                <TooltipProvider delayDuration={0}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 w-8 p-0"
+                                                onClick={() => handleDownloadImage(
+                                                    draftState[platformKey].images[draftState[platformKey].currentImageVersion].url,
+                                                    `${platformKey}-post-image-${Date.now()}.png`
+                                                )}
+                                            >
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="px-2 py-1 text-xs">
+                                            Download image
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </CardFooter>
+                        </Card>
+                    </div>
+                </div>
+                {/* Suggestions */}
+                {options[platformKey].length > 0 && !currentEvent[platformKey] && (
+                    <div className="mt-6 space-y-3 w-full">
+                        <div className="text-sm font-medium text-muted-foreground">
+                            Suggestions for improvement:
                         </div>
-
-                        <div className="relative">
-                            {draftState[platformKey].images[draftState[platformKey].currentImageVersion] ? (
-                                <div className="relative group">
-                                    <Image
-                                        src={draftState[platformKey].images[draftState[platformKey].currentImageVersion].url}
-                                        alt="Generated image"
-                                        width={400}
-                                        height={300}
-                                        className="w-full max-w-md mx-auto rounded-lg border shadow-sm"
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="absolute top-2 right-2 h-8 w-8 p-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => handleDownloadImage(
-                                            draftState[platformKey].images[draftState[platformKey].currentImageVersion].url,
-                                            `x-post-image-${Date.now()}.jpg`
-                                        )}
-                                    >
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="text-muted-foreground text-sm py-8 text-center">
-                                    No images generated yet
-                                </div>
-                            )}
+                        <div className="flex items-center flex-nowrap gap-4 overflow-x-auto no-scrollbar">
+                            {options[platformKey].map((option, index) => (
+                                <Button
+                                    key={index}
+                                    variant="outline"
+                                    size="sm"
+                                    className="justify-start text-left h-auto p-3 whitespace-normal flex-shrink-0"
+                                    onClick={() => {
+                                        setPrompt(prev => ({ ...prev, [platformKey]: option }));
+                                        textareaRef.current?.focus();
+                                    }}
+                                >
+                                    <Sparkles className="h-3 w-3 mr-2 flex-shrink-0 mt-0.5" />
+                                    {option}
+                                </Button>
+                            ))}
                         </div>
-                    </Card>
+                    </div>
                 )}
-            </>
+            </div>
         );
     }
-
 
     // If no draftId, show creation mode
     if (!draftId) {
@@ -836,7 +962,7 @@ const Page = () => {
     }
 
     // If loading draft data, show loader
-    if (isDraftLoading) {
+    if (isDraftLoading || isLoadingAccounts) {
         return (
             <div className="min-h-screen bg-background">
                 <div className="container max-w-4xl mx-auto py-8">
@@ -864,25 +990,17 @@ const Page = () => {
         );
     }
 
-    const currentState = draftState[activeTab as keyof typeof draftState];
-    const currentPost = currentState?.posts[currentState.currentPostVersion];
-
-    // Debug: Log current render state
-    console.log(`🖼️ RENDER - Active tab: ${activeTab}`);
-    console.log(`🖼️ RENDER - Current state for ${activeTab}:`, currentState);
-    console.log(`🖼️ RENDER - Current post:`, currentPost);
-    console.log(`🖼️ RENDER - Full draft state:`, draftState);
-
     return (
         <div className="min-h-screen bg-background">
             <div className="container max-w-4xl mx-auto py-8 pb-32 space-y-6">
                 {/* Platform Tabs */}
                 <div className="space-y-3"></div>
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-4">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "x" | "linkedin")} className="w-full gap-4">
                     <TabsList className="grid w-full grid-cols-2 bg-transparent">
                         <TabsTrigger
                             value="x"
                             className="flex items-center gap-2 p-3 hover:cursor-pointer hover:bg-background"
+                            disabled={platform !== "X" && platform !== "ALL"}
                         >
                             <XLogo size="2xl" />
                             X (Twitter)
@@ -890,6 +1008,7 @@ const Page = () => {
                         <TabsTrigger
                             value="linkedin"
                             className="flex items-center gap-2"
+                            disabled={platform !== "LINKEDIN" && platform !== "ALL"}
                         >
                             <LinkedinLogo size="2xl" />
                             LinkedIn
@@ -938,6 +1057,35 @@ const Page = () => {
                                 </SelectContent>
                             </Select>
                         </div>
+                        {/* X Account Selection */}
+                        {(platform === "X" || platform === "ALL") && (
+                            <div className="flex-1">
+                                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                                    X Account
+                                </label>
+                                <Select value={selectedXAccount || ""} onValueChange={setSelectedXAccount}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select X account" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {connectedXAccounts.length > 0 ? (
+                                            connectedXAccounts.map((account) => (
+                                                <SelectItem key={account.id} value={account.id}>
+                                                    <div className="flex items-center gap-2">
+                                                        <XLogo size="sm" />
+                                                        {account.name}
+                                                    </div>
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="" disabled>
+                                                No X accounts connected
+                                            </SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -950,6 +1098,10 @@ const Page = () => {
                             ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
                             : "border-border hover:shadow-xl"
                             }`}
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
                     >
                         <input
                             ref={fileInputRef}
@@ -1002,7 +1154,7 @@ const Page = () => {
                         <Textarea
                             ref={textareaRef}
                             placeholder="What's on your mind?"
-                            value={prompt[activeTab as keyof typeof prompt]}
+                            value={prompt[activeTab]}
                             onChange={(e) => setPrompt(prev => ({ ...prev, [activeTab]: e.target.value }))}
                             onPaste={handlePaste}
                             onKeyDown={(e) => {
@@ -1011,10 +1163,6 @@ const Page = () => {
                                     handleSendMessage();
                                 }
                             }}
-                            onDragEnter={handleDragEnter}
-                            onDragLeave={handleDragLeave}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
                             className="min-h-15 max-h-15 resize-none! border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl leading-relaxed p-6 scroll-bar"
                         />
 
@@ -1065,9 +1213,10 @@ const Page = () => {
                             <Button
                                 onClick={handleSendMessage}
                                 disabled={
-                                    !prompt[activeTab as keyof typeof prompt] ||
+                                    !prompt[activeTab].trim() ||
                                     images.some(img => img.uploading) ||
-                                    createPostMutation.isPending
+                                    createPostMutation.isPending ||
+                                    ((platform === "X" || platform === "ALL") && !selectedXAccount)
                                 }
                                 size="sm"
                                 className="h-8 w-8 p-0 rounded-full"
@@ -1128,6 +1277,5 @@ const Page = () => {
         </div>
     );
 };
-
 
 export default Page;

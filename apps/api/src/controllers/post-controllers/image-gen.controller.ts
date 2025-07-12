@@ -5,38 +5,21 @@ import { z } from "zod";
 import db from "@repo/db";
 import { imageGen } from "@repo/ai";
 import type { ImageGenOptions } from "@repo/ai";
-import fileToBase64 from "../../utils/file-to-base64";
 import ApiResponse from "../../utils/api-response";
 import { logger } from "@repo/logger";
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+import { getZodErrorMessage } from "../../utils/zod-error-message";
 
 const bodySchema = z.object({
     id: z.string(),
     platform: z.enum(["linkedin", "x", "all"]),
     message: z.string(),
     images: z
-        .union([z.instanceof(File), z.array(z.instanceof(File))])
+        .union([z.string(), z.array(z.string())])
         .optional()
         .transform(val => {
             if (!val) return undefined;
             return Array.isArray(val) ? val : [val];
-        })
-        .refine(
-            files => {
-                if (!files) return true;
-                return files.every(file => file.size <= MAX_FILE_SIZE);
-            },
-            { message: "Each image must be less than 5MB" },
-        )
-        .refine(
-            files => {
-                if (!files) return true;
-                return files.every(file => ALLOWED_TYPES.includes(file.type));
-            },
-            { message: "Only PNG, JPEG, and WEBP images are allowed" },
-        ),
+        }),
     version: z
         .union([
             z.number().min(0),
@@ -51,12 +34,10 @@ const bodySchema = z.object({
         .optional(),
 });
 
-const bodySchemaValidator = zValidator("form", bodySchema, result => {
+const bodySchemaValidator = zValidator("json", bodySchema, result => {
     if (!result.success) {
         throw new HTTPException(400, {
-            message:
-                "Invalid Body: " +
-                result.error.errors.map(e => e.message).join(", "),
+            message: getZodErrorMessage(result.error),
         });
     }
 });
@@ -70,21 +51,7 @@ const imageGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const user = c.get("user")!;
-        const { id, message, version, platform, images } = c.req.valid("form");
-
-        // Convert images to base64 URLs
-        let base64Images: string[] = [];
-        if (images && images.length > 0) {
-            try {
-                base64Images = await Promise.all(
-                    images.map(file => fileToBase64(file)),
-                );
-            } catch (error) {
-                throw new HTTPException(500, {
-                    message: "Failed to process images",
-                });
-            }
-        }
+        const { id, message, version, platform, images } = c.req.valid("json");
 
         const draft = await db.draft.findUnique({
             where: {
@@ -102,7 +69,7 @@ const imageGenController = factory.createHandlers(
         const options: ImageGenOptions = {
             draftId: draft.id,
             message,
-            images: base64Images.length > 0 ? base64Images : undefined,
+            images: images && images.length > 0 ? images : undefined,
             version,
         };
 

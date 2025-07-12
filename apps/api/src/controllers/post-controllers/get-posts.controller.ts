@@ -3,12 +3,17 @@ import { z } from "zod";
 import factory from "../../utils/factory";
 import { getPosts, type GetPostsResponse } from "@repo/ai";
 import ApiResponse from "../../utils/api-response";
-import db from "@repo/db";
+import db, { Platform } from "@repo/db";
 import { HTTPException } from "hono/http-exception";
 
 const getPostsSchema = z.object({
     draftId: z.string(),
 });
+
+interface GetPostsResponseWithPlatform {
+    posts: GetPostsResponse;
+    platform: Platform;
+}
 
 const queryValidator = zValidator("query", getPostsSchema);
 
@@ -28,10 +33,15 @@ const getPostsController = factory.createHandlers(queryValidator, async c => {
         });
     }
     const posts = await getPosts({ draftId: draft.id });
+
+    const response: GetPostsResponseWithPlatform = {
+        posts: posts,
+        platform: draft.platform,
+    }
     return c.json(
-        new ApiResponse<GetPostsResponse>({
+        new ApiResponse<GetPostsResponseWithPlatform>({
             message: "Posts fetched successfully",
-            data: posts,
+            data: response,
             status: 200,
         }),
         200,

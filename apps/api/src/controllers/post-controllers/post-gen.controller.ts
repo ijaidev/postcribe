@@ -9,12 +9,12 @@ import {
     type PostGenStreamResponse,
 } from "@repo/ai";
 import { stream, streamText } from "hono/streaming";
-import type { Draft } from "@prisma/client";
+import type { Draft, Platform } from "@prisma/client";
 import { getZodErrorMessage } from "../../utils/zod-error-message";
 
 const bodySchema = z.object({
     id: z.string().optional(),
-    platform: z.enum(["LINKEDIN", "X", "ALL"]),
+    platform: z.enum(["LINKEDIN", "X", "ALL"]).optional().default("ALL"),
     xLoginId: z.string().optional(),
     message: z.string(),
     images: z
@@ -59,7 +59,7 @@ const postGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const user = c.get("user")!;
-        const { id, message, forceWeb, version, platform, images, xLoginId } =
+        let { id, message, forceWeb, version, platform, images, xLoginId } =
             c.req.valid("json");
 
         // Images are already validated base64 strings from Zod schema
@@ -72,6 +72,7 @@ const postGenController = factory.createHandlers(
                 data: {
                     userId: user.id,
                     title: "Generated Post Draft",
+                    platform: platform as Platform,
                 },
             });
         } else {
@@ -88,6 +89,7 @@ const postGenController = factory.createHandlers(
                 message: "Draft not found",
             });
         }
+        platform = draft.platform;
 
         let options: PostGenOptions = {
             draftId: draft.id,

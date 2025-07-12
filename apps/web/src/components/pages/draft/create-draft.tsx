@@ -52,8 +52,8 @@ interface PlatformSelection {
 const $post = client.post.draft.$post
 type DraftCreate = InferRequestType<typeof $post>['json']
 
-export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost: (data: DraftCreate) => void, isCreating: boolean }) {
-
+export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost: (data: DraftCreate, generateImage: boolean) => void, isCreating: boolean }) {
+    
 
 
     const [prompt, setPrompt] = useState("");
@@ -81,7 +81,7 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
         queryFn: async () => {
             const response = await client.social.accounts.$get();
             if (!response.ok) throw new Error('Failed to fetch accounts');
-            return response.json();
+        return response.json();
         },
     });
 
@@ -251,7 +251,9 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
             platform: platform as "ALL" | "X" | "LINKEDIN",
             images: images.map(img => img.imageUrl!),
             forceWeb: forceWeb
-        });
+        },
+        generateImage
+    );
     };
     useEffect(() => {
         if (socialAccounts && socialAccounts.data && socialAccounts.data.length > 0) {

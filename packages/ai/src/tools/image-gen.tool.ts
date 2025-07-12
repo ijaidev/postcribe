@@ -5,9 +5,10 @@ import {
     type StructuredToolParams,
     type ToolRunnableConfig,
 } from "@langchain/core/tools";
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+
+// const openai = new OpenAI({
+//     apiKey: process.env.OPENAI_API_KEY,
+// });
 
 import { uploadImages } from "@repo/s3";
 import { Command, getCurrentTaskInput } from "@langchain/langgraph";
@@ -48,41 +49,61 @@ const ImageGenTool = tool(
             );
         }
 
-        const result = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt,
-            n: 1,
-            size: "1024x1024",
-            quality: "medium",
-            output_format: "png",
-        });
+        // const result = await openai.images.generate({
+        //     model: "gpt-image-1",
+        //     prompt,
+        //     n: 1,
+        //     size: "1024x1024",
+        //     quality: "medium",
+        //     output_format: "png",
+        // });
 
-        const image_base64 = result?.data?.[0]?.b64_json;
-        if (!image_base64) {
-            throw new Error(
-                "Failed to generate image - no data received from OpenAI",
-            );
-        }
+        // const image_base64 = result?.data?.[0]?.b64_json;
+        // if (!image_base64) {
+        //     throw new Error(
+        //         "Failed to generate image - no data received from OpenAI",
+        //     );
+        // }
 
-        const urls = await uploadImages([
-            {
-                base64: image_base64,
-                contentType: "image/png",
-            },
-        ]);
+        // const urls = await uploadImages([
+        //     {
+        //         base64: image_base64,
+        //         contentType: "image/png",
+        //     },
+        // ]);
 
+        // return new Command<imageGraphState>({
+        //     update: {
+        //         images: [
+        //             {
+        //                 imageUrl: urls[0],
+        //                 messageId: lastHumanMessage?.id,
+        //             },
+        //         ],
+        //         messages: [
+        //             new ToolMessage({
+        //                 content: JSON.stringify({
+        //                     url: urls[0],
+        //                     action: "generated_image",
+        //                 }),
+        //                 tool_call_id: config.toolCall?.id as string,
+        //             }),
+        //         ],
+        //     },
+        // });
         return new Command<imageGraphState>({
             update: {
                 images: [
                     {
-                        imageUrl: urls[0],
+                        imageUrl:
+                            "https://pub-a9d1d733450b4c238f0f8fcd82d6d699.r2.dev/postcribe/1748263964568-8n7pfect5rt.png",
                         messageId: lastHumanMessage?.id,
                     },
                 ],
                 messages: [
                     new ToolMessage({
                         content: JSON.stringify({
-                            url: urls[0],
+                            url: "https://pub-a9d1d733450b4c238f0f8fcd82d6d699.r2.dev/postcribe/1748263964568-8n7pfect5rt.png",
                             action: "generated_image",
                         }),
                         tool_call_id: config.toolCall?.id as string,
