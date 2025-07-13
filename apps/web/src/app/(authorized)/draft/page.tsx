@@ -12,8 +12,7 @@ import { XLogo } from "@/components/ui/x-logo";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Sparkles, Globe, Undo2, ImagePlus, X, Paperclip, Copy, Download, Check, Redo2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Send, Loader2, Sparkles, Globe, Undo2, ImagePlus, X, Paperclip, Copy, Download, Check, Redo2, Text, Image as ImageIcon } from "lucide-react";
 import { ThreeDotLoader } from "@/components/ui/loaders";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,6 +25,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { TextShimmer } from "@/components/ui/text-shimmer";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface StreamData extends PostGenStreamResponse {
     platform: "X" | "LINKEDIN";
@@ -77,7 +77,6 @@ const Page = () => {
     });
 
     const [activeTab, setActiveTab] = useState<"x" | "linkedin">("x");
-    const [applyOn, setApplyOn] = useState("Post");
     const [platform, setPlatform] = useState<"ALL" | "X" | "LINKEDIN">("ALL");
     const [selectedXAccount, setSelectedXAccount] = useState<string | null>(null);
     const [showUndoAlert, setShowUndoAlert] = useState(false);
@@ -86,6 +85,9 @@ const Page = () => {
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [copiedStates, setCopiedStates] = useState<{ [key: string]: boolean }>({});
+    const [platFromToEdit, setPlatFromToEdit] = useState<"ALL" | "X" | "LINKEDIN">("ALL");
+    const [applyOn, setApplyOn] = useState<"post" | "image">("post");
+
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasStarted = useRef({
@@ -205,6 +207,7 @@ const Page = () => {
             // Update platform from the backend response
             if (draftData.data.platform) {
                 setPlatform(draftData.data.platform);
+                setPlatFromToEdit(draftData.data.platform);
             }
 
             const postsData = draftData.data.posts
@@ -427,10 +430,12 @@ const Page = () => {
 
                             const platformKey = data.platform.toLowerCase() as "x" | "linkedin";
 
-                            setCurrentEvent(prev => {
-                                const newEvent = { ...prev, [platformKey]: data.event };
-                                return newEvent;
-                            });
+                            if (currentEvent[platformKey] !== data.event) {
+                                setCurrentEvent(prev => {
+                                    const newEvent = { ...prev, [platformKey]: data.event };
+                                    return newEvent;
+                                });
+                            }
 
                             if (data.event === "response") {
                                 buffer[platformKey] += data.content;
@@ -630,7 +635,7 @@ const Page = () => {
                 message: currentPrompt,
                 images: images.filter(img => img.uploaded).map(img => img.imageUrl!),
                 forceWeb: forceWeb,
-                version: applyOn === "Post" ?
+                version: applyOn === "post" ?
                     draftState[activeTab].currentPostVersion :
                     draftState[activeTab].currentImageVersion,
                 ...(selectedXAccount && (platform === "X" || platform === "ALL") && { xLoginId: selectedXAccount })
@@ -690,10 +695,6 @@ const Page = () => {
             toast.error("Failed to download image");
         }
     };
-
-    const connectedXAccounts = socialAccounts?.data?.filter(
-        account => account.provider === "X" && account.isConnected
-    ) || [];
 
     const Content = ({
         platformKey,
@@ -773,8 +774,8 @@ const Page = () => {
                                         <Skeleton className="h-4 w-1/2" />
                                     </div>
                                 ) : draftState[platformKey].posts[draftState[platformKey].currentPostVersion]?.post ? (
-                                    <div className="h-96 flex items-center justify-center overflow-y-auto scroll-bar">
-                                        <div className="overflow-y-auto scroll-bar">
+                                    <div className="h-96 flex items-center justify-center">
+                                        <div className="overflow-y-auto scroll-bar h-full">
                                             <div className="whitespace-pre-wrap text-sm leading-relaxed pr-4 pt-4">
                                                 {draftState[platformKey].posts[draftState[platformKey].currentPostVersion].post}
                                             </div>
@@ -1040,17 +1041,13 @@ const Page = () => {
             </div>
 
             {/* Sticky Bottom Input  */}
-            <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4">
+            <div className="sticky bottom-0 left-0 right-0 p-4 -m-6 px-36 ">
                 <div>
                     <Card
-                        className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-6 ${isDragging
-                            ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
+                        className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-2 gap-1 ${isDragging
+                            ? "border-primary shadow-2xl scale-[1.02] ring-2 ring-primary/20"
                             : "border-border hover:shadow-xl"
                             }`}
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
                     >
                         <input
                             ref={fileInputRef}
@@ -1062,42 +1059,61 @@ const Page = () => {
                         />
 
                         {/* Images at top of card */}
-                        {images.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                {images.map((image) => (
-                                    <div key={image.id} className="relative group">
-                                        <Image
-                                            src={image.preview}
-                                            alt="Upload preview"
-                                            width={64}
-                                            height={64}
-                                            className={`w-16 h-16 object-cover rounded-lg border-2 shadow-sm transition-opacity ${image.uploading && 'border-primary opacity-70'
-                                                }`}
-                                        />
+                        <div className="flex flex-wrap gap-2 mb-1">
+                            {images.length > 0 && images.map((image) => (
+                                <div key={image.id} className="relative group">
+                                    <Image
+                                        src={image.preview}
+                                        alt="Upload preview"
+                                        width={40}
+                                        height={40}
+                                        className={`object-cover rounded-lg border-2 shadow-sm transition-opacity ${image.uploading && 'border-primary opacity-70'
+                                            }`}
+                                    />
 
-                                        {/* Upload loading overlay */}
-                                        {image.uploading && (
-                                            <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                                                <Loader2 className="h-4 w-4 animate-spin text-white" />
-                                            </div>
-                                        )}
-
-                                        <button
-                                            onClick={() => removeImage(image.id)}
-                                            className="absolute -top-1 -right-1 p-0.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 text-xs"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </div>
-                                ))}
-                                <div className="text-xs text-muted-foreground flex items-center">
-                                    {images.length}/5 images
-                                    {images.some(img => img.uploading) && (
-                                        <span className="ml-2 text-primary">Uploading...</span>
+                                    {/* Upload loading overlay */}
+                                    {image.uploading && (
+                                        <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                        </div>
                                     )}
+
+                                    <button
+                                        onClick={() => removeImage(image.id)}
+                                        className="absolute -top-1 -right-1 p-0.5 bg-destructive text-destructive-foreground rounded-full transition-opacity hover:bg-destructive/90"
+                                    >
+                                        <X className="h-2 w-2" />
+                                    </button>
                                 </div>
-                            </div>
-                        )}
+                            ))}
+                            {platform === "ALL" && (<>
+                                <div className="flex-1" />
+                                <div className="flex items-center gap-1 ml-4">
+                                    <div className="inline-flex h-9 rounded-lg bg-input/50 p-0.5 max-w-[400px]">
+                                        <RadioGroup
+                                            value={platFromToEdit}
+                                            onValueChange={(value) => setPlatFromToEdit(value as "ALL" | "X" | "LINKEDIN")}
+                                            className="group relative inline-grid grid-cols-[1fr_1fr_1fr] items-center gap-0 text-sm font-medium after:absolute after:inset-y-0 after:w-1/3 after:rounded-md after:bg-card after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=X]:after:translate-x-0 data-[state=LINKEDIN]:after:translate-x-full data-[state=ALL]:after:translate-x-[200%]"
+                                            data-state={platFromToEdit}
+                                        >
+                                            <label className="relative z-10 inline-flex h-full min-w-8 cursor-pointer select-none items-center justify-center whitespace-nowrap px-3 transition-colors group-data-[state=LINKEDIN]:text-muted-foreground/70 group-data-[state=ALL]:text-muted-foreground/70">
+                                                <XLogo size="sm" />
+                                                <RadioGroupItem value="X" className="sr-only" />
+                                            </label>
+                                            <label className="relative z-10 inline-flex h-full min-w-8 cursor-pointer select-none items-center justify-center whitespace-nowrap px-3 transition-colors group-data-[state=X]:text-muted-foreground/70 group-data-[state=ALL]:text-muted-foreground/70">
+                                                <LinkedinLogo size="sm" />
+                                                <RadioGroupItem value="LINKEDIN" className="sr-only" />
+                                            </label>
+                                            <label className="relative z-10 inline-flex h-full min-w-8 cursor-pointer select-none items-center justify-center whitespace-nowrap px-3 transition-colors group-data-[state=X]:text-muted-foreground/70 group-data-[state=LINKEDIN]:text-muted-foreground/70">
+                                                <span className="text-xs font-medium">ALL</span>
+                                                <RadioGroupItem value="ALL" className="sr-only" />
+                                            </label>
+                                        </RadioGroup>
+                                    </div>
+                                </div>
+                            </>)}
+
+                        </div>
 
                         {/* Textarea */}
                         <Textarea
@@ -1112,50 +1128,84 @@ const Page = () => {
                                     handleSendMessage();
                                 }
                             }}
-                            className="min-h-15 max-h-15 resize-none! border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl leading-relaxed p-6 scroll-bar"
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            className="min-h-20 max-h-20 resize-none! border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl leading-relaxed p-2 scroll-bar"
                         />
 
                         {/* Bottom actions */}
                         <div className="flex items-center justify-between">
                             <TooltipProvider>
-                                <div className="flex items-center gap-3">
-                                    {/* Attach button */}
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                disabled={images.length >= 5 || uploadImageMutation.isPending}
-                                                className="h-8 w-8 p-0 rounded-full hover:bg-accent"
-                                            >
-                                                <Paperclip className="h-15 w-15 text-muted-foreground" size={15} />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <span>Attach images</span>
-                                        </TooltipContent>
-                                    </Tooltip>
-
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <div>
-                                                <Toggle
-                                                    pressed={forceWeb}
-                                                    onPressedChange={setForceWeb}
-                                                    variant="outline"
+                                <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {/* Attach button */}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
                                                     size="sm"
-                                                    className="h-8 w-8 p-0 rounded-full border-none bg-transparent"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={images.length >= 5 || uploadImageMutation.isPending}
+                                                    className="h-8 w-8 p-0 rounded-full hover:bg-accent"
                                                 >
-                                                    <Globe className="h-15 w-15" size={15} />
-                                                </Toggle>
-                                            </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <span>Toggle Web Search</span>
-                                        </TooltipContent>
-                                    </Tooltip>
+                                                    <Paperclip className="h-15 w-15 text-muted-foreground" size={15} />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <span>Attach images</span>
+                                            </TooltipContent>
+                                        </Tooltip>
+
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div>
+                                                    <Toggle
+                                                        pressed={forceWeb}
+                                                        onPressedChange={setForceWeb}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 rounded-full border-none bg-transparent"
+                                                    >
+                                                        <Globe className="h-15 w-15" size={15} />
+                                                    </Toggle>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <span>Toggle Web Search</span>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <div className="flex items-center gap-1 ml-4">
+                                        <div className="inline-flex h-9 rounded-lg bg-input/50 p-0.5 max-w-[400px]">
+                                            <RadioGroup
+                                                value={applyOn}
+                                                onValueChange={(value) => setApplyOn(value as "post" | "image")}
+                                                className="group relative inline-grid grid-cols-[1fr_1fr] items-center gap-0 text-sm font-medium after:absolute after:inset-y-0 after:w-1/2 after:rounded-md after:bg-card after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=post]:after:translate-x-0 data-[state=image]:after:translate-x-full"
+                                                data-state={applyOn}
+                                            >
+                                                <label className="relative z-10 inline-flex h-full min-w-8 cursor-pointer select-none items-center justify-center whitespace-nowrap px-4 transition-colors group-data-[state=image]:text-muted-foreground/70">
+                                                    <Text className="h-5 w-5 mr-2" />
+                                                    <span>
+                                                        Post
+                                                    </span>
+                                                    <RadioGroupItem value="post" className="sr-only" />
+
+                                                </label>
+                                                <label className="relative z-10 inline-flex h-full min-w-8 cursor-pointer select-none items-center justify-center whitespace-nowrap px-4 transition-colors group-data-[state=post]:text-muted-foreground/70">
+                                                    <ImageIcon className="h-5 w-5 mr-2" />
+                                                    <span>
+                                                        Image
+                                                    </span>
+                                                    <RadioGroupItem value="image" className="sr-only" />
+
+                                                </label>
+                                            </RadioGroup>
+                                        </div>
+                                    </div>
                                 </div>
+
                             </TooltipProvider>
 
                             {/* Send button */}
