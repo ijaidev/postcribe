@@ -11,64 +11,91 @@ import type { SuggestionGenStreamResponse, Suggestions } from "@repo/ai";
 import { parse, Allow } from "partial-json";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 
-
-export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt }: { socialLoginId: string, autoLoad?: boolean, setPrompt: (prompt: string) => void }) {
-    const [suggestions, setSuggestions] = useState<Suggestions["suggestions"]>([]);
+export default function Suggestions({
+    socialLoginId,
+    autoLoad = true,
+    setPrompt,
+}: {
+    socialLoginId: string;
+    autoLoad?: boolean;
+    setPrompt: (prompt: string) => void;
+}) {
+    const [suggestions, setSuggestions] = useState<Suggestions["suggestions"]>(
+        [],
+    );
     const [isLoading, setIsLoading] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    const generateSuggestions = useCallback(async (refresh = false) => {
-        if (!socialLoginId) return;
+    const generateSuggestions = useCallback(
+        async (refresh = false) => {
+            if (!socialLoginId) return;
 
-        setIsLoading(true);
-        setSuggestions([]);
+            setIsLoading(true);
+            setSuggestions([]);
 
-        try {
-            const response = await client.post.suggestions.$post({
-                json: {
-                    socialLoginId: socialLoginId,
-                    refresh,
-                },
-            });
+            try {
+                const response = await client.post.suggestions.$post({
+                    json: {
+                        socialLoginId: socialLoginId,
+                        refresh,
+                    },
+                });
 
-            if (!response.ok) {
-                throw new Error("Failed to generate suggestions");
-            }
-
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error("No response stream available");
-            }
-
-            const decoder = new TextDecoder();
-            const parser = new JsonOutputParser();
-
-            let buffer = "";
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunks = decoder.decode(value, { stream: true })
-                const chunksArray = chunks.split("\n").filter(chunk => chunk.trim() !== "");
-                for (const chunk of chunksArray) {
-                    const parsedChunk = await parser.parse(chunk) as SuggestionGenStreamResponse;
-                    if (parsedChunk.event !== "response") continue;
-                    buffer += parsedChunk.content;
-                    const parsed = parse(buffer, Allow.ALL) as Partial<Suggestions>;
-                    const newSuggestions = parsed.suggestions || [];
-                    setSuggestions(prev => {
-                        if (newSuggestions.length < prev.length) return prev;
-                        if (newSuggestions.length > prev.length) return [...prev, ...newSuggestions.slice(prev.length)];
-                        return [...prev.slice(0, -1), newSuggestions[newSuggestions.length - 1]];
-                    });
+                if (!response.ok) {
+                    throw new Error("Failed to generate suggestions");
                 }
+
+                const reader = response.body?.getReader();
+                if (!reader) {
+                    throw new Error("No response stream available");
+                }
+
+                const decoder = new TextDecoder();
+                const parser = new JsonOutputParser();
+
+                let buffer = "";
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunks = decoder.decode(value, { stream: true });
+                    const chunksArray = chunks
+                        .split("\n")
+                        .filter(chunk => chunk.trim() !== "");
+                    for (const chunk of chunksArray) {
+                        const parsedChunk = (await parser.parse(
+                            chunk,
+                        )) as SuggestionGenStreamResponse;
+                        if (parsedChunk.event !== "response") continue;
+                        buffer += parsedChunk.content;
+                        const parsed = parse(
+                            buffer,
+                            Allow.ALL,
+                        ) as Partial<Suggestions>;
+                        const newSuggestions = parsed.suggestions || [];
+                        setSuggestions(prev => {
+                            if (newSuggestions.length < prev.length)
+                                return prev;
+                            if (newSuggestions.length > prev.length)
+                                return [
+                                    ...prev,
+                                    ...newSuggestions.slice(prev.length),
+                                ];
+                            return [
+                                ...prev.slice(0, -1),
+                                newSuggestions[newSuggestions.length - 1],
+                            ];
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error generating suggestions:", error);
+                toast.error("Failed to generate suggestions");
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error("Error generating suggestions:", error);
-            toast.error("Failed to generate suggestions");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [socialLoginId]);
+        },
+        [socialLoginId],
+    );
 
     // Auto-load suggestions on mount
     useEffect(() => {
@@ -83,20 +110,29 @@ export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt 
 
     const scrollLeft = () => {
         if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+            scrollContainerRef.current.scrollBy({
+                left: -300,
+                behavior: "smooth",
+            });
         }
     };
 
     const scrollRight = () => {
         if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+            scrollContainerRef.current.scrollBy({
+                left: 300,
+                behavior: "smooth",
+            });
         }
     };
 
     const renderSkeletons = () => {
         return Array.from({ length: 8 }, (_, index) => (
-            <Card key={`skeleton-${index}`} className="flex-shrink-0 w-96 min-h-40 border-dashed bg-muted/30 flex items-center justify-center">
-                <CardContent className="p-3 flex items-center flex-col gap-4 justify-center">
+            <Card
+                key={`skeleton-${index}`}
+                className="bg-muted/30 flex min-h-40 w-96 flex-shrink-0 items-center justify-center border-dashed"
+            >
+                <CardContent className="flex flex-col items-center justify-center gap-4 p-3">
                     <Skeleton className="h-3 w-90" />
                     <Skeleton className="h-3 w-80" />
                     <Skeleton className="h-3 w-50" />
@@ -109,18 +145,17 @@ export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt 
         return suggestions.map((suggestion, index) => (
             <Card
                 key={index}
-                className="flex-shrink-0 min-w-fit min-h-40 border-0 bg-muted/50 hover:bg-muted transition-all cursor-pointer flex items-center justify-center p-0 shadow-sm hover:shadow-md"
+                className="bg-muted/50 hover:bg-muted flex min-h-40 min-w-fit flex-shrink-0 cursor-pointer items-center justify-center border-0 p-0 shadow-sm transition-all hover:shadow-md"
                 onClick={() => setPrompt(suggestion)}
             >
                 <CardContent className="flex items-center justify-center px-4 py-2">
-                    <p className="text-sm font-medium whitespace-pre-wrap text-center leading-relaxed max-w-md">
+                    <p className="max-w-md text-center text-sm leading-relaxed font-medium whitespace-pre-wrap">
                         {suggestion}
                     </p>
                 </CardContent>
             </Card>
         ));
     };
-
 
     return (
         <div className="space-y-3">
@@ -130,21 +165,23 @@ export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt 
                     size="sm"
                     onClick={scrollLeft}
                     disabled={isLoading}
-                    className="h-8 w-8 p-0 rounded-full shrink-0"
+                    className="h-8 w-8 shrink-0 rounded-full p-0"
                 >
                     <ChevronLeft className="h-4 w-4" />
                 </Button>
 
                 <div
                     ref={scrollContainerRef}
-                    className="flex gap-3 overflow-x-auto flex-1 py-1"
+                    className="flex flex-1 gap-3 overflow-x-auto py-1"
                     style={{
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        scrollBehavior: 'smooth'
+                        scrollbarWidth: "none",
+                        msOverflowStyle: "none",
+                        scrollBehavior: "smooth",
                     }}
                 >
-                    {suggestions.length === 0 ? renderSkeletons() : renderSuggestions()}
+                    {suggestions.length === 0
+                        ? renderSkeletons()
+                        : renderSuggestions()}
                 </div>
 
                 <Button
@@ -152,7 +189,7 @@ export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt 
                     size="sm"
                     onClick={scrollRight}
                     disabled={isLoading}
-                    className="h-8 w-8 p-0 rounded-full shrink-0"
+                    className="h-8 w-8 shrink-0 rounded-full p-0"
                 >
                     <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -162,11 +199,13 @@ export default function Suggestions({ socialLoginId, autoLoad = true, setPrompt 
                     size="sm"
                     onClick={handleRefresh}
                     disabled={isLoading}
-                    className="h-8 w-8 p-0 rounded-full shrink-0"
+                    className="h-8 w-8 shrink-0 rounded-full p-0"
                 >
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                        className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                    />
                 </Button>
             </div>
         </div>
     );
-} 
+}

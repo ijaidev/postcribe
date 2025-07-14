@@ -24,9 +24,9 @@ export default async function RootLayout({
                     {children}
                     <LoginChecker />
                     <Toaster />
-                    <StagewiseToolbar 
+                    <StagewiseToolbar
                         config={{
-                            plugins: [ReactPlugin]
+                            plugins: [ReactPlugin],
                         }}
                     />
                 </Providers>

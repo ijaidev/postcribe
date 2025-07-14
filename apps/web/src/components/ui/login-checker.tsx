@@ -77,7 +77,7 @@ export function LoginChecker() {
 
     if (error) {
         return (
-            <div className="fixed inset-0 z-50 flex min-h-svh items-center justify-center bg-background">
+            <div className="bg-background fixed inset-0 z-50 flex min-h-svh items-center justify-center">
                 <Card>
                     <CardHeader className="text-center">
                         <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
@@ -110,7 +110,7 @@ export function LoginChecker() {
 
     if ((!isAuthRoute && !user) || (user && isAuthRoute) || isChecking) {
         return (
-            <div className="fixed inset-0 z-50 flex min-h-svh items-center justify-center overflow-hidden bg-background">
+            <div className="bg-background fixed inset-0 z-50 flex min-h-svh items-center justify-center overflow-hidden">
                 <ThreeDotLoader size="lg" />
             </div>
         );
@@ -121,7 +121,7 @@ export function LoginChecker() {
         return (
             <>
                 {/* Email verification modal */}
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background">
+                <div className="bg-background fixed inset-0 z-50 flex items-center justify-center p-6">
                     <div className="w-full max-w-md">
                         <Card>
                             <CardHeader className="text-center">

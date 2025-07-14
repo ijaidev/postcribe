@@ -1,5 +1,9 @@
 import { logger } from "@repo/logger";
-import { imageGen, type ImageGenOptions, type ImageGenResponse } from "./image-gen.function";
+import {
+    imageGen,
+    type ImageGenOptions,
+    type ImageGenResponse,
+} from "./image-gen.function";
 import {
     postGen,
     type PostGenOptions,

@@ -94,7 +94,7 @@ model Draft {
   linkedinLoginId String?
   linkedinLogin   SocialLogin?   @relation("linkedinLogin", fields: [linkedinLoginId], references: [id])
   cronState       CronState?
-  platform        Platform
+  platform        Platform?
 
   @@map("draft")
 }

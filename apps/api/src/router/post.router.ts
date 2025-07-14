@@ -1,3 +1,4 @@
+import applyVersionController from "../controllers/post-controllers/apply.controller";
 import getPostsController from "../controllers/post-controllers/get-posts.controller";
 import imageGenController from "../controllers/post-controllers/image-gen.controller";
 import imageUploadController from "../controllers/post-controllers/image-upload.controller";
@@ -9,6 +10,8 @@ const postRouter = factory
     .createApp()
     // generate post
     .post("/draft", ...postGenController)
+    // apply version
+    .post("/draft/apply", ...applyVersionController)
     // upload image
     .post("/draft/image/upload", ...imageUploadController)
     // get posts

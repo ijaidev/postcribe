@@ -172,10 +172,10 @@ export default function ResetPasswordPage() {
     // Show loading state while checking user
     if (userLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
+            <div className="from-background via-background to-muted/20 flex min-h-screen items-center justify-center bg-gradient-to-br p-4">
                 <div className="flex flex-col items-center gap-4">
                     <ThreeDotLoader size="lg" />
-                    <p className="text-sm text-muted-foreground">Loading...</p>
+                    <p className="text-muted-foreground text-sm">Loading...</p>
                 </div>
             </div>
         );
@@ -184,16 +184,16 @@ export default function ResetPasswordPage() {
     // Reset password form (when token is present)
     if (token) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
+            <div className="from-background via-background to-muted/20 flex min-h-screen items-center justify-center bg-gradient-to-br p-4">
                 <div className="w-full max-w-md space-y-6">
-                    <div className="text-center space-y-3 flex flex-col items-center justify-center">
-                        <Subtitle className="text-muted-foreground max-w-xl mx-auto">
+                    <div className="flex flex-col items-center justify-center space-y-3 text-center">
+                        <Subtitle className="text-muted-foreground mx-auto max-w-xl">
                             Enter your new password below
                         </Subtitle>
                     </div>
 
-                    <Card className="shadow-lg border-0 bg-card backdrop-blur-sm">
-                        <CardContent className="pt-6 space-y-4">
+                    <Card className="bg-card border-0 shadow-lg backdrop-blur-sm">
+                        <CardContent className="space-y-4 pt-6">
                             {/* Error Alert */}
                             {resetError && (
                                 <Alert variant="destructive">
@@ -223,7 +223,7 @@ export default function ResetPasswordPage() {
                                                     <Input
                                                         type="password"
                                                         placeholder="Enter your new password"
-                                                        className="h-12 text-base bg-background/50 border-2 focus:bg-background transition-all duration-200"
+                                                        className="bg-background/50 focus:bg-background h-12 border-2 text-base transition-all duration-200"
                                                         {...field}
                                                     />
                                                 </FormControl>
@@ -244,7 +244,7 @@ export default function ResetPasswordPage() {
                                                     <Input
                                                         type="password"
                                                         placeholder="Confirm your new password"
-                                                        className="h-12 text-base bg-background/50 border-2 focus:bg-background transition-all duration-200"
+                                                        className="bg-background/50 focus:bg-background h-12 border-2 text-base transition-all duration-200"
                                                         {...field}
                                                     />
                                                 </FormControl>
@@ -263,7 +263,7 @@ export default function ResetPasswordPage() {
                                             <ThreeDotLoader size="sm" />
                                         ) : (
                                             <>
-                                                <Key className="h-4 w-4 mr-2" />
+                                                <Key className="mr-2 h-4 w-4" />
                                                 Reset Password
                                             </>
                                         )}
@@ -286,17 +286,17 @@ export default function ResetPasswordPage() {
                                     className="w-full"
                                     size="lg"
                                 >
-                                    <Mail className="h-4 w-4 mr-2" />
+                                    <Mail className="mr-2 h-4 w-4" />
                                     Send New Reset Link
                                 </Button>
                             )}
 
-                            <div className="text-center pt-2">
+                            <div className="pt-2 text-center">
                                 <Link
                                     href="/signin"
-                                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                                    className="text-muted-foreground hover:text-primary text-sm transition-colors"
                                 >
-                                    <ArrowLeft className="h-3 w-3 inline mr-1" />
+                                    <ArrowLeft className="mr-1 inline h-3 w-3" />
                                     Back to Sign In
                                 </Link>
                             </div>
@@ -309,13 +309,13 @@ export default function ResetPasswordPage() {
 
     // Email input form (default state - no token)
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
+        <div className="from-background via-background to-muted/20 flex min-h-screen items-center justify-center bg-gradient-to-br p-4">
             <div className="w-full max-w-md space-y-6">
                 {/* Header */}
-                <div className="text-center space-y-8">
+                <div className="space-y-8 text-center">
                     <div className="flex items-center justify-center gap-3">
-                        <div className="p-3 rounded-full bg-primary/10 ring-8 ring-primary/5">
-                            <Mail className="h-8 w-8 text-primary" />
+                        <div className="bg-primary/10 ring-primary/5 rounded-full p-3 ring-8">
+                            <Mail className="text-primary h-8 w-8" />
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -327,7 +327,7 @@ export default function ResetPasswordPage() {
                 </div>
 
                 {/* Form Card */}
-                <Card className="shadow-xl border-0 bg-card/60 backdrop-blur-md">
+                <Card className="bg-card/60 border-0 shadow-xl backdrop-blur-md">
                     <CardContent className="p-8">
                         <Form {...emailForm}>
                             <form
@@ -341,7 +341,7 @@ export default function ResetPasswordPage() {
                                     name="email"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-base font-medium flex items-center gap-2">
+                                            <FormLabel className="flex items-center gap-2 text-base font-medium">
                                                 <Mail className="h-4 w-4" />
                                                 Email Address
                                             </FormLabel>
@@ -349,7 +349,7 @@ export default function ResetPasswordPage() {
                                                 <Input
                                                     type="email"
                                                     placeholder="Enter your email address"
-                                                    className="h-14 text-base bg-background border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                                                    className="bg-background focus:border-primary/50 focus:ring-primary/20 h-14 border-2 text-base transition-all duration-200 focus:ring-2"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -365,18 +365,18 @@ export default function ResetPasswordPage() {
                                         cooldownSeconds > 0
                                     }
                                     size="lg"
-                                    className="w-full h-14 text-base font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                    className="h-14 w-full text-base font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     {isLoading.sendEmail ? (
                                         <ThreeDotLoader size="sm" />
                                     ) : cooldownSeconds > 0 ? (
                                         <>
-                                            <Clock className="h-5 w-5 mr-2 animate-spin duration-1000" />
+                                            <Clock className="mr-2 h-5 w-5 animate-spin duration-1000" />
                                             Send again in {cooldownSeconds}s
                                         </>
                                     ) : (
                                         <>
-                                            <Mail className="h-5 w-5 mr-2" />
+                                            <Mail className="mr-2 h-5 w-5" />
                                             Send Reset Link
                                         </>
                                     )}
@@ -387,7 +387,7 @@ export default function ResetPasswordPage() {
                     <div className="mt-4 text-center">
                         <Link
                             href="/signin"
-                            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 hover:underline"
+                            className="text-muted-foreground hover:text-primary inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
                         >
                             <ArrowLeft className="h-4 w-4" />
                             Back to Sign In
@@ -398,9 +398,9 @@ export default function ResetPasswordPage() {
                 {/* Helper text */}
                 {user?.email && !emailSent && (
                     <div className="text-center">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             Signed in as{" "}
-                            <span className="font-medium text-foreground">
+                            <span className="text-foreground font-medium">
                                 {user.email}
                             </span>
                         </p>

@@ -10,8 +10,8 @@ import { logger } from "@repo/logger";
 import { getZodErrorMessage } from "../../utils/zod-error-message";
 
 const bodySchema = z.object({
-    id: z.string(),
-    platform: z.enum(["linkedin", "x", "all"]),
+    draftId: z.string(),
+    platform: z.enum(["LINKEDIN", "X", "ALL"]),
     message: z.string(),
     images: z
         .union([z.string(), z.array(z.string())])
@@ -20,18 +20,6 @@ const bodySchema = z.object({
             if (!val) return undefined;
             return Array.isArray(val) ? val : [val];
         }),
-    version: z
-        .union([
-            z.number().min(0),
-            z.string().transform(val => {
-                const parsed = parseInt(val, 10);
-                if (isNaN(parsed) || parsed < 0) {
-                    throw new Error("Version must be a non-negative number");
-                }
-                return parsed;
-            }),
-        ])
-        .optional(),
 });
 
 const bodySchemaValidator = zValidator("json", bodySchema, result => {
@@ -51,11 +39,11 @@ const imageGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const user = c.get("user")!;
-        const { id, message, version, platform, images } = c.req.valid("json");
+        const { draftId, message, platform, images } = c.req.valid("json");
 
         const draft = await db.draft.findUnique({
             where: {
-                id,
+                id: draftId,
                 userId: user.id,
             },
         });
@@ -67,13 +55,12 @@ const imageGenController = factory.createHandlers(
         }
 
         const options: ImageGenOptions = {
-            draftId: draft.id,
+            draftId,
             message,
             images: images && images.length > 0 ? images : undefined,
-            version,
         };
 
-        if (platform === "all") {
+        if (platform === "ALL") {
             const [xResult, linkedinResult] = await Promise.allSettled([
                 imageGen(options, "X"),
                 imageGen(options, "LINKEDIN"),
@@ -131,7 +118,8 @@ const imageGenController = factory.createHandlers(
                 new ApiResponse<ImageGenResponse>({
                     message: "Image generated",
                     data: {
-                        [platform]: result.imageUrl,
+                        [platform.toLowerCase() as "x" | "linkedin"]:
+                            result.imageUrl,
                     },
                     status: 200,
                 }),

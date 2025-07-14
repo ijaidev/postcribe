@@ -285,20 +285,20 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-            <div className="container mx-auto py-6 px-4 max-w-4xl">
+        <div className="from-background via-background to-muted/20 min-h-screen bg-gradient-to-br">
+            <div className="container mx-auto max-w-4xl px-4 py-6">
                 <div className="space-y-6">
                     {/* Header */}
-                    <div className="text-center space-y-3">
+                    <div className="space-y-3 text-center">
                         <div className="flex items-center justify-center gap-2">
-                            <div className="p-2 rounded-full bg-primary/10">
-                                <Settings className="h-6 w-6 text-primary" />
+                            <div className="bg-primary/10 rounded-full p-2">
+                                <Settings className="text-primary h-6 w-6" />
                             </div>
-                            <H1 className="font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                            <H1 className="from-foreground to-foreground/70 bg-gradient-to-r bg-clip-text font-bold text-transparent">
                                 Settings
                             </H1>
                         </div>
-                        <p className="text-base text-muted-foreground max-w-xl mx-auto">
+                        <p className="text-muted-foreground mx-auto max-w-xl text-base">
                             Manage your account settings, preferences, and
                             security options
                         </p>
@@ -307,10 +307,10 @@ export default function SettingsPage() {
                     {/* Main Settings Grid */}
                     <div className="grid gap-6 lg:grid-cols-2">
                         {/* Profile Settings  */}
-                        <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+                        <Card className="group bg-card/50 border-0 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg">
                             <CardHeader className="pb-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                                    <div className="rounded-lg bg-blue-100 p-1.5 dark:bg-blue-900/30">
                                         <UserIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
@@ -337,14 +337,14 @@ export default function SettingsPage() {
                                             name="name"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                                                    <FormLabel className="flex items-center gap-1.5 text-sm font-medium">
                                                         <UserIcon className="h-3.5 w-3.5" />
                                                         Full Name
                                                     </FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             placeholder="Enter your full name"
-                                                            className="h-12 text-base bg-background/50 border-2 focus:bg-background transition-all duration-200"
+                                                            className="bg-background/50 focus:bg-background h-12 border-2 text-base transition-all duration-200"
                                                             {...field}
                                                         />
                                                     </FormControl>
@@ -358,7 +358,7 @@ export default function SettingsPage() {
                                             name="email"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                                                    <FormLabel className="flex items-center gap-1.5 text-sm font-medium">
                                                         <Mail className="h-3.5 w-3.5" />
                                                         Email Address
                                                     </FormLabel>
@@ -366,10 +366,10 @@ export default function SettingsPage() {
                                                         <Input
                                                             {...field}
                                                             disabled
-                                                            className="h-12 text-base bg-muted/50 border-2 text-muted-foreground"
+                                                            className="bg-muted/50 text-muted-foreground h-12 border-2 text-base"
                                                         />
                                                     </FormControl>
-                                                    <FormDescription className="text-xs flex items-center gap-1.5 text-destructive/70">
+                                                    <FormDescription className="text-destructive/70 flex items-center gap-1.5 text-xs">
                                                         <Shield className="h-3 w-3" />
                                                         Email cannot be changed
                                                         from settings for
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                                             name="timeZone"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                                                    <FormLabel className="flex items-center gap-1.5 text-sm font-medium">
                                                         <Clock className="h-3.5 w-3.5" />
                                                         Timezone
                                                     </FormLabel>
@@ -418,13 +418,13 @@ export default function SettingsPage() {
                                                 !hasProfileChanged
                                             }
                                             size="default"
-                                            className="w-full h-10 font-medium transition-all duration-200 hover:scale-[1.02]"
+                                            className="h-10 w-full font-medium transition-all duration-200 hover:scale-[1.02]"
                                         >
                                             {isLoading.profile ? (
                                                 <ThreeDotLoader size="sm" />
                                             ) : (
                                                 <>
-                                                    <Save className="h-4 w-4 mr-2" />
+                                                    <Save className="mr-2 h-4 w-4" />
                                                     Save Changes
                                                 </>
                                             )}
@@ -435,10 +435,10 @@ export default function SettingsPage() {
                         </Card>
 
                         {/* Password Settings - Enhanced */}
-                        <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+                        <Card className="group bg-card/50 border-0 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg">
                             <CardHeader className="pb-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                                    <div className="rounded-lg bg-emerald-100 p-1.5 dark:bg-emerald-900/30">
                                         <Key className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                     </div>
                                     <div>
@@ -472,13 +472,13 @@ export default function SettingsPage() {
                                                         <Input
                                                             type="password"
                                                             placeholder="Enter your current password"
-                                                            className="h-12 text-base bg-background/50 border-2 focus:bg-background transition-all duration-200"
+                                                            className="bg-background/50 focus:bg-background h-12 border-2 text-base transition-all duration-200"
                                                             {...field}
                                                         />
                                                     </FormControl>
                                                     <Link
                                                         href={"/reset-password"}
-                                                        className="text-xs font-bold hover:text-primary/80 hover:underline transition-colors duration-200 text-right"
+                                                        className="hover:text-primary/80 text-right text-xs font-bold transition-colors duration-200 hover:underline"
                                                     >
                                                         Forgot password?
                                                     </Link>
@@ -499,7 +499,7 @@ export default function SettingsPage() {
                                                         <Input
                                                             type="password"
                                                             placeholder="Enter your new password"
-                                                            className="h-12 text-base bg-background/50 border-2 focus:bg-background transition-all duration-200"
+                                                            className="bg-background/50 focus:bg-background h-12 border-2 text-base transition-all duration-200"
                                                             {...field}
                                                         />
                                                     </FormControl>
@@ -524,7 +524,7 @@ export default function SettingsPage() {
                                                         <Input
                                                             type="password"
                                                             placeholder="Confirm your new password"
-                                                            className="h-12 text-base bg-background/50 border-2 focus:bg-background transition-all duration-200"
+                                                            className="bg-background/50 focus:bg-background h-12 border-2 text-base transition-all duration-200"
                                                             {...field}
                                                         />
                                                     </FormControl>
@@ -539,13 +539,13 @@ export default function SettingsPage() {
                                             type="submit"
                                             disabled={isLoading.password}
                                             size="default"
-                                            className="w-full h-10 font-medium transition-all duration-200 hover:scale-[1.02]"
+                                            className="h-10 w-full font-medium transition-all duration-200 hover:scale-[1.02]"
                                         >
                                             {isLoading.password ? (
                                                 <ThreeDotLoader size="sm" />
                                             ) : (
                                                 <>
-                                                    <Key className="h-4 w-4 mr-2" />
+                                                    <Key className="mr-2 h-4 w-4" />
                                                     Update Password
                                                 </>
                                             )}
@@ -557,11 +557,11 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Connected Accounts Section */}
-                    <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+                    <Card className="group bg-card/50 border-0 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg">
                         <CardHeader className="pb-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                                    <div className="rounded-lg bg-purple-100 p-1.5 dark:bg-purple-900/30">
                                         <Link2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                                     </div>
                                     <div>
@@ -596,19 +596,19 @@ export default function SettingsPage() {
                             {isLoading.accounts ? (
                                 <div className="flex items-center justify-center py-8">
                                     <ThreeDotLoader size="sm" />
-                                    <span className="ml-2 text-sm text-muted-foreground">
+                                    <span className="text-muted-foreground ml-2 text-sm">
                                         Loading accounts...
                                     </span>
                                 </div>
                             ) : connectedAccounts.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <div className="p-3 rounded-full bg-muted/30 w-fit mx-auto mb-3">
-                                        <Link2 className="h-6 w-6 text-muted-foreground" />
+                                <div className="py-8 text-center">
+                                    <div className="bg-muted/30 mx-auto mb-3 w-fit rounded-full p-3">
+                                        <Link2 className="text-muted-foreground h-6 w-6" />
                                     </div>
-                                    <h3 className="font-medium text-sm mb-1">
+                                    <h3 className="mb-1 text-sm font-medium">
                                         No connected accounts
                                     </h3>
-                                    <p className="text-xs text-muted-foreground mb-4">
+                                    <p className="text-muted-foreground mb-4 text-xs">
                                         Connect your social media accounts to
                                         enable posting
                                     </p>
@@ -634,10 +634,10 @@ export default function SettingsPage() {
                                     {connectedAccounts.map(account => (
                                         <div
                                             key={account.id}
-                                            className="flex items-center justify-between p-3 rounded-lg border bg-background/50"
+                                            className="bg-background/50 flex items-center justify-between rounded-lg border p-3"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-muted/30">
+                                                <div className="bg-muted/30 rounded-lg p-2">
                                                     {account.provider ===
                                                     "google" ? (
                                                         <svg
@@ -662,12 +662,12 @@ export default function SettingsPage() {
                                                             />
                                                         </svg>
                                                     ) : (
-                                                        <div className="h-5 w-5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                                                        <div className="h-5 w-5 animate-pulse rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
                                                     )}
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-medium text-sm capitalize">
+                                                        <p className="text-sm font-medium capitalize">
                                                             {account.provider ===
                                                             "credential"
                                                                 ? "Email"
@@ -718,13 +718,13 @@ export default function SettingsPage() {
                             onClick={() => setShowSignOutDialog(true)}
                             disabled={isLoading.signOut}
                             size="default"
-                            className="w-full max-w-md h-10 font-medium transition-all duration-200 hover:scale-[1.02]"
+                            className="h-10 w-full max-w-md font-medium transition-all duration-200 hover:scale-[1.02]"
                         >
                             {isLoading.signOut ? (
                                 <ThreeDotLoader size="sm" />
                             ) : (
                                 <>
-                                    <LogOut className="h-4 w-4 mr-2" />
+                                    <LogOut className="mr-2 h-4 w-4" />
                                     Sign Out of Account
                                 </>
                             )}

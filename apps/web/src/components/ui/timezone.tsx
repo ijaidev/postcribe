@@ -36,7 +36,7 @@ export default function TimezoneSelect({
                     role="combobox"
                     aria-expanded={open}
                     className={cn(
-                        "h-12 text-base bg-background/50 border-2 focus:bg-background transition-all duration-200 justify-between text-left font-normal",
+                        "bg-background/50 focus:bg-background h-12 justify-between border-2 text-left text-base font-normal transition-all duration-200",
                         className,
                     )}
                 >
@@ -52,12 +52,12 @@ export default function TimezoneSelect({
                     <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0 max-h-96" align="start">
+            <PopoverContent className="max-h-96 w-[400px] p-0" align="start">
                 <Command className="[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input]]:text-base">
                     <CommandInput placeholder="Search timezone..." />
                     <CommandSeparator className="bg-accent" />
                     <CommandList>
-                        <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                        <CommandEmpty className="text-muted-foreground py-6 text-center text-sm">
                             No timezone found.
                         </CommandEmpty>
                         <CommandGroup>
@@ -67,7 +67,7 @@ export default function TimezoneSelect({
                                     <CommandItem
                                         key={`${timezone.value}-${index}`}
                                         value={`${timezone.text} ${timezone.value}`}
-                                        className="text-sm py-3 cursor-pointer"
+                                        className="cursor-pointer py-3 text-sm"
                                         onSelect={() => {
                                             onValueChange(timezoneValue);
                                             setOpen(false);
@@ -81,11 +81,11 @@ export default function TimezoneSelect({
                                                     : "opacity-0",
                                             )}
                                         />
-                                        <div className="flex flex-col min-w-0 flex-1">
-                                            <span className="font-medium truncate">
+                                        <div className="flex min-w-0 flex-1 flex-col">
+                                            <span className="truncate font-medium">
                                                 {timezone.text}
                                             </span>
-                                            <span className="text-xs text-muted-foreground truncate">
+                                            <span className="text-muted-foreground truncate text-xs">
                                                 {timezone.value}
                                             </span>
                                         </div>

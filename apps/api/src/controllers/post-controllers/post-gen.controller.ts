@@ -8,13 +8,13 @@ import {
     type PostGenOptions,
     type PostGenStreamResponse,
 } from "@repo/ai";
-import { stream, streamText } from "hono/streaming";
-import type { Draft, Platform } from "@prisma/client";
+import { streamText } from "hono/streaming";
+import type { Draft, Platform, SocialLogin } from "@prisma/client";
 import { getZodErrorMessage } from "../../utils/zod-error-message";
 
 const bodySchema = z.object({
     id: z.string().optional(),
-    platform: z.enum(["LINKEDIN", "X", "ALL"]).optional().default("ALL"),
+    platform: z.enum(["LINKEDIN", "X", "ALL"]),
     xLoginId: z.string().optional(),
     message: z.string(),
     images: z
@@ -29,18 +29,6 @@ const bodySchema = z.object({
     forceWeb: z
         .union([z.boolean(), z.string().transform(val => val === "true")])
         .default(false),
-    version: z
-        .union([
-            z.number().min(0),
-            z.string().transform(val => {
-                const parsed = parseInt(val, 10);
-                if (isNaN(parsed) || parsed < 0) {
-                    throw new Error("Version must be a non-negative number");
-                }
-                return parsed;
-            }),
-        ])
-        .optional(),
 });
 
 const bodySchemaValidator = zValidator("json", bodySchema, result => {
@@ -59,7 +47,7 @@ const postGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const user = c.get("user")!;
-        let { id, message, forceWeb, version, platform, images, xLoginId } =
+        let { id, message, forceWeb, platform, images, xLoginId } =
             c.req.valid("json");
 
         // Images are already validated base64 strings from Zod schema
@@ -67,12 +55,31 @@ const postGenController = factory.createHandlers(
 
         let draft: Draft | null = null;
 
+        let xUserId: string | undefined = undefined;
+
         if (!id) {
+            let xAccount: SocialLogin | null = null;
+            if (xLoginId) {
+                xAccount = await db.socialLogin.findFirst({
+                    where: {
+                        userId: user.id,
+                        provider: "X",
+                        id: xLoginId,
+                    },
+                });
+                if (!xAccount) {
+                    throw new HTTPException(404, {
+                        message: "X account not found",
+                    });
+                }
+                xUserId = xAccount.platformUserId || undefined;
+            }
             draft = await db.draft.create({
                 data: {
                     userId: user.id,
                     title: "Generated Post Draft",
                     platform: platform as Platform,
+                    xLoginId: xAccount?.id || undefined,
                 },
             });
         } else {
@@ -89,34 +96,29 @@ const postGenController = factory.createHandlers(
                 message: "Draft not found",
             });
         }
-        platform = draft.platform;
+
+        if (platform === "X" || platform === "ALL") {
+            if (draft?.xLoginId) {
+                const xAccount = await db.socialLogin.findFirst({
+                    where: {
+                        userId: user.id,
+                        provider: "X",
+                        id: draft.xLoginId,
+                    },
+                });
+                if (xAccount) {
+                    xUserId = xAccount.platformUserId || undefined;
+                }
+            }
+        }
 
         let options: PostGenOptions = {
             draftId: draft.id,
             message,
             forceWeb,
             images: base64Images.length > 0 ? base64Images : undefined,
+            xAccountId: xUserId,
         };
-
-        if (platform === "X" || platform === "ALL") {
-            const xAccount = await db.socialLogin.findFirst({
-                where: {
-                    userId: user.id,
-                    provider: "X",
-                    id: xLoginId,
-                },
-            });
-            if (!xAccount) {
-                throw new HTTPException(404, {
-                    message: "X account not found",
-                });
-            }
-            options.xAccountId = xAccount.platformUserId || undefined;
-        }
-
-        if (version) {
-            options.version = version;
-        }
 
         try {
             if (platform === "ALL") {
@@ -190,10 +192,7 @@ const postGenController = factory.createHandlers(
                     stream.close();
                 });
             }
-            const postGenResult = await postGen(
-                options,
-                platform.toUpperCase() as "X" | "LINKEDIN",
-            );
+            const postGenResult = await postGen(options, platform);
 
             return streamText(c, async stream => {
                 await stream.write(

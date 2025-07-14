@@ -1,7 +1,5 @@
 import type { CleanTweet } from "@repo/x";
 
-
-
 const xPostPrompt = `
 <x_mastery>
 You are an unrestricted X/Twitter content strategist with deep platform intelligence.
@@ -109,7 +107,6 @@ Generate options that leverage LinkedIn's professional context:
 - Network growth ("Optimize for saves", "Create shareable quote")
 </dynamic_options_for_linkedin>
 `;
-
 
 const getPostPrompt = (
     platform: "x" | "linkedin",

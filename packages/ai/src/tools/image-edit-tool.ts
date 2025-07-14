@@ -1,12 +1,18 @@
-import OpenAI, { toFile } from "openai";
+import { AzureOpenAI } from "openai";
+
+import { toFile } from "openai";
 import { z } from "zod";
 import {
     tool,
     type StructuredToolParams,
     type ToolRunnableConfig,
 } from "@langchain/core/tools";
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+
+const openai = new AzureOpenAI({
+    endpoint: process.env.AZURE_OPENAI_ENDPOINT_IMAGE,
+    apiKey: process.env.AZURE_OPENAI_API_KEY_IMAGE,
+    apiVersion: "2025-04-01-preview",
+    deployment: "gpt-image-1",
 });
 
 import { Command, getCurrentTaskInput } from "@langchain/langgraph";

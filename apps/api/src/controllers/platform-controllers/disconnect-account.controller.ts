@@ -61,7 +61,7 @@ const disconnectAccountHandler = factory.createHandlers(
                     id: true,
                     name: true,
                     provider: true,
-                    userName: true
+                    userName: true,
                 },
             });
 

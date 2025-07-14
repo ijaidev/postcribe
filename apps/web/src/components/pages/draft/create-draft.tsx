@@ -4,12 +4,18 @@ import * as React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Send, Sparkles, ImagePlus, X, Paperclip, Loader2, Globe } from "lucide-react";
+import {
+    Send,
+    Sparkles,
+    ImagePlus,
+    X,
+    Paperclip,
+    Loader2,
+    Globe,
+} from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-    Card,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ThreeDotLoader } from "@/components/ui/loaders";
 import { XLogo } from "@/components/ui/x-logo";
 import { Switch } from "@/components/ui/switch";
@@ -20,13 +26,25 @@ import Suggestions from "@/components/pages/draft/suggestions";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
-import { Select, SelectItem, SelectLabel, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+    Select,
+    SelectItem,
+    SelectLabel,
+    SelectGroup,
+    SelectContent,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Image from "next/image";
 import Link from "next/link";
 import { Toggle } from "@/components/ui/toggle";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import {
+    Tooltip,
+    TooltipTrigger,
+    TooltipContent,
+    TooltipProvider,
+} from "@/components/ui/tooltip";
 import { InferRequestType } from "hono";
-
 
 interface UploadedImage {
     id: string;
@@ -41,36 +59,40 @@ interface PlatformSelection {
     x: {
         selected: boolean;
         accountId: string | null;
-    },
+    };
     linkedin: {
         selected: boolean;
         accountId: string | null;
-    }
+    };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const $post = client.post.draft.$post
-type DraftCreate = InferRequestType<typeof $post>['json']
+const $post = client.post.draft.$post;
+type DraftCreate = InferRequestType<typeof $post>["json"];
 
-export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost: (data: DraftCreate, generateImage: boolean) => void, isCreating: boolean }) {
-    
-
-
+export function CreateDraft({
+    handleCreatePost,
+    isCreating,
+}: {
+    handleCreatePost: (data: DraftCreate, generateImage: boolean) => void;
+    isCreating: boolean;
+}) {
     const [prompt, setPrompt] = useState("");
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [generateImage, setGenerateImage] = useState(false);
     const [forceWeb, setForceWeb] = useState(false);
-    const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformSelection>({
-        x: {
-            selected: false,
-            accountId: null
-        },
-        linkedin: {
-            selected: false,
-            accountId: null
-        }
-    });
+    const [selectedPlatforms, setSelectedPlatforms] =
+        useState<PlatformSelection>({
+            x: {
+                selected: false,
+                accountId: null,
+            },
+            linkedin: {
+                selected: false,
+                accountId: null,
+            },
+        });
     const [suggestionsTab, setSuggestionsTab] = useState<string>("x"); // Default to X tab
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -80,8 +102,8 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
         queryKey: ["social-accounts"],
         queryFn: async () => {
             const response = await client.social.accounts.$get();
-            if (!response.ok) throw new Error('Failed to fetch accounts');
-        return response.json();
+            if (!response.ok) throw new Error("Failed to fetch accounts");
+            return response.json();
         },
     });
 
@@ -90,43 +112,48 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
         mutationFn: async (image: UploadedImage) => {
             const response = await client.post.draft.image.upload.$post({
                 form: {
-                    image: image.file
-                }
+                    image: image.file,
+                },
             });
 
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.message || 'Failed to upload image');
+                throw new Error(result.message || "Failed to upload image");
             }
 
             if (!result.data?.imageUrl) {
-                throw new Error(result.message || 'No image URL returned');
+                throw new Error(result.message || "No image URL returned");
             }
 
             return result.data.imageUrl;
         },
         onSuccess: (imageUrl, image) => {
             // Update image with uploaded URL
-            setImages(prev => prev.map(img =>
-                img.id === image.id
-                    ? { ...img, uploaded: true, uploading: false, imageUrl }
-                    : img
-            ));
+            setImages(prev =>
+                prev.map(img =>
+                    img.id === image.id
+                        ? { ...img, uploaded: true, uploading: false, imageUrl }
+                        : img,
+                ),
+            );
             toast.success(`${image.file.name} uploaded successfully`);
         },
         onError: (error, image) => {
-            console.error('Upload error:', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to upload image');
+            console.error("Upload error:", error);
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : "Failed to upload image",
+            );
 
             // Remove failed image
             setImages(prev => prev.filter(img => img.id !== image.id));
-        }
+        },
     });
 
-    const connectedAccounts = socialAccounts?.data?.filter(
-        (account) => account.isConnected
-    ) || [];
+    const connectedAccounts =
+        socialAccounts?.data?.filter(account => account.isConnected) || [];
 
     // Image handling functions
     const createImagePreview = (file: File): UploadedImage => {
@@ -144,12 +171,17 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
         // Check if adding these files would exceed the limit
         if (images.length + newFiles.length > 5) {
-            toast.error(`You can only upload up to 5 images. Currently have ${images.length} images.`);
+            toast.error(
+                `You can only upload up to 5 images. Currently have ${images.length} images.`,
+            );
             return;
         }
 
         const validFiles = newFiles.filter(file => {
-            const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/webp';
+            const isImage =
+                file.type === "image/jpeg" ||
+                file.type === "image/png" ||
+                file.type === "image/webp";
             const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
 
             if (!isImage) {
@@ -167,10 +199,13 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
             const newImages = validFiles.map(createImagePreview);
 
             // Add images with uploading state
-            setImages(prev => [...prev, ...newImages.map(img => ({ ...img, uploading: true }))]);
+            setImages(prev => [
+                ...prev,
+                ...newImages.map(img => ({ ...img, uploading: true })),
+            ]);
 
             // Upload each image using mutation
-            newImages.forEach((image) => {
+            newImages.forEach(image => {
                 uploadImageMutation.mutate(image);
             });
 
@@ -214,7 +249,7 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
     const handlePaste = (e: React.ClipboardEvent) => {
         const items = Array.from(e.clipboardData.items);
         const imageFiles = items
-            .filter(item => item.type.startsWith('image/'))
+            .filter(item => item.type.startsWith("image/"))
             .map(item => item.getAsFile())
             .filter((file): file is File => file !== null);
 
@@ -235,31 +270,41 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
     const createPost = () => {
         let platform = "ALL";
-        if (selectedPlatforms.x.selected && selectedPlatforms.linkedin.selected) {
+        if (
+            selectedPlatforms.x.selected &&
+            selectedPlatforms.linkedin.selected
+        ) {
             platform = "ALL";
         } else if (selectedPlatforms.x.selected) {
             platform = "X";
         } else if (selectedPlatforms.linkedin.selected) {
             platform = "LINKEDIN";
-        }
-        else {
+        } else {
             toast.error("Please select at least one platform");
             return;
         }
-        handleCreatePost({
-            message: prompt,
-            platform: platform as "ALL" | "X" | "LINKEDIN",
-            images: images.map(img => img.imageUrl!),
-            forceWeb: forceWeb
-        },
-        generateImage
-    );
+        handleCreatePost(
+            {
+                message: prompt,
+                platform: platform as "ALL" | "X" | "LINKEDIN",
+                images: images.map(img => img.imageUrl!),
+                forceWeb: forceWeb,
+            },
+            generateImage,
+        );
     };
     useEffect(() => {
-        if (socialAccounts && socialAccounts.data && socialAccounts.data.length > 0) {
+        if (
+            socialAccounts &&
+            socialAccounts.data &&
+            socialAccounts.data.length > 0
+        ) {
             setSelectedPlatforms(prev => ({
                 ...prev,
-                x: { ...prev.x, accountId: socialAccounts?.data?.[0]?.id ?? null }
+                x: {
+                    ...prev.x,
+                    accountId: socialAccounts?.data?.[0]?.id ?? null,
+                },
             }));
         }
     }, [socialAccounts]);
@@ -273,27 +318,30 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
     if (isLoadingAccounts) {
         return (
-            <div className="container max-w-4xl mx-auto py-8">
+            <div className="container mx-auto max-w-4xl py-8">
                 <div className="flex items-center justify-center py-12">
                     <ThreeDotLoader size="lg" />
-                    <span className="ml-3 text-muted-foreground">Loading accounts...</span>
+                    <span className="text-muted-foreground ml-3">
+                        Loading accounts...
+                    </span>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background">
-            <div className="container max-w-4xl mx-auto py-8">
+        <div className="bg-background min-h-screen">
+            <div className="container mx-auto max-w-4xl py-8">
                 {/* Main Chat Interface */}
                 <div className="space-y-6">
                     {/* Input */}
                     <div className="bottom-4">
                         <Card
-                            className={`relative rounded-2xl border shadow-lg transition-all duration-300 p-6 ${isDragging
-                                ? "border-primary shadow-2xl scale-[1.02] bg-primary/5 ring-2 ring-primary/20"
-                                : "border-border hover:shadow-xl"
-                                }`}
+                            className={`relative rounded-2xl border p-6 shadow-lg transition-all duration-300 ${
+                                isDragging
+                                    ? "border-primary bg-primary/5 ring-primary/20 scale-[1.02] shadow-2xl ring-2"
+                                    : "border-border hover:shadow-xl"
+                            }`}
                         >
                             <input
                                 ref={fileInputRef}
@@ -306,37 +354,46 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
                             {/* Images at top of card */}
                             {images.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                    {images.map((image) => (
-                                        <div key={image.id} className="relative group">
+                                <div className="mb-4 flex flex-wrap gap-2">
+                                    {images.map(image => (
+                                        <div
+                                            key={image.id}
+                                            className="group relative"
+                                        >
                                             <Image
                                                 src={image.preview}
                                                 alt="Upload preview"
                                                 width={64}
                                                 height={64}
-                                                className={`w-16 h-16 object-cover rounded-lg border-2 shadow-sm transition-opacity ${image.uploading && 'border-primary opacity-70'
-                                                    }`}
+                                                className={`h-16 w-16 rounded-lg border-2 object-cover shadow-sm transition-opacity ${
+                                                    image.uploading &&
+                                                    "border-primary opacity-70"
+                                                }`}
                                             />
 
                                             {/* Upload loading overlay */}
                                             {image.uploading && (
-                                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                                                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
                                                     <Loader2 className="h-4 w-4 animate-spin text-white" />
                                                 </div>
                                             )}
 
                                             <button
-                                                onClick={() => removeImage(image.id)}
-                                                className="absolute -top-1 -right-1 p-0.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 text-xs"
+                                                onClick={() =>
+                                                    removeImage(image.id)
+                                                }
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 absolute -top-1 -right-1 rounded-full p-0.5 text-xs opacity-0 transition-opacity group-hover:opacity-100"
                                             >
                                                 <X className="h-3 w-3" />
                                             </button>
                                         </div>
                                     ))}
-                                    <div className="text-xs text-muted-foreground flex items-center">
+                                    <div className="text-muted-foreground flex items-center text-xs">
                                         {images.length}/5 images
                                         {images.some(img => img.uploading) && (
-                                            <span className="ml-2 text-primary">Uploading...</span>
+                                            <span className="text-primary ml-2">
+                                                Uploading...
+                                            </span>
                                         )}
                                     </div>
                                 </div>
@@ -347,10 +404,13 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
                                 ref={textareaRef}
                                 placeholder="What's on your mind?"
                                 value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
+                                onChange={e => setPrompt(e.target.value)}
                                 onPaste={handlePaste}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                onKeyDown={e => {
+                                    if (
+                                        e.key === "Enter" &&
+                                        (e.metaKey || e.ctrlKey)
+                                    ) {
                                         e.preventDefault();
                                         createPost();
                                     }
@@ -359,7 +419,7 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
                                 onDragLeave={handleDragLeave}
                                 onDragOver={handleDragOver}
                                 onDrop={handleDrop}
-                                className="min-h-30 max-h-30 resize-none! border-0 bg-transparent! text-lg placeholder:text-muted-foreground focus-visible:ring-0 shadow-none rounded-2xl leading-relaxed p-6"
+                                className="placeholder:text-muted-foreground max-h-30 min-h-30 resize-none! rounded-2xl border-0 bg-transparent! p-6 text-lg leading-relaxed shadow-none focus-visible:ring-0"
                             />
 
                             {/* Bottom actions */}
@@ -372,11 +432,19 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    disabled={images.length >= 5 || uploadImageMutation.isPending}
-                                                    className="h-8 w-8 p-0 rounded-full hover:bg-accent"
+                                                    onClick={() =>
+                                                        fileInputRef.current?.click()
+                                                    }
+                                                    disabled={
+                                                        images.length >= 5 ||
+                                                        uploadImageMutation.isPending
+                                                    }
+                                                    className="hover:bg-accent h-8 w-8 rounded-full p-0"
                                                 >
-                                                    <Paperclip className="h-15 w-15 text-muted-foreground" size={15} />
+                                                    <Paperclip
+                                                        className="text-muted-foreground h-15 w-15"
+                                                        size={15}
+                                                    />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -389,12 +457,17 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
                                                 <div>
                                                     <Toggle
                                                         pressed={forceWeb}
-                                                        onPressedChange={setForceWeb}
+                                                        onPressedChange={
+                                                            setForceWeb
+                                                        }
                                                         variant="outline"
                                                         size="sm"
-                                                        className="h-8 w-8 p-0 rounded-full border-none bg-transparent"
+                                                        className="h-8 w-8 rounded-full border-none bg-transparent p-0"
                                                     >
-                                                        <Globe className="h-15 w-15" size={15} />
+                                                        <Globe
+                                                            className="h-15 w-15"
+                                                            size={15}
+                                                        />
                                                     </Toggle>
                                                 </div>
                                             </TooltipTrigger>
@@ -410,12 +483,14 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
                                     onClick={createPost}
                                     disabled={
                                         !prompt.trim() ||
-                                        (!selectedPlatforms.x.selected && !selectedPlatforms.linkedin.selected) ||
+                                        (!selectedPlatforms.x.selected &&
+                                            !selectedPlatforms.linkedin
+                                                .selected) ||
                                         images.some(img => img.uploading) ||
                                         isCreating
                                     }
                                     size="sm"
-                                    className="h-8 w-8 p-0 rounded-full"
+                                    className="h-8 w-8 rounded-full p-0"
                                 >
                                     {isCreating ? (
                                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -427,14 +502,19 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
                             {/* Enhanced Drag overlay */}
                             {isDragging && (
-                                <div className="absolute inset-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center border-2 border-dashed border-primary animate-pulse pointer-events-none">
-                                    <div className="text-center space-y-3">
+                                <div className="from-primary/10 to-primary/5 border-primary pointer-events-none absolute inset-4 flex animate-pulse items-center justify-center rounded-xl border-2 border-dashed bg-gradient-to-br">
+                                    <div className="space-y-3 text-center">
                                         <div className="relative">
-                                            <ImagePlus className="h-12 w-12 text-primary mx-auto animate-bounce" />
-                                            <div className="absolute inset-0 h-12 w-12 bg-primary/20 rounded-full animate-ping"></div>
+                                            <ImagePlus className="text-primary mx-auto h-12 w-12 animate-bounce" />
+                                            <div className="bg-primary/20 absolute inset-0 h-12 w-12 animate-ping rounded-full"></div>
                                         </div>
-                                        <p className="text-lg font-semibold text-primary">Drop your images here</p>
-                                        <p className="text-sm text-primary/70">Support JPG, PNG up to 5MB (max 5 images)</p>
+                                        <p className="text-primary text-lg font-semibold">
+                                            Drop your images here
+                                        </p>
+                                        <p className="text-primary/70 text-sm">
+                                            Support JPG, PNG up to 5MB (max 5
+                                            images)
+                                        </p>
                                     </div>
                                 </div>
                             )}
@@ -442,75 +522,119 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
                     </div>
 
                     {/* Platform & Settings Section */}
-                    <div className="flex items-center flex-row gap-4 p-2">
+                    <div className="flex flex-row items-center gap-4 p-2">
                         <Select
-                            onValueChange={(value) => {
+                            onValueChange={value => {
                                 setSelectedPlatforms(prev => ({
                                     ...prev,
-                                    x: { ...prev.x, accountId: value }
+                                    x: { ...prev.x, accountId: value },
                                 }));
                             }}
                             value={selectedPlatforms.x.accountId ?? ""}
                         >
                             <SelectTrigger className="w-[180px] items-center">
-                                <SelectValue placeholder={<span className="flex items-center gap-2"><XLogo size="sm" />Select Account</span>} />
+                                <SelectValue
+                                    placeholder={
+                                        <span className="flex items-center gap-2">
+                                            <XLogo size="sm" />
+                                            Select Account
+                                        </span>
+                                    }
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    {
-                                        (connectedAccounts.filter(account => account.provider === "X").length > 0) ? (
-                                            <>
-                                                <SelectLabel>Select X Account</SelectLabel>
-                                                {connectedAccounts.filter(account => account.provider === "X").map((account) => (
-                                                    <SelectItem key={account.id} value={account.id}>
+                                    {connectedAccounts.filter(
+                                        account => account.provider === "X",
+                                    ).length > 0 ? (
+                                        <>
+                                            <SelectLabel>
+                                                Select X Account
+                                            </SelectLabel>
+                                            {connectedAccounts
+                                                .filter(
+                                                    account =>
+                                                        account.provider ===
+                                                        "X",
+                                                )
+                                                .map(account => (
+                                                    <SelectItem
+                                                        key={account.id}
+                                                        value={account.id}
+                                                    >
                                                         <div className="flex items-center gap-2">
                                                             <XLogo size="sm" />
                                                             {account.name}
                                                         </div>
                                                     </SelectItem>
-                                                ))
-                                                }
-                                            </>
-                                        ) : (
-                                            <div className="flex items-center gap-2 justify-between w-full flex-col p-4">
-                                                <SelectLabel>No X accounts connected</SelectLabel>
-                                                <Link href="/connections" className={buttonVariants({ variant: "outline" })}>Connect X account</Link>
-                                            </div>
-                                        )}
+                                                ))}
+                                        </>
+                                    ) : (
+                                        <div className="flex w-full flex-col items-center justify-between gap-2 p-4">
+                                            <SelectLabel>
+                                                No X accounts connected
+                                            </SelectLabel>
+                                            <Link
+                                                href="/connections"
+                                                className={buttonVariants({
+                                                    variant: "outline",
+                                                })}
+                                            >
+                                                Connect X account
+                                            </Link>
+                                        </div>
+                                    )}
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
                         <div className="flex-1"></div>
-                        <div className="flex items-center gap-2 flex-row">
-                            <Checkbox id="x/twitter"
+                        <div className="flex flex-row items-center gap-2">
+                            <Checkbox
+                                id="x/twitter"
                                 checked={selectedPlatforms.x.selected}
-                                onCheckedChange={(checked) => {
+                                onCheckedChange={checked => {
                                     setSelectedPlatforms(prev => ({
                                         ...prev,
-                                        x: { ...prev.x, selected: checked === "indeterminate" ? false : checked }
+                                        x: {
+                                            ...prev.x,
+                                            selected:
+                                                checked === "indeterminate"
+                                                    ? false
+                                                    : checked,
+                                        },
                                     }));
                                 }}
                             />
                             <Label htmlFor="x/twitter">X (Twitter)</Label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Checkbox id="linkedin"
+                            <Checkbox
+                                id="linkedin"
                                 checked={selectedPlatforms.linkedin.selected}
-                                onCheckedChange={(checked) => {
+                                onCheckedChange={checked => {
                                     setSelectedPlatforms(prev => ({
                                         ...prev,
-                                        linkedin: { ...prev.linkedin, selected: checked === "indeterminate" ? false : checked }
+                                        linkedin: {
+                                            ...prev.linkedin,
+                                            selected:
+                                                checked === "indeterminate"
+                                                    ? false
+                                                    : checked,
+                                        },
                                     }));
                                 }}
                             />
                             <Label htmlFor="linkedin">LinkedIn</Label>
                         </div>
                         <div className="flex items-center gap-2 pl-4">
-                            <Switch id="generateImage"
+                            <Switch
+                                id="generateImage"
                                 checked={generateImage}
                                 onCheckedChange={setGenerateImage}
                             />
-                            <Label htmlFor="generateImage">Generate images</Label>
+                            <Label htmlFor="generateImage">
+                                Generate images
+                            </Label>
                         </div>
                     </div>
 
@@ -518,18 +642,23 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 px-1">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium text-muted-foreground">Suggestions for you</span>
+                            <Sparkles className="text-primary h-4 w-4" />
+                            <span className="text-muted-foreground text-sm font-medium">
+                                Suggestions for you
+                            </span>
                         </div>
 
-                        <Tabs value={suggestionsTab} onValueChange={setSuggestionsTab} className="w-full gap-4">
+                        <Tabs
+                            value={suggestionsTab}
+                            onValueChange={setSuggestionsTab}
+                            className="w-full gap-4"
+                        >
                             <TabsList className="grid w-full grid-cols-2 bg-transparent">
                                 <TabsTrigger
                                     value="x"
-                                    className="flex items-center gap-2 p-3 hover:cursor-pointer hover:bg-background"
+                                    className="hover:bg-background flex items-center gap-2 p-3 hover:cursor-pointer"
                                 >
-                                    <XLogo size="2xl" />
-                                    X (Twitter)
+                                    <XLogo size="2xl" />X (Twitter)
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="linkedin"
@@ -542,11 +671,18 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
                             <TabsContent value="x" className="mt-4">
                                 {selectedPlatforms.x.accountId ? (
-                                    <Suggestions socialLoginId={selectedPlatforms.x.accountId} autoLoad={true} setPrompt={setPrompt} />
+                                    <Suggestions
+                                        socialLoginId={
+                                            selectedPlatforms.x.accountId
+                                        }
+                                        autoLoad={true}
+                                        setPrompt={setPrompt}
+                                    />
                                 ) : (
                                     <Card className="p-4">
-                                        <p className="text-sm text-muted-foreground">
-                                            Please select an account to get post suggestions.
+                                        <p className="text-muted-foreground text-sm">
+                                            Please select an account to get post
+                                            suggestions.
                                         </p>
                                     </Card>
                                 )}
@@ -554,8 +690,9 @@ export function CreateDraft({ handleCreatePost, isCreating }: { handleCreatePost
 
                             <TabsContent value="linkedin" className="mt-4">
                                 <Card className="p-4">
-                                    <p className="text-sm text-muted-foreground">
-                                        LinkedIn suggestions are not available yet. Coming soon!
+                                    <p className="text-muted-foreground text-sm">
+                                        LinkedIn suggestions are not available
+                                        yet. Coming soon!
                                     </p>
                                 </Card>
                             </TabsContent>

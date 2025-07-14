@@ -11,7 +11,7 @@ import ApiResponse from "../../utils/api-response";
 import { uploadImages } from "@repo/s3";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const ALLOWED_TYPES = ["image/png", "image/jpeg"];
 
 const bodySchema = z.object({
     image: z
@@ -28,7 +28,7 @@ const bodySchema = z.object({
                 if (!file) return true;
                 return ALLOWED_TYPES.includes(file.type);
             },
-            { message: "Only PNG, JPEG, and WEBP images are allowed" },
+            { message: "Only PNG and JPEG images are allowed" },
         ),
 });
 
@@ -46,23 +46,27 @@ const imageUploadController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const { image } = c.req.valid("form");
+        console.log("image", image.type);
 
         try {
             const base64Image = await fileToBase64(image);
-            
+
             // Extract base64 data from data URL (remove the data:image/...;base64, prefix)
-            const base64Data = base64Image.split(',')[1];
+            const base64Data = base64Image.split(",")[1];
             if (!base64Data) {
                 throw new Error("Invalid base64 image format");
             }
-            
+
             const uploadedImages = await uploadImages([
                 {
                     base64: base64Data,
-                    contentType: image.type as "image/png" | "image/jpeg" | "image/webp",
+                    contentType: image.type as
+                        | "image/png"
+                        | "image/jpeg"
+                        | "image/webp",
                 },
             ]);
-            
+
             return c.json(
                 new ApiResponse({
                     status: 200,

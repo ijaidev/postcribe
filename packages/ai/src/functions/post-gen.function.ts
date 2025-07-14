@@ -1,16 +1,11 @@
 import { xPostGraph, linkedInPostGraph } from "../graphs/post-gen";
-import {
-    HumanMessage,
-    isAIMessageChunk,
-    RemoveMessage,
-} from "@langchain/core/messages";
+import { HumanMessage, isAIMessageChunk } from "@langchain/core/messages";
 import type { LangGraphRunnableConfig } from "@langchain/langgraph";
-import type { postGraphConfig, postGraphState } from "../graph-states";
+import type { postGraphConfig } from "../graph-states";
 
 interface PostGenOptions {
     message: string;
     forceWeb?: boolean;
-    version?: number;
     draftId: string;
     images?: string[];
     xAccountId?: string;
@@ -22,7 +17,7 @@ interface PostGenStreamResponse {
 }
 
 const postGen = async (options: PostGenOptions, platform: "X" | "LINKEDIN") => {
-    const { message, forceWeb = false, version, draftId, images, xAccountId } = options;
+    const { message, forceWeb = false, draftId, images, xAccountId } = options;
 
     // Create thread ID based on apply version or generate new on
 
@@ -35,28 +30,6 @@ const postGen = async (options: PostGenOptions, platform: "X" | "LINKEDIN") => {
     };
 
     const graph = platform === "X" ? xPostGraph : linkedInPostGraph;
-
-    if (version && version > 0) {
-        const currentState = await graph.getState(config);
-        const values: postGraphState = currentState.values;
-        const { posts, messages } = values;
-        if (posts.length - 1 > version) {
-            const postToRemoveIndex = version + 1;
-            const postToRemove = posts[postToRemoveIndex];
-            const messageToRemoveId = postToRemove?.messageId;
-            const messageToRemoveIndex = messages.findIndex(
-                message => message.id === messageToRemoveId,
-            );
-            if (messageToRemoveIndex !== -1 || postToRemoveIndex !== -1) {
-                graph.updateState(config, {
-                    messages: messages
-                        .slice(messageToRemoveIndex, messages.length)
-                        .map(message => new RemoveMessage({ id: message.id! })),
-                    posts: posts.slice(postToRemoveIndex, posts.length),
-                });
-            }
-        }
-    }
 
     // Enhance message with forceWeb instruction if needed
     let enhancedMessage = message;

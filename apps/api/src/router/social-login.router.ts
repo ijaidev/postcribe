@@ -16,9 +16,9 @@ const socialLoginRouter = factory
     // .post("/media/upload/x", ...xMediaUploadController)
     // .post("/media/upload/linkedin", ...linkedinMediaUploadController)
 
-    .post("/login/x", ...xLoginController)
-    // .get("/login/x/callback", ...xCallbackController)
-    // .post("/login/linkedin", ...linkedinLoginController)
-    // .get("/login/linkedin/callback", ...linkedinCallbackController);
+    .post("/login/x", ...xLoginController);
+// .get("/login/x/callback", ...xCallbackController)
+// .post("/login/linkedin", ...linkedinLoginController)
+// .get("/login/linkedin/callback", ...linkedinCallbackController);
 
 export default socialLoginRouter;

@@ -104,17 +104,17 @@ export default function VerifyEmailPage() {
                         PostCribe
                     </a>
 
-                    <Card className="bg-card/80 backdrop-blur-sm border-border/30">
+                    <Card className="bg-card/80 border-border/30 backdrop-blur-sm">
                         <CardContent className="pt-6">
                             <div className="flex flex-col items-center gap-4 text-center">
                                 <ThreeDotLoader size="lg" />
                                 <div>
-                                    <h2 className="text-lg font-semibold text-foreground">
+                                    <h2 className="text-foreground text-lg font-semibold">
                                         {isVerifying
                                             ? "Verifying your email..."
                                             : "Loading..."}
                                     </h2>
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-muted-foreground text-sm">
                                         {isVerifying
                                             ? "Please wait while we verify your email address."
                                             : "Please wait."}
@@ -142,13 +142,13 @@ export default function VerifyEmailPage() {
                 </a>
 
                 <div className="flex flex-col gap-6">
-                    <Card className="bg-card/80 backdrop-blur-sm border-border/30">
+                    <Card className="bg-card/80 border-border/30 backdrop-blur-sm">
                         <CardHeader className="text-center">
-                            <div className="flex justify-center mb-2">
+                            <div className="mb-2 flex justify-center">
                                 {success ? (
                                     <CheckCircle className="size-12 text-green-500" />
                                 ) : (
-                                    <AlertTriangle className="size-12 text-destructive" />
+                                    <AlertTriangle className="text-destructive size-12" />
                                 )}
                             </div>
                             <CardTitle className="text-foreground">

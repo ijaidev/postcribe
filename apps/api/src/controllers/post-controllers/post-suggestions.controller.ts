@@ -44,8 +44,8 @@ const postSuggestionsController = factory.createHandlers(
 
             const suggestionResult = await generatePostSuggestions(
                 socialLogin.platformUserId,
-                10, 
-                refresh,    
+                10,
+                refresh,
             );
 
             return streamText(c, async stream => {
@@ -60,7 +60,10 @@ const postSuggestionsController = factory.createHandlers(
                     }
                 } catch (streamError) {
                     logger.error(
-                        { error: streamError, platformUserId: socialLogin.platformUserId },
+                        {
+                            error: streamError,
+                            platformUserId: socialLogin.platformUserId,
+                        },
                         "Error during suggestion streaming",
                     );
                     await stream.write(

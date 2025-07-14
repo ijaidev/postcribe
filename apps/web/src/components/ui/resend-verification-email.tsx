@@ -102,10 +102,10 @@ export function ResendVerificationEmail({
 
     return (
         <div
-            className={`bg-muted/50 rounded-lg p-4 space-y-3 border border-border ${className}`}
+            className={`bg-muted/50 border-border space-y-3 rounded-lg border p-4 ${className}`}
         >
             {showHelper && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
                     <Mail className="h-4 w-4" />
                     <span>{helperText}</span>
                 </div>

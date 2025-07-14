@@ -29,7 +29,7 @@ export const postGraphConfig = Annotation.Root({
 });
 export const imageGraphConfig = Annotation.Root({
     thread_id: Annotation<string>,
-    platform: Annotation<"X" | "LINKEDIN">
+    platform: Annotation<"X" | "LINKEDIN">,
 });
 
 export const postGraphState = Annotation.Root({

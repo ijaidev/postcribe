@@ -35,13 +35,13 @@ export const generatePostSuggestions = async (
                     };
                     yield {
                         event: "response",
-                        content: "{\n\"suggestions\": [",
+                        content: '{\n"suggestions": [',
                     };
                     for (const suggestion of suggestions.suggestions) {
                         yield {
                             event: "response",
                             content: `"${suggestion}"`,
-                        }
+                        };
                     }
                     yield {
                         event: "response",

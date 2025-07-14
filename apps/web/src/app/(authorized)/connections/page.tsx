@@ -4,13 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-    Plus,
-    Settings,
-    Trash2,
-    CheckCircle,
-    AlertCircle,
-} from "lucide-react";
+import { Plus, Settings, Trash2, CheckCircle, AlertCircle } from "lucide-react";
 import { XLogo } from "@/components/ui/x-logo";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -71,7 +65,10 @@ export default function ConnectionsPage() {
                 json: { username },
             });
             if (!response.ok) {
-                throw new Error((await response.json()).message || "Failed to initiate X connection");   
+                throw new Error(
+                    (await response.json()).message ||
+                        "Failed to initiate X connection",
+                );
             }
             return response.json();
         },
@@ -107,7 +104,10 @@ export default function ConnectionsPage() {
                 json: { accountId },
             });
             if (!response.ok) {
-                throw new Error((await response.json()).message || "Failed to disconnect account");
+                throw new Error(
+                    (await response.json()).message ||
+                        "Failed to disconnect account",
+                );
             }
             return response.json();
         },
@@ -119,7 +119,7 @@ export default function ConnectionsPage() {
                     return {
                         ...oldData,
                         data: oldData.data.filter(
-                            account => account.id !== result.data?.id
+                            account => account.id !== result.data?.id,
                         ),
                     };
                 },
@@ -175,9 +175,9 @@ export default function ConnectionsPage() {
     };
 
     return (
-        <div className="container max-w-4xl mx-auto py-8 space-y-8">
+        <div className="container mx-auto max-w-4xl space-y-8 py-8">
             {/* Header */}
-            <div className="text-center space-y-2">
+            <div className="space-y-2 text-center">
                 <H1>Connected Accounts</H1>
                 <p className="text-muted-foreground">
                     Manage your social media accounts for posting content
@@ -185,7 +185,7 @@ export default function ConnectionsPage() {
             </div>
 
             {/* Connect New Account Section */}
-            <Card className="border-dashed border-2 hover:border-primary/50 transition-colors">
+            <Card className="hover:border-primary/50 border-2 border-dashed transition-colors">
                 <CardHeader className="text-center">
                     <CardTitle className="flex items-center justify-center gap-2">
                         <Plus className="h-5 w-5" />
@@ -201,13 +201,16 @@ export default function ConnectionsPage() {
                             onClick={handleConnectXAccount}
                             disabled={connectXAccountMutation.isPending}
                             variant="outline"
-                            className="flex items-center gap-2 h-12 px-6 hover:scale-[1.02] transition-all duration-200"
+                            className="flex h-12 items-center gap-2 px-6 transition-all duration-200 hover:scale-[1.02]"
                         >
                             {connectXAccountMutation.isPending ? (
                                 <ThreeDotLoader size="sm" />
                             ) : (
                                 <>
-                                    <XLogo size="md" className="text-foreground" />
+                                    <XLogo
+                                        size="md"
+                                        className="text-foreground"
+                                    />
                                     Connect X (Twitter)
                                 </>
                             )}
@@ -224,27 +227,28 @@ export default function ConnectionsPage() {
                     <Card>
                         <CardContent className="flex items-center justify-center py-12">
                             <ThreeDotLoader size="sm" />
-                            <span className="ml-3 text-muted-foreground">
+                            <span className="text-muted-foreground ml-3">
                                 Loading accounts...
                             </span>
                         </CardContent>
                     </Card>
                 ) : socialAccounts?.data?.length === 0 ? (
                     <Card>
-                        <CardContent className="text-center py-12">
-                            <div className="p-4 rounded-full bg-muted/30 w-fit mx-auto mb-4">
-                                <Settings className="h-8 w-8 text-muted-foreground" />
+                        <CardContent className="py-12 text-center">
+                            <div className="bg-muted/30 mx-auto mb-4 w-fit rounded-full p-4">
+                                <Settings className="text-muted-foreground h-8 w-8" />
                             </div>
-                            <h3 className="font-semibold text-lg mb-2">
+                            <h3 className="mb-2 text-lg font-semibold">
                                 No Connected Accounts
                             </h3>
                             <p className="text-muted-foreground mb-6">
-                                Connect your X (Twitter) account to start posting content
+                                Connect your X (Twitter) account to start
+                                posting content
                             </p>
                             <Button
                                 onClick={handleConnectXAccount}
                                 disabled={connectXAccountMutation.isPending}
-                                className="flex items-center gap-2 hover:scale-[1.02] transition-all duration-200"
+                                className="flex items-center gap-2 transition-all duration-200 hover:scale-[1.02]"
                             >
                                 <XLogo size="sm" className="text-foreground" />
                                 Connect X
@@ -258,39 +262,44 @@ export default function ConnectionsPage() {
                             return (
                                 <Card
                                     key={account.id}
-                                    className="hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 bg-card/50 backdrop-blur-sm"
+                                    className="bg-card/50 border-0 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
                                 >
                                     <CardContent className="p-6">
                                         {/* Header with icon, name, and status */}
-                                        <div className="flex items-start justify-between mb-6">
+                                        <div className="mb-6 flex items-start justify-between">
                                             <div className="flex items-center gap-4">
                                                 <div
-                                                    className={`p-3 rounded-xl shadow-sm ${getProviderColor(account.provider)}`}
+                                                    className={`rounded-xl p-3 shadow-sm ${getProviderColor(account.provider)}`}
                                                 >
                                                     {getProviderIcon(
                                                         account.provider,
                                                     )}
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <h3 className="font-semibold text-lg">
+                                                    <h3 className="text-lg font-semibold">
                                                         {account.name}
                                                     </h3>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="text-sm text-muted-foreground">
+                                                        <p className="text-muted-foreground text-sm">
                                                             X (Twitter)
                                                         </p>
                                                         {account.userName && (
                                                             <>
-                                                                <span className="text-muted-foreground">•</span>
-                                                                <span className="text-sm font-medium text-foreground">
-                                                                    @{account.userName}
+                                                                <span className="text-muted-foreground">
+                                                                    •
+                                                                </span>
+                                                                <span className="text-foreground text-sm font-medium">
+                                                                    @
+                                                                    {
+                                                                        account.userName
+                                                                    }
                                                                 </span>
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Status indicator */}
                                             <div className="flex items-center gap-2">
                                                 {connected ? (
@@ -299,24 +308,35 @@ export default function ConnectionsPage() {
                                                     <AlertCircle className="h-5 w-5 text-red-500" />
                                                 )}
                                                 <Badge
-                                                    variant={connected ? "default" : "destructive"}
-                                                    className="text-xs px-2 py-1"
+                                                    variant={
+                                                        connected
+                                                            ? "default"
+                                                            : "destructive"
+                                                    }
+                                                    className="px-2 py-1 text-xs"
                                                 >
-                                                    {connected ? "Connected" : "Disconnected"}
+                                                    {connected
+                                                        ? "Connected"
+                                                        : "Disconnected"}
                                                 </Badge>
                                             </div>
                                         </div>
 
                                         {/* Connection info */}
-                                        <div className="mb-6 p-3 rounded-lg bg-muted/30 border">
-                                            <div className="text-xs text-muted-foreground">
+                                        <div className="bg-muted/30 mb-6 rounded-lg border p-3">
+                                            <div className="text-muted-foreground text-xs">
                                                 Connected on{" "}
-                                                <span className="font-medium text-foreground">
-                                                    {new Date(account.createdAt).toLocaleDateString("en-US", {
-                                                        year: "numeric",
-                                                        month: "long",
-                                                        day: "numeric"
-                                                    })}
+                                                <span className="text-foreground font-medium">
+                                                    {new Date(
+                                                        account.createdAt,
+                                                    ).toLocaleDateString(
+                                                        "en-US",
+                                                        {
+                                                            year: "numeric",
+                                                            month: "long",
+                                                            day: "numeric",
+                                                        },
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
@@ -327,10 +347,13 @@ export default function ConnectionsPage() {
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    className="flex items-center gap-2 flex-1 h-10"
+                                                    className="flex h-10 flex-1 items-center gap-2"
                                                     onClick={handleReconnect}
                                                 >
-                                                    <XLogo size="sm" className="text-foreground" />
+                                                    <XLogo
+                                                        size="sm"
+                                                        className="text-foreground"
+                                                    />
                                                     Reconnect
                                                 </Button>
                                             )}
@@ -343,15 +366,20 @@ export default function ConnectionsPage() {
                                                         account,
                                                     )
                                                 }
-                                                disabled={disconnectAccountMutation.isPending}
+                                                disabled={
+                                                    disconnectAccountMutation.isPending
+                                                }
                                             >
-                                                {disconnectAccountMutation.isPending && 
-                                                 accountToDisconnect?.id === account.id ? (
+                                                {disconnectAccountMutation.isPending &&
+                                                accountToDisconnect?.id ===
+                                                    account.id ? (
                                                     <ThreeDotLoader size="sm" />
                                                 ) : (
                                                     <>
                                                         <Trash2 className="h-4 w-4" />
-                                                        <span className="hidden sm:inline">Disconnect</span>
+                                                        <span className="hidden sm:inline">
+                                                            Disconnect
+                                                        </span>
                                                     </>
                                                 )}
                                             </Button>
@@ -427,8 +455,9 @@ export default function ConnectionsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Disconnect Account</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to disconnect &quot;{accountToDisconnect?.name}?&quot; 
-                            This will remove your ability to post to this X account.
+                            Are you sure you want to disconnect &quot;
+                            {accountToDisconnect?.name}?&quot; This will remove
+                            your ability to post to this X account.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -440,7 +469,9 @@ export default function ConnectionsPage() {
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDisconnectAccount}
-                            className={buttonVariants({ variant: "destructive" })}
+                            className={buttonVariants({
+                                variant: "destructive",
+                            })}
                             disabled={disconnectAccountMutation.isPending}
                         >
                             {disconnectAccountMutation.isPending ? (
