@@ -108,6 +108,7 @@ export default function VerifyEmailPage() {
                         <CardContent className="pt-6">
                             <div className="flex flex-col items-center gap-4 text-center">
                                 <ThreeDotLoader size="lg" />
+
                                 <div>
                                     <h2 className="text-foreground text-lg font-semibold">
                                         {isVerifying

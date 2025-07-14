@@ -341,8 +341,10 @@ CREATIVE APPROACH:
 - Optimize for shareability and engagement
 
 CONTEXT UTILIZATION:
-- First attached image (if present) is the current generated image to edit/reference
-- Additional images are user-provided reference images
+- If an image has already been generated in this conversation, the first attached image (provided as context to you) is the last generated/edited image for internal reference and editing purposes only.
+- In this case, all subsequent attached images are user-provided reference images.
+- When the user mentions "the image" or specifies an image number, start counting from the second attached image (the first user-provided one); do not consider the internal generated image as part of user-referenced images.
+- If no image has been generated yet (e.g., this is the user's first message or no prior generation has occurred), all attached images are user-provided reference images.
 - Use post content context to ensure visual-text alignment
 - Match image tone and style to written content
 - Ensure visual elements reinforce key message points

@@ -4,7 +4,7 @@ import { InferRequestType } from "hono";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CreateDraft } from "@/components/pages/draft/create-draft";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -626,6 +626,10 @@ const Page = () => {
             return response.json();
         },
         onSuccess: response => {
+            setIsImageLoading({
+                x: false,
+                linkedin: false,
+            });
             const linkedinImageUrl = response.data?.linkedin;
             const xImageUrl = response.data?.x;
 
@@ -659,11 +663,13 @@ const Page = () => {
                 return newState;
             });
 
-            console.log(response);
-            console.log(draftState);
             toast.success("Image created successfully");
         },
         onError: error => {
+            setIsImageLoading({
+                x: false,
+                linkedin: false,
+            });
             toast.error(error.message || "Failed to create image");
         },
     });
@@ -824,6 +830,7 @@ const Page = () => {
             });
         }
         setPrompt("");
+        setImages([]);
     };
 
     const handleCopyPost = async (text: string, postKey: string) => {
@@ -857,429 +864,475 @@ const Page = () => {
         }
     };
 
-    const Content = ({ platformKey }: { platformKey: "x" | "linkedin" }) => {
-        const getEventText = (currentEvent: StreamData["event"]) => {
-            switch (currentEvent) {
-                case "response":
-                    return "Generating...";
-                case "search":
-                    return "Searching...";
-                case "extract":
-                    return "Browsing...";
-                default:
-                    return "Generating...";
-            }
-        };
+    const Content = useMemo(() => {
+        const ContentComponent = ({
+            platformKey,
+        }: {
+            platformKey: "x" | "linkedin";
+        }) => {
+            const getEventText = (currentEvent: StreamData["event"]) => {
+                switch (currentEvent) {
+                    case "response":
+                        return "Generating...";
+                    case "search":
+                        return "Searching...";
+                    case "extract":
+                        return "Browsing...";
+                    default:
+                        return "Generating...";
+                }
+            };
 
-        return (
-            <div className="flex flex-col items-center">
-                <div className="flex w-full flex-col gap-4 lg:flex-row">
-                    <div className="w-full lg:w-1/2">
-                        {/* Post Card */}
-                        <Card className="mb-2 py-2">
-                            <CardHeader className="flex w-full items-center">
-                                <div className="flex w-full items-center justify-between">
-                                    {createPostMutation.isPending &&
-                                    currentEvent[platformKey] ? (
-                                        <div className="flex items-center gap-3">
-                                            <TextShimmer
-                                                className="font-mono text-sm"
-                                                duration={1}
-                                            >
-                                                {getEventText(
-                                                    currentEvent[platformKey],
-                                                )}
-                                            </TextShimmer>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-3">
-                                            {platformKey === "x" ? (
-                                                <XLogo size="md" />
-                                            ) : (
-                                                <LinkedinLogo size="md" />
-                                            )}
-                                            <span className="font-medium">
-                                                {platformKey === "x"
-                                                    ? "X Post"
-                                                    : "LinkedIn Post"}
-                                            </span>
-                                        </div>
-                                    )}
+            const [isImageLoaded, setIsImageLoaded] = useState(false);
+            const currentImageVersion =
+                draftState[platformKey].currentImageVersion;
 
-                                    <div className="flex items-center gap-2">
-                                        {draftState[platformKey]
-                                            .currentPostVersion <
-                                            draftState[platformKey].posts
-                                                .length -
-                                                1 && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 text-xs"
-                                                onClick={() =>
-                                                    handleApplyVersion(
-                                                        "post",
-                                                        platformKey,
-                                                    )
-                                                }
-                                                disabled={
-                                                    applyVersionMutation.isPending
-                                                }
-                                            >
-                                                APPLY
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleUndo("post")}
-                                            disabled={!canUndo("post")}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <Undo2 className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRedo("post")}
-                                            disabled={!canRedo("post")}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <Redo2 className="h-4 w-4" />
-                                        </Button>
-                                        <span className="text-muted-foreground flex h-8 items-center text-xs">
-                                            {draftState[platformKey].posts
-                                                .length > 0
-                                                ? `${draftState[platformKey].currentPostVersion + 1}/${draftState[platformKey].posts.length}`
-                                                : "0/0"}
-                                        </span>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                        </Card>
-                        <Card>
-                            <CardContent>
-                                {createPostMutation.isPending &&
-                                !draftState[platformKey].posts.length ? (
-                                    <div className="h-96 space-y-2">
-                                        <Skeleton className="h-4 w-full" />
-                                        <Skeleton className="h-4 w-3/4" />
-                                        <Skeleton className="h-4 w-1/2" />
-                                    </div>
-                                ) : draftState[platformKey].posts[
-                                      draftState[platformKey].currentPostVersion
-                                  ]?.post ? (
-                                    <div className="flex h-96 items-center justify-center">
-                                        <div className="scroll-bar h-full overflow-y-auto">
-                                            <div className="pt-4 pr-4 text-sm leading-relaxed whitespace-pre-wrap">
-                                                {
-                                                    draftState[platformKey]
-                                                        .posts[
-                                                        draftState[platformKey]
-                                                            .currentPostVersion
-                                                    ].post
-                                                }
+            useEffect(() => {
+                setIsImageLoaded(false);
+            }, [currentImageVersion]);
+
+            return (
+                <div className="flex flex-col items-center">
+                    <div className="flex w-full flex-col gap-4 lg:flex-row">
+                        <div className="w-full lg:w-1/2">
+                            {/* Post Card */}
+                            <Card className="mb-2 py-2">
+                                <CardHeader className="flex w-full items-center">
+                                    <div className="flex w-full items-center justify-between">
+                                        {createPostMutation.isPending &&
+                                        currentEvent[platformKey] ? (
+                                            <div className="flex items-center gap-3">
+                                                <TextShimmer
+                                                    className="font-mono text-sm"
+                                                    duration={1}
+                                                >
+                                                    {getEventText(
+                                                        currentEvent[
+                                                            platformKey
+                                                        ],
+                                                    )}
+                                                </TextShimmer>
                                             </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="text-muted-foreground flex h-96 items-center justify-center py-8 text-center text-sm">
-                                        No post generated yet
-                                    </div>
-                                )}
-                            </CardContent>
+                                        ) : (
+                                            <div className="flex items-center gap-3">
+                                                {platformKey === "x" ? (
+                                                    <XLogo size="md" />
+                                                ) : (
+                                                    <LinkedinLogo size="md" />
+                                                )}
+                                                <span className="font-medium">
+                                                    {platformKey === "x"
+                                                        ? "X Post"
+                                                        : "LinkedIn Post"}
+                                                </span>
+                                            </div>
+                                        )}
 
-                            <CardFooter className="flex items-center justify-end">
-                                <TooltipProvider delayDuration={0}>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-2">
+                                            {draftState[platformKey]
+                                                .currentPostVersion <
+                                                draftState[platformKey].posts
+                                                    .length -
+                                                    1 && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 text-xs"
+                                                    onClick={() =>
+                                                        handleApplyVersion(
+                                                            "post",
+                                                            platformKey,
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        applyVersionMutation.isPending
+                                                    }
+                                                >
+                                                    APPLY
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-8 w-8 p-0 disabled:opacity-100"
                                                 onClick={() =>
-                                                    handleCopyPost(
+                                                    handleUndo("post")
+                                                }
+                                                disabled={!canUndo("post")}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <Undo2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    handleRedo("post")
+                                                }
+                                                disabled={!canRedo("post")}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <Redo2 className="h-4 w-4" />
+                                            </Button>
+                                            <span className="text-muted-foreground flex h-8 items-center text-xs">
+                                                {draftState[platformKey].posts
+                                                    .length > 0
+                                                    ? `${draftState[platformKey].currentPostVersion + 1}/${draftState[platformKey].posts.length}`
+                                                    : "0/0"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                            </Card>
+                            <Card>
+                                <CardContent>
+                                    {createPostMutation.isPending &&
+                                    !draftState[platformKey].posts.length ? (
+                                        <div className="h-96 space-y-2">
+                                            <Skeleton className="h-4 w-full" />
+                                            <Skeleton className="h-4 w-3/4" />
+                                            <Skeleton className="h-4 w-1/2" />
+                                        </div>
+                                    ) : draftState[platformKey].posts[
+                                          draftState[platformKey]
+                                              .currentPostVersion
+                                      ]?.post ? (
+                                        <div className="flex h-96 items-center justify-center">
+                                            <div className="scroll-bar h-full overflow-y-auto">
+                                                <div className="pt-4 pr-4 text-sm leading-relaxed whitespace-pre-wrap">
+                                                    {
                                                         draftState[platformKey]
                                                             .posts[
                                                             draftState[
                                                                 platformKey
                                                             ].currentPostVersion
-                                                        ].post,
-                                                        `${platformKey}-post`,
-                                                    )
-                                                }
-                                                aria-label={
-                                                    copiedStates[
-                                                        `${platformKey}-post`
-                                                    ]
-                                                        ? "Copied"
-                                                        : "Copy to clipboard"
-                                                }
-                                                disabled={
-                                                    copiedStates[
-                                                        `${platformKey}-post`
-                                                    ] ||
-                                                    !draftState[platformKey]
-                                                        .posts[
-                                                        draftState[platformKey]
-                                                            .currentPostVersion
-                                                    ]?.post
-                                                }
-                                            >
-                                                <div
-                                                    className={cn(
-                                                        "transition-all",
-                                                        copiedStates[
-                                                            `${platformKey}-post`
-                                                        ]
-                                                            ? "scale-100 opacity-100"
-                                                            : "scale-0 opacity-0",
-                                                    )}
-                                                >
-                                                    <Check
-                                                        className="stroke-emerald-500"
-                                                        size={16}
-                                                        strokeWidth={2}
-                                                        aria-hidden="true"
-                                                    />
-                                                </div>
-                                                <div
-                                                    className={cn(
-                                                        "absolute transition-all",
-                                                        copiedStates[
-                                                            `${platformKey}-post`
-                                                        ]
-                                                            ? "scale-0 opacity-0"
-                                                            : "scale-100 opacity-100",
-                                                    )}
-                                                >
-                                                    <Copy
-                                                        size={16}
-                                                        strokeWidth={2}
-                                                        aria-hidden="true"
-                                                    />
-                                                </div>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="px-2 py-1 text-xs">
-                                            {copiedStates[`${platformKey}-post`]
-                                                ? "Copied!"
-                                                : "Copy post"}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </CardFooter>
-                        </Card>
-                    </div>
-
-                    <div className="w-full lg:w-1/2">
-                        {/* Image Card */}
-
-                        <Card className="mb-2 py-2">
-                            <CardHeader className="flex w-full items-center">
-                                <div className="flex w-full items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <ImagePlus className="h-5 w-5" />
-                                        {isImageLoading[platformKey] ? (
-                                            <TextShimmer
-                                                className="font-mono text-sm"
-                                                duration={1}
-                                            >
-                                                Creating Image...
-                                            </TextShimmer>
-                                        ) : (
-                                            <span className="font-medium">
-                                                Images
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {draftState[platformKey]
-                                            .currentImageVersion <
-                                            draftState[platformKey].images
-                                                .length -
-                                                1 && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 text-xs"
-                                                onClick={() =>
-                                                    handleApplyVersion(
-                                                        "image",
-                                                        platformKey,
-                                                    )
-                                                }
-                                                disabled={
-                                                    applyVersionMutation.isPending
-                                                }
-                                            >
-                                                APPLY
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleUndo("image")}
-                                            disabled={!canUndo("image")}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <Undo2 className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRedo("image")}
-                                            disabled={!canRedo("image")}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <Redo2 className="h-4 w-4" />
-                                        </Button>
-                                        <span className="text-muted-foreground flex h-8 items-center text-xs">
-                                            {draftState[platformKey].images
-                                                .length > 0
-                                                ? `${draftState[platformKey].currentImageVersion + 1}/${draftState[platformKey].images.length}`
-                                                : "0/0"}
-                                        </span>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                        </Card>
-                        <Card>
-                            <div className="relative flex items-center justify-center">
-                                {isImageLoading[platformKey] ? (
-                                    <div className="h-96 w-96">
-                                        <Skeleton className="h-full w-full" />
-                                    </div>
-                                ) : !draftState[platformKey].images.length ? (
-                                    <div className="flex h-96 w-96 flex-col items-center justify-center gap-10">
-                                        {draftState[platformKey].posts
-                                            .length ? (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    if (draftId) {
-                                                        createImageMutation.mutate(
-                                                            {
-                                                                message:
-                                                                    "create a related images for this post",
-                                                                draftId:
-                                                                    draftId!,
-                                                                platform:
-                                                                    platformToEdit.toUpperCase() as
-                                                                        | "X"
-                                                                        | "LINKEDIN"
-                                                                        | "ALL",
-                                                                images: images
-                                                                    .filter(
-                                                                        img =>
-                                                                            img.uploaded,
-                                                                    )
-                                                                    .map(
-                                                                        img =>
-                                                                            img.imageUrl!,
-                                                                    ),
-                                                            },
-                                                        );
-                                                        return;
+                                                        ].post
                                                     }
-                                                    toast.error(
-                                                        "Please create a post first",
-                                                    );
-                                                }}
-                                                disabled={
-                                                    !draftId ||
-                                                    draftState[platformKey]
-                                                        .posts.length === 0 ||
-                                                    createPostMutation.isPending
-                                                }
-                                            >
-                                                Create Image
-                                            </Button>
-                                        ) : (
-                                            <span className="text-muted-foreground text-sm">
-                                                Create a post first
-                                            </span>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="group relative flex h-96 w-full items-center justify-center">
-                                        <Image
-                                            src={
-                                                draftState[platformKey].images[
-                                                    draftState[platformKey]
-                                                        .currentImageVersion
-                                                ].url
-                                            }
-                                            alt="Generated image"
-                                            fill
-                                            className="mx-auto h-full w-full rounded-lg object-contain"
-                                        />
-                                    </div>
-                                )}
-                            </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-muted-foreground flex h-96 items-center justify-center py-8 text-center text-sm">
+                                            No post generated yet
+                                        </div>
+                                    )}
+                                </CardContent>
 
-                            <CardFooter className="flex items-center justify-end">
-                                <TooltipProvider delayDuration={0}>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
+                                <CardFooter className="flex items-center justify-end">
+                                    <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 disabled:opacity-100"
+                                                    onClick={() =>
+                                                        handleCopyPost(
+                                                            draftState[
+                                                                platformKey
+                                                            ].posts[
+                                                                draftState[
+                                                                    platformKey
+                                                                ]
+                                                                    .currentPostVersion
+                                                            ].post,
+                                                            `${platformKey}-post`,
+                                                        )
+                                                    }
+                                                    aria-label={
+                                                        copiedStates[
+                                                            `${platformKey}-post`
+                                                        ]
+                                                            ? "Copied"
+                                                            : "Copy to clipboard"
+                                                    }
+                                                    disabled={
+                                                        copiedStates[
+                                                            `${platformKey}-post`
+                                                        ] ||
+                                                        !draftState[platformKey]
+                                                            .posts[
+                                                            draftState[
+                                                                platformKey
+                                                            ].currentPostVersion
+                                                        ]?.post
+                                                    }
+                                                >
+                                                    <div
+                                                        className={cn(
+                                                            "transition-all",
+                                                            copiedStates[
+                                                                `${platformKey}-post`
+                                                            ]
+                                                                ? "scale-100 opacity-100"
+                                                                : "scale-0 opacity-0",
+                                                        )}
+                                                    >
+                                                        <Check
+                                                            className="stroke-emerald-500"
+                                                            size={16}
+                                                            strokeWidth={2}
+                                                            aria-hidden="true"
+                                                        />
+                                                    </div>
+                                                    <div
+                                                        className={cn(
+                                                            "absolute transition-all",
+                                                            copiedStates[
+                                                                `${platformKey}-post`
+                                                            ]
+                                                                ? "scale-0 opacity-0"
+                                                                : "scale-100 opacity-100",
+                                                        )}
+                                                    >
+                                                        <Copy
+                                                            size={16}
+                                                            strokeWidth={2}
+                                                            aria-hidden="true"
+                                                        />
+                                                    </div>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="px-2 py-1 text-xs">
+                                                {copiedStates[
+                                                    `${platformKey}-post`
+                                                ]
+                                                    ? "Copied!"
+                                                    : "Copy post"}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </CardFooter>
+                            </Card>
+                        </div>
+
+                        <div className="w-full lg:w-1/2">
+                            {/* Image Card */}
+
+                            <Card className="mb-2 py-2">
+                                <CardHeader className="flex w-full items-center">
+                                    <div className="flex w-full items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <ImagePlus className="h-5 w-5" />
+                                            {isImageLoading[platformKey] ? (
+                                                <TextShimmer
+                                                    className="font-mono text-sm"
+                                                    duration={1}
+                                                >
+                                                    Creating Image...
+                                                </TextShimmer>
+                                            ) : (
+                                                <span className="font-medium">
+                                                    Images
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {draftState[platformKey]
+                                                .currentImageVersion <
+                                                draftState[platformKey].images
+                                                    .length -
+                                                    1 && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 text-xs"
+                                                    onClick={() =>
+                                                        handleApplyVersion(
+                                                            "image",
+                                                            platformKey,
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        applyVersionMutation.isPending
+                                                    }
+                                                >
+                                                    APPLY
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-8 w-8 p-0"
                                                 onClick={() =>
-                                                    handleDownloadImage(
+                                                    handleUndo("image")
+                                                }
+                                                disabled={!canUndo("image")}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <Undo2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    handleRedo("image")
+                                                }
+                                                disabled={!canRedo("image")}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <Redo2 className="h-4 w-4" />
+                                            </Button>
+                                            <span className="text-muted-foreground flex h-8 items-center text-xs">
+                                                {draftState[platformKey].images
+                                                    .length > 0
+                                                    ? `${draftState[platformKey].currentImageVersion + 1}/${draftState[platformKey].images.length}`
+                                                    : "0/0"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                            </Card>
+                            <Card>
+                                <div className="relative flex items-center justify-center">
+                                    {!draftState[platformKey].images.length ? (
+                                        <div className="flex h-96 w-96 flex-col items-center justify-center gap-10">
+                                            {draftState[platformKey].posts
+                                                .length ? (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        if (draftId) {
+                                                            createImageMutation.mutate(
+                                                                {
+                                                                    message:
+                                                                        "create a related images for this post",
+                                                                    draftId:
+                                                                        draftId!,
+                                                                    platform:
+                                                                        platformToEdit.toUpperCase() as
+                                                                            | "X"
+                                                                            | "LINKEDIN"
+                                                                            | "ALL",
+                                                                    images: images
+                                                                        .filter(
+                                                                            img =>
+                                                                                img.uploaded,
+                                                                        )
+                                                                        .map(
+                                                                            img =>
+                                                                                img.imageUrl!,
+                                                                        ),
+                                                                },
+                                                            );
+                                                            return;
+                                                        }
+                                                        toast.error(
+                                                            "Please create a post first",
+                                                        );
+                                                    }}
+                                                    disabled={
+                                                        !draftId ||
                                                         draftState[platformKey]
-                                                            .images[
+                                                            .posts.length ===
+                                                            0 ||
+                                                        createPostMutation.isPending
+                                                    }
+                                                >
+                                                    Create Image
+                                                </Button>
+                                            ) : (
+                                                <span className="text-muted-foreground text-sm">
+                                                    Create a post first
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="group relative flex h-96 w-96 items-center justify-center">
+                                            {(isImageLoading[platformKey] ||
+                                                !isImageLoaded) && (
+                                                <Skeleton className="absolute inset-0 mx-auto h-full w-96 rounded-lg" />
+                                            )}
+                                            <Image
+                                                src={
+                                                    draftState[platformKey]
+                                                        .images[
+                                                        currentImageVersion
+                                                    ].url
+                                                }
+                                                alt="Generated image"
+                                                fill
+                                                className={cn(
+                                                    "verflow-hidden mx-auto h-full rounded-lg object-contain transition-opacity duration-300",
+                                                    !isImageLoaded &&
+                                                        "opacity-0",
+                                                )}
+                                                onLoadingComplete={() =>
+                                                    setIsImageLoaded(true)
+                                                }
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <CardFooter className="flex items-center justify-end">
+                                    <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0"
+                                                    onClick={() =>
+                                                        handleDownloadImage(
                                                             draftState[
                                                                 platformKey
-                                                            ]
-                                                                .currentImageVersion
-                                                        ].url,
-                                                        `${platformKey}-post-image-${Date.now()}.png`,
-                                                    )
-                                                }
-                                            >
-                                                <Download className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="px-2 py-1 text-xs">
-                                            Download image
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </CardFooter>
-                        </Card>
-                    </div>
-                </div>
-                {/* Suggestions */}
-                {options[platformKey].length > 0 &&
-                    !currentEvent[platformKey] && (
-                        <div className="mt-6 w-full space-y-3">
-                            <div className="text-muted-foreground text-sm font-medium">
-                                Suggestions for improvement:
-                            </div>
-                            <div className="no-scrollbar flex flex-nowrap items-center gap-4 overflow-x-auto">
-                                {options[platformKey].map((option, index) => (
-                                    <Button
-                                        key={index}
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-auto flex-shrink-0 justify-start p-3 text-left whitespace-normal"
-                                        onClick={() => {
-                                            setPrompt(option);
-                                            textareaRef.current?.focus();
-                                        }}
-                                    >
-                                        <Sparkles className="mt-0.5 mr-2 h-3 w-3 flex-shrink-0" />
-                                        {option}
-                                    </Button>
-                                ))}
-                            </div>
+                                                            ].images[
+                                                                draftState[
+                                                                    platformKey
+                                                                ]
+                                                                    .currentImageVersion
+                                                            ].url,
+                                                            `${platformKey}-post-image-${Date.now()}.png`,
+                                                        )
+                                                    }
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="px-2 py-1 text-xs">
+                                                Download image
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </CardFooter>
+                            </Card>
                         </div>
-                    )}
-            </div>
-        );
-    };
+                    </div>
+                    {/* Suggestions */}
+                    {options[platformKey].length > 0 &&
+                        !currentEvent[platformKey] && (
+                            <div className="mt-6 w-full space-y-3">
+                                <div className="text-muted-foreground text-sm font-medium">
+                                    Suggestions for improvement:
+                                </div>
+                                <div className="no-scrollbar flex flex-nowrap items-center gap-4 overflow-x-auto">
+                                    {options[platformKey].map(
+                                        (option, index) => (
+                                            <Button
+                                                key={index}
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-auto flex-shrink-0 justify-start p-3 text-left whitespace-normal"
+                                                onClick={() => {
+                                                    setPrompt(option);
+                                                    textareaRef.current?.focus();
+                                                }}
+                                            >
+                                                <Sparkles className="mt-0.5 mr-2 h-3 w-3 flex-shrink-0" />
+                                                {option}
+                                            </Button>
+                                        ),
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                </div>
+            );
+        };
+
+        ContentComponent.displayName = "Content";
+        return ContentComponent;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [draftState, currentEvent, isImageLoading]);
 
     // If no draftId, show creation mode
     if (!draftId) {
