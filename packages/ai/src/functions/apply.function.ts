@@ -5,9 +5,9 @@ import type {
     postGraphState,
 } from "../graph-states";
 import type { LangGraphRunnableConfig } from "@langchain/langgraph";
-import { RemoveMessage } from "@langchain/core/messages";
 import { linkedInPostGraph, xPostGraph } from "../graphs/post-gen";
 import { linkedInImageGraph, xImageGraph } from "../graphs/image-gen";
+import { RemoveMessage } from "@langchain/core/messages";
 
 export interface ApplyOptions {
     applyVersion: number;
@@ -27,35 +27,35 @@ const applyVersionPost = async (options: ApplyOptions) => {
             xAccountId: undefined,
         },
     };
-    console.log("posts before", (await graph.getState(config)).values.posts);
-    if (applyVersion && applyVersion > 0) {
-        if (applyVersion && applyVersion > 0) {
-            const currentState = await graph.getState(config);
-            const values: postGraphState = currentState.values;
-            const { posts, messages } = values;
-            if (posts.length - 1 > applyVersion) {
-                const postToRemoveIndex = applyVersion + 1;
-                const postToRemove = posts[postToRemoveIndex];
-                const messageToRemoveId = postToRemove?.messageId;
-                const messageToRemoveIndex = messages.findIndex(
-                    message => message.id === messageToRemoveId,
-                );
-                if (messageToRemoveIndex !== -1 || postToRemoveIndex !== -1) {
-                    graph.updateState(config, {
-                        messages: messages
-                            .slice(messageToRemoveIndex, messages.length)
-                            .map(
-                                message =>
-                                    new RemoveMessage({ id: message.id! }),
-                            ),
-                        posts: posts.slice(postToRemoveIndex, posts.length),
-                    });
-                }
-            }
-        }
-    }
 
-    console.log("posts after", (await graph.getState(config)).values.posts);
+    const currentState = await graph.getState(config);
+    const values: postGraphState = currentState.values;
+    const { posts, messages } = values;
+
+    if (posts.length <= applyVersion + 1) return;
+    const post = posts[applyVersion];
+    const messageId = post?.messageId;
+
+    if (!messageId) return;
+
+    const postToRemoveFrom = posts[applyVersion + 1];
+    const messageIndex = messages.findIndex(
+        m => m.id === postToRemoveFrom?.messageId,
+    );
+
+    if (messageIndex === -1) return;
+
+    const messagesToRemove = messages.slice(messageIndex);
+
+    await graph.updateState(config, {
+        messages: messagesToRemove.map(
+            m => new RemoveMessage({ id: m.id || "" }),
+        ),
+    });
+
+    await graph.updateState(config, {
+        posts: [{ __apply_version: applyVersion }],
+    });
 };
 
 const applyVersionImage = async (options: ApplyOptions) => {
@@ -70,27 +70,35 @@ const applyVersionImage = async (options: ApplyOptions) => {
         },
     };
 
-    if (applyVersion && applyVersion > 0) {
-        const currentState = await graph.getState(config);
-        const values: imageGraphState = currentState.values;
-        const { images, messages } = values;
-        if (images && images.length - 1 > applyVersion) {
-            const imageToRemoveIndex = applyVersion + 1;
-            const imageToRemove = images[imageToRemoveIndex];
-            const messageToRemoveId = imageToRemove?.messageId;
-            const messageToRemoveIndex = messages.findIndex(
-                message => message.id === messageToRemoveId,
-            );
-            if (messageToRemoveIndex !== -1 || imageToRemoveIndex !== -1) {
-                await graph.updateState(config, {
-                    messages: messages
-                        .slice(messageToRemoveIndex, messages.length)
-                        .map(message => new RemoveMessage({ id: message.id! })),
-                    images: images.slice(imageToRemoveIndex, images.length),
-                });
-            }
-        }
-    }
+    const currentState = await graph.getState(config);
+    const values: imageGraphState = currentState.values;
+    const { images, messages } = values;
+
+    if (images.length <= applyVersion + 1) return;
+    const image = images[applyVersion];
+    const messageId = image?.messageId;
+
+    if (!messageId) return;
+
+    const imageToRemoveFrom = images[applyVersion + 1];
+    const messageIndex = messages.findIndex(
+        m => m.id === imageToRemoveFrom?.messageId,
+    );
+    if (messageIndex === -1) return;
+    const messagesToRemove = messages.slice(messageIndex);
+
+    await graph.updateState(config, {
+        messages: messagesToRemove.map(
+            m =>
+                new RemoveMessage({
+                    id: m.id || "",
+                }),
+        ),
+    });
+
+    await graph.updateState(config, {
+        images: [{ __apply_version: applyVersion }],
+    });
 };
 
 export { applyVersionPost, applyVersionImage };

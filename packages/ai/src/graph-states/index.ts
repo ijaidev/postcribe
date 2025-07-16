@@ -7,6 +7,15 @@ const postReducer = (prev: Post[], curr: Post[]) => {
     const newPost = curr[0];
     if (!newPost) return prev;
 
+    // Special handling for apply operation - replace entire array
+    if (typeof newPost.__apply_version === "number") {
+        const applyVersion = newPost.__apply_version;
+        // Keep only posts with versions <= __apply_version
+        const postsToKeep = prev.slice(0, applyVersion + 1);
+        return postsToKeep;
+    }
+
+    // Normal append operation
     const lastPost = prev[prev.length - 1];
     const version = lastPost ? lastPost.version + 1 : 0;
     return [...prev, { ...newPost, version }];
@@ -17,6 +26,15 @@ const imageReducer = (prev: Image[], curr: Image[]) => {
     const newImage = curr[0];
     if (!newImage) return prev;
 
+    // Special handling for apply operation - replace entire array
+    if (typeof newImage.__apply_version === "number") {
+        const applyVersion = newImage.__apply_version;
+        // Keep only images with versions <= __apply_version
+        const imagesToKeep = prev.slice(0, applyVersion + 1);
+        return imagesToKeep;
+    }
+
+    // Normal append operation
     const lastImage = prev[prev.length - 1];
     const version = lastImage ? lastImage.version + 1 : 0;
     return [...prev, { ...newImage, version }];

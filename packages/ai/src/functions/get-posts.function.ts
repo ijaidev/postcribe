@@ -4,29 +4,22 @@ import { linkedInPostGraph } from "../graphs/post-gen";
 
 import { xPostGraph } from "../graphs/post-gen";
 import type { LangGraphRunnableConfig } from "@langchain/langgraph";
+import type { Post, Image } from "../types";
 
 interface GetPostsOptions {
     draftId: string;
 }
-
-interface Post {
-    content: string;
-    version: number;
-}
-
-interface Image {
-    url: string;
-    version: number;
-}
+type PostResponse = Omit<Post, "__apply_version" | "messageId">;
+type ImageResponse = Omit<Image, "__apply_version" | "messageId">;
 
 interface GetPostsResponse {
     x: {
-        posts: Post[];
-        images: Image[];
+        posts: PostResponse[];
+        images: ImageResponse[];
     };
     linkedin: {
-        posts: Post[];
-        images: Image[];
+        posts: PostResponse[];
+        images: ImageResponse[];
     };
 }
 
@@ -49,24 +42,13 @@ const getPosts = async (
     const linkedinImageState = await linkedInImageGraph.getState(config);
     const linkedinImageValues: imageGraphState = linkedinImageState.values;
 
-    const xPosts = xValues.posts?.map(post => ({
-        content: post.post,
-        version: post.version,
-    }));
-    const xImages = xImageValues.images?.map(image => ({
-        url: image.imageUrl,
-        version: image.version,
-    }));
+    const xPosts = xValues.posts;
+    const xImages = xImageValues.images;
 
-    const linkedinImages = linkedinImageValues.images?.map(image => ({
-        url: image.imageUrl,
-        version: image.version,
-    }));
+    const linkedinImages = linkedinImageValues.images;
 
-    const linkedinPosts = linkedinValues.posts?.map(post => ({
-        content: post.post,
-        version: post.version,
-    }));
+    const linkedinPosts = linkedinValues.posts;
+
     return {
         x: {
             posts: xPosts ?? [],

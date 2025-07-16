@@ -14,7 +14,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth-client";
 import { CLIENT_URL } from "@/config";
-import { ThreeDotLoader } from "@/components/ui/loaders/three-dot-loader";
+import { ThreeDotLoader } from "@/components/ui/loaders/three-dot.loader";
 import { useUser } from "@/components/providers/user-provider";
 import { ResendVerificationEmail } from "./resend-verification-email";
 

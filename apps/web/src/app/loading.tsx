@@ -1,4 +1,4 @@
-import { ThreeDotLoader } from "@/components/ui/loaders/three-dot-loader";
+import { ThreeDotLoader } from "@/components/ui/loaders/three-dot.loader";
 
 export default function Loading() {
     return (
