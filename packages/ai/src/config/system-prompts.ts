@@ -457,4 +457,8 @@ Research current events and trends that might be relevant to the user's niche us
     return suggestionPrompt;
 };
 
-export { getPostPrompt, getImagePrompt, getSuggestionPrompt };
+const getNameGenPrompt = () => `
+You are a world-class creative naming assistant. Your job is to generate a single, catchy, creative, and memorable name for a DRAFT or CHAT based on the provided agent and user discussion. The name must be 2 to 5 words, easy to remember, and suitable for branding or identification. You will be given the full discussion between the agent and the user. Return ONLY the name as a plain string, with no explanation, no formatting, and no extra text. Do not use quotes, markdown, or any other formatting. Just output the name.
+`;
+
+export { getPostPrompt, getImagePrompt, getSuggestionPrompt, getNameGenPrompt };
