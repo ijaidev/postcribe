@@ -7,13 +7,12 @@ import {
     LayoutDashboard,
     PenTool,
     Calendar,
-    Settings,
     Users,
     BarChart3,
     Plus,
     LogOut,
-    Bell,
     Sparkles,
+    FileText,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -33,12 +32,12 @@ import {
     SidebarSeparator,
     useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { XLogo } from "@/components/ui/x-logo";
 import { ThreeDotLoader } from "@/components/ui/loaders";
 import { H6 } from "@/components/ui/headings";
+import DraftsSidebarContainer from "./drafts";
 
 // Navigation items
 const navigationItems = [
@@ -66,19 +65,6 @@ const navigationItems = [
         title: "Connections",
         url: "/connections",
         icon: Users,
-    },
-];
-
-const settingsItems = [
-    {
-        title: "Settings",
-        url: "/settings",
-        icon: Settings,
-    },
-    {
-        title: "Notifications",
-        url: "/notifications",
-        icon: Bell,
     },
 ];
 
@@ -154,20 +140,35 @@ function QuickActions() {
     if (state === "collapsed") {
         return (
             <SidebarMenuButton asChild tooltip="Create New Post">
-                <Link href="/create">
-                    <Plus className="size-4" />
+                <Link
+                    href="/draft"
+                    className={cn(
+                        buttonVariants({ variant: "default" }),
+                        "hover:bg-primary! hover:text-primary-foreground! w-full",
+                    )}
+                >
+                    <Plus className="size-5!" />
                 </Link>
             </SidebarMenuButton>
         );
     }
 
     return (
-        <Button asChild size="sm" className="w-full">
-            <Link href="/create">
-                <Plus className="size-4" />
-                Create Post
+        <SidebarMenuButton
+            className="w-full truncate overflow-hidden px-2 py-5! text-sm whitespace-nowrap"
+            asChild
+        >
+            <Link
+                href="/draft"
+                className={cn(
+                    buttonVariants({ variant: "default" }),
+                    "hover:bg-primary! hover:text-primary-foreground! w-full",
+                )}
+            >
+                <Plus className="-ml-5 size-5!" />
+                <span className="mb-1">Create Post</span>
             </Link>
-        </Button>
+        </SidebarMenuButton>
     );
 }
 
@@ -177,7 +178,7 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
     const { refreshUser } = useUser();
-
+    const { state } = useSidebar();
     const handleSignOut = async () => {
         await authClient.signOut();
         await refreshUser();
@@ -187,12 +188,12 @@ export function AppSidebar({
         <Sidebar
             variant="inset"
             collapsible="icon"
-            className={cn("sticky top-0 h-screen", className)}
+            className={cn("scroll-bar sticky top-0 h-screen", className)}
             {...props}
         >
             {/* Header */}
             <SidebarHeader className="border-sidebar-border border-b">
-                <div className="flex items-center gap-2 px-2 py-2">
+                <div className="flex items-center gap-2 py-2">
                     <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
                         <Sparkles className="size-4" />
                     </div>
@@ -206,7 +207,7 @@ export function AppSidebar({
             </SidebarHeader>
 
             {/* Content */}
-            <SidebarContent className="overflow-x-hidden">
+            <SidebarContent className="scroll-bar overflow-x-hidden">
                 {/* Quick Actions */}
                 <SidebarGroup>
                     <SidebarGroupContent>
@@ -222,9 +223,10 @@ export function AppSidebar({
 
                 {/* Main Navigation */}
                 <SidebarGroup>
-                    <SidebarGroupLabel>Navigation</SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenu>
+                        <SidebarMenu
+                            className={cn(state === "collapsed" && "gap-3")}
+                        >
                             {navigationItems.map(item => {
                                 const isActive = pathname === item.url;
                                 return (
@@ -233,9 +235,10 @@ export function AppSidebar({
                                             asChild
                                             isActive={isActive}
                                             tooltip={item.title}
+                                            className="truncate overflow-hidden px-2 py-5! text-sm whitespace-nowrap"
                                         >
                                             <Link href={item.url}>
-                                                <item.icon className="size-4" />
+                                                <item.icon className="size-5!" />
                                                 <span>{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>
@@ -248,62 +251,20 @@ export function AppSidebar({
 
                 <SidebarSeparator />
 
-                {/* Social Platforms */}
-                <SidebarGroup>
-                    <SidebarGroupLabel>Platforms</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild tooltip="Twitter/X">
-                                    <Link href="/connections?platform=x">
-                                        <XLogo size="sm" />
-                                        <span>Twitter/X</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild tooltip="LinkedIn">
-                                    <Link href="/connections?platform=linkedin">
-                                        <div className="flex size-4 items-center justify-center rounded bg-blue-600">
-                                            <span className="text-xs font-bold text-white">
-                                                in
-                                            </span>
-                                        </div>
-                                        <span>LinkedIn</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-
-                <SidebarSeparator />
-
-                {/* Settings */}
-                <SidebarGroup>
-                    <SidebarGroupLabel>Account</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {settingsItems.map(item => {
-                                const isActive = pathname === item.url;
-                                return (
-                                    <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton
-                                            asChild
-                                            isActive={isActive}
-                                            tooltip={item.title}
-                                        >
-                                            <Link href={item.url}>
-                                                <item.icon className="size-4" />
-                                                <span>{item.title}</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                );
-                            })}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+                {/* Drafts */}
+                {state === "expanded" && (
+                    <SidebarGroup>
+                        <SidebarGroupLabel className="text-md mb-2 flex items-center gap-2">
+                            <FileText className="size-4" />
+                            <span>Drafts</span>
+                        </SidebarGroupLabel>
+                        <SidebarGroupContent className="ml-2 border-l px-2">
+                            <SidebarMenu>
+                                <DraftsSidebarContainer />
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
             </SidebarContent>
 
             {/* Footer */}

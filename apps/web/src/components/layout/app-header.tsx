@@ -52,7 +52,7 @@ export function AppHeader() {
 
     return (
         <header className="bg-sidebar sticky top-0 z-40 w-full">
-            <div className="relative container flex h-14 items-center px-6">
+            <div className="relative container flex h-16 items-center px-6">
                 {/* <div className="h-5 rounded-tl-2xl bg-black absolute top-12 -left-0.5 right-0 z-10 overflow-hidden" /> */}
                 {/* Left side - Sidebar trigger */}
                 <div className="mr-4 flex">
