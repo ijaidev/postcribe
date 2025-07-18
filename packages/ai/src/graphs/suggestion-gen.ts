@@ -24,7 +24,7 @@ import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
 
 const model = new AzureChatOpenAI({
     model: "gpt-4.1-mini",
-    temperature: 0.9,
+    temperature: 1,
     azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
     azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
     azureOpenAIApiDeploymentName: "gpt-4.1-mini",

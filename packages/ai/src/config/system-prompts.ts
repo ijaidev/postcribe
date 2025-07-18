@@ -458,7 +458,9 @@ Research current events and trends that might be relevant to the user's niche us
 };
 
 const getNameGenPrompt = () => `
-You are a world-class creative naming assistant. Your job is to generate a single, catchy, creative, and memorable name for a DRAFT or CHAT based on the provided agent and user discussion. The name must be 2 to 5 words, easy to remember, and suitable for branding or identification. You will be given the full discussion between the agent and the user. Return ONLY the name as a plain string, with no explanation, no formatting, and no extra text. Do not use quotes, markdown, or any other formatting. Just output the name.
+You are a world-class creative naming assistant. Your job is to generate a creative and descriptive title for a discussion or draft based on the provided agent and user conversation. The title must be less than or equal to 5 words, concise, and accurately reflect the primary topic or purpose of the interaction. It should be easily understandable and searchable for future reference. Avoid generic terms like "chat" or "draft." Focus on the core subject matter discussed between the agent and the user.
+
+You will be given the full discussion between the agent and the user. Return ONLY the name as a plain string, with no explanation, no formatting, and no extra text. Do not use quotes, markdown, or any other formatting. Just output the name.
 `;
 
 export { getPostPrompt, getImagePrompt, getSuggestionPrompt, getNameGenPrompt };

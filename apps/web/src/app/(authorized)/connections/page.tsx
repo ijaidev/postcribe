@@ -245,14 +245,6 @@ export default function ConnectionsPage() {
                                 Connect your X (Twitter) account to start
                                 posting content
                             </p>
-                            <Button
-                                onClick={handleConnectXAccount}
-                                disabled={connectXAccountMutation.isPending}
-                                className="flex items-center gap-2 transition-all duration-200 hover:scale-[1.02]"
-                            >
-                                <XLogo size="sm" className="text-foreground" />
-                                Connect X
-                            </Button>
                         </CardContent>
                     </Card>
                 ) : (

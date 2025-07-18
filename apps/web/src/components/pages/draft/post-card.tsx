@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { XLogo } from "@/components/ui/x-logo";
 import { LinkedinLogo } from "@/components/ui/linkedin-logo";
-import { Copy, Check, Undo2, Redo2 } from "lucide-react";
+import { Copy, Check, Undo2, Redo2, LoaderCircle } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -119,11 +119,15 @@ export const PostCard = memo(function PostCard({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 text-xs"
+                                    className="h-8 w-20 text-xs"
                                     onClick={onApply}
                                     disabled={isApplying}
                                 >
-                                    APPLY
+                                    {isApplying ? (
+                                        <LoaderCircle className="animate-spin duration-75" />
+                                    ) : (
+                                        <span>APPLY</span>
+                                    )}
                                 </Button>
                             )}
                             <Button

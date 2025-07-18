@@ -1,4 +1,4 @@
-import { AzureChatOpenAI, ChatOpenAI } from "@langchain/openai";
+import { AzureChatOpenAI } from "@langchain/openai";
 import {
     END,
     START,
@@ -7,7 +7,11 @@ import {
 } from "@langchain/langgraph";
 import { AIMessage, SystemMessage } from "@langchain/core/messages";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { imageGraphConfig, imageGraphState } from "../graph-states";
+import {
+    imageGraphConfig,
+    imageGraphState,
+    postGraphState,
+} from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import imageEditTool from "../tools/image-edit-tool";
 import ImageGenTool from "../tools/image-gen.tool";
@@ -76,7 +80,8 @@ const modelCallNode = async (
             thread_id: threadId,
         },
     });
-    const context = postGraphState?.values?.messages;
+    const values = postGraphState?.values as unknown as postGraphState;
+    const context = JSON.stringify(values);
     if (!context) throw new Error("No post found to generate image for");
     const systemPrompt = getImagePrompt(
         platform.toLowerCase() as "x" | "linkedin",

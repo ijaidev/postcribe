@@ -77,7 +77,7 @@ const postGenController = factory.createHandlers(
             draft = await db.draft.create({
                 data: {
                     userId: user.id,
-                    title: "Generated Post Draft",
+                    title: "Untitled",
                     platform: platform as Platform,
                     xLoginId: xAccount?.id || undefined,
                 },

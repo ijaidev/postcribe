@@ -4,7 +4,7 @@ import React, { useState, useEffect, memo } from "react";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImagePlus, Download, Undo2, Redo2 } from "lucide-react";
+import { ImagePlus, Download, Undo2, Redo2, LoaderCircle } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -12,11 +12,11 @@ import {
     TooltipProvider,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import Image from "next/image";
 import { ImageData } from "./types";
 import { ThreeDotSpinningLoader } from "@/components/ui/loaders";
+import { toast } from "sonner";
 
 interface ImageCardProps {
     platformKey: "x" | "linkedin";
@@ -52,28 +52,44 @@ export const ImageCard = memo(function ImageCard({
     hasPost,
 }: ImageCardProps) {
     const [isImageLoaded, setIsImageLoaded] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     useEffect(() => {
         setIsImageLoaded(false);
     }, [currentVersion]);
 
-    const handleDownloadImage = async (imageUrl: string, filename: string) => {
-        try {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            toast.success("Image downloaded!");
-        } catch {
-            toast.error("Failed to download image");
-        }
-    };
+    function handleDownloadImage(imageUrl: string, filename?: string): void {
+        setIsDownloading(true);
+        fetch(imageUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+
+                if (filename) {
+                    link.download = filename;
+                } else {
+                    const urlParts = imageUrl.split("/");
+                    const defaultFilename =
+                        urlParts[urlParts.length - 1].split("?")[0] ||
+                        "downloaded_image.png";
+                    link.download = defaultFilename;
+                }
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error("Download failed:", error);
+                toast.error("Failed to download image");
+            })
+            .finally(() => {
+                setIsDownloading(false);
+            });
+    }
 
     return (
         <div className="w-full lg:w-1/2">
@@ -99,11 +115,15 @@ export const ImageCard = memo(function ImageCard({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 text-xs"
+                                    className="h-8 w-20 text-xs transition-all duration-75"
                                     onClick={onApply}
                                     disabled={isApplying}
                                 >
-                                    APPLY
+                                    {isApplying ? (
+                                        <LoaderCircle className="h-4 w-4 animate-spin duration-75" />
+                                    ) : (
+                                        <span>APPLY</span>
+                                    )}
                                 </Button>
                             )}
                             <Button
@@ -197,7 +217,11 @@ export const ImageCard = memo(function ImageCard({
                                     }
                                     disabled={!currentImage?.imageUrl}
                                 >
-                                    <Download className="h-4 w-4" />
+                                    {isDownloading ? (
+                                        <LoaderCircle className="h-4 w-4 animate-spin duration-75" />
+                                    ) : (
+                                        <Download className="h-4 w-4" />
+                                    )}
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent className="px-2 py-1 text-xs">

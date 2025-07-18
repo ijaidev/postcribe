@@ -17,9 +17,9 @@ export async function generateNameWithDraftId(
         },
     };
     const state = await graph.getState(config);
-    const values: postGraphState = state.values;
+    const values = state.values as unknown as postGraphState;
     const { messages } = values;
-    const messagesAsHumanMessage = new HumanMessage(messages.toString());
+    const messagesAsHumanMessage = new HumanMessage(JSON.stringify(messages));
     const name = await generateNameFromDiscussion([messagesAsHumanMessage]);
     return name;
 }

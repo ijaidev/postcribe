@@ -38,26 +38,13 @@ const nameGenHandler = factory.createHandlers(zv, async c => {
             });
         }
 
-        if (draft.title) {
+        if ((draft.title && draft.title !== "Untitled") || !draft.platform) {
             return c.json(
                 new ApiResponse({
                     data: {
                         name: draft.title,
                     },
                     message: "Draft title is already set",
-                    status: 200,
-                }),
-                200,
-            );
-        }
-
-        if (!draft.platform) {
-            return c.json(
-                new ApiResponse({
-                    data: {
-                        name: "New Draft",
-                    },
-                    message: "Name generated successfully",
                     status: 200,
                 }),
                 200,

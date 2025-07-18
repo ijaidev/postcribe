@@ -72,19 +72,8 @@ export default function Suggestions({
                             Allow.ALL,
                         ) as Partial<Suggestions>;
                         const newSuggestions = parsed.suggestions || [];
-                        setSuggestions(prev => {
-                            if (newSuggestions.length < prev.length)
-                                return prev;
-                            if (newSuggestions.length > prev.length)
-                                return [
-                                    ...prev,
-                                    ...newSuggestions.slice(prev.length),
-                                ];
-                            return [
-                                ...prev.slice(0, -1),
-                                newSuggestions[newSuggestions.length - 1],
-                            ];
-                        });
+                        if (newSuggestions.length === 0) continue;
+                        setSuggestions(newSuggestions);
                     }
                 }
             } catch (error) {

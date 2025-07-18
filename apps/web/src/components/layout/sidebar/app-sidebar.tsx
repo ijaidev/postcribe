@@ -7,12 +7,12 @@ import {
     LayoutDashboard,
     PenTool,
     Calendar,
-    Users,
     BarChart3,
     Plus,
     LogOut,
     Sparkles,
     FileText,
+    Link as LinkIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -64,7 +64,7 @@ const navigationItems = [
     {
         title: "Connections",
         url: "/connections",
-        icon: Users,
+        icon: LinkIcon,
     },
 ];
 

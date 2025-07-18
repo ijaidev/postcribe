@@ -1,7 +1,7 @@
 "use client";
 import client from "@/lib/hono-client";
 import { InferRequestType } from "hono";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CreateDraft } from "@/components/pages/draft/create-draft";
 import { DraftContent } from "@/components/pages/draft/draft-content";
@@ -44,6 +44,7 @@ const Page = () => {
     });
 
     const [activeTab, setActiveTab] = useState<"x" | "linkedin">("x");
+    const [mode, setMode] = useState<"create" | "edit">("create");
 
     const [isImageLoading, setIsImageLoading] = useState({
         x: false,
@@ -71,6 +72,7 @@ const Page = () => {
     });
 
     const searchParams = useSearchParams();
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         (() => {
@@ -80,6 +82,7 @@ const Page = () => {
                 return;
             }
             setDraftId(null);
+            setMode("create");
         })();
     }, [searchParams]);
 
@@ -146,8 +149,31 @@ const Page = () => {
                             : 0,
                 },
             });
+            const platform = draftData.data?.platform;
+            const activeTab =
+                platform === "ALL"
+                    ? "x"
+                    : (platform?.toLowerCase() as "x" | "linkedin");
+            setActiveTab(activeTab);
         }
     }, [draftData]);
+
+    const nameGenMutation = useMutation({
+        mutationFn: async (draftId: string) => {
+            const response = await client.post.draft.name.$post({
+                json: {
+                    draftId,
+                },
+            });
+            if (!response.ok) throw new Error("Failed to generate name");
+            return response.json();
+        },
+        onSuccess: () =>
+            queryClient.invalidateQueries({ queryKey: ["drafts"] }),
+        onError: error => {
+            console.error(error);
+        },
+    });
 
     // Post creation/regeneration mutation
     const createPostMutation = useMutation({
@@ -166,6 +192,8 @@ const Page = () => {
             return {
                 response,
                 createImage,
+                platform: data.platform,
+                images: data.images,
             };
         },
         onMutate: () => {
@@ -183,7 +211,7 @@ const Page = () => {
             }
             hasStarted.current = { x: false, linkedin: false };
         },
-        onSuccess: async ({ response, createImage }) => {
+        onSuccess: async ({ response, createImage, platform, images }) => {
             const reader = response.body?.getReader();
             if (!reader) {
                 throw new Error("No response stream available");
@@ -200,15 +228,18 @@ const Page = () => {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) {
+                        if (mode === "edit") break;
                         if (createImage && (draftId || receivedDraftId)) {
                             createImageMutation.mutate({
                                 message:
                                     "create a related images for this post",
                                 draftId: draftId || receivedDraftId,
-                                platform: "ALL",
-                                images: [],
+                                platform: platform,
+                                images: images,
                             });
                         }
+                        nameGenMutation.mutate(draftId || receivedDraftId);
+                        setMode("edit");
                         break;
                     }
 
