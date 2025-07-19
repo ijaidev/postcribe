@@ -1,13 +1,13 @@
 import db from "@repo/db";
-import sendMessage from "./queue";
-import type { CronMessage } from "./types";
 import { getNextRunAt } from "./utils";
 
 const getCrons = async () => {
     const crons = await db.postCron.findMany({
         where: {
             nextRunAt: {
-                lte: new Date().toISOString(),
+                lte: new Date(
+                    new Date().setMinutes(new Date().getMinutes() + 5),
+                ).toISOString(),
             },
             isDeleted: false,
         },
@@ -24,9 +24,10 @@ const getCrons = async () => {
     return crons;
 };
 
-const main = async () => {
+const getCronMessages = async (): Promise<string[]> => {
     const crons = await getCrons();
-    if (crons.length === 0) return;
+    if (crons.length === 0) return [];
+    const cronMessages: string[] = [];
     for (const cron of crons) {
         const nextRunAt = getNextRunAt(
             cron.scheduledAt,
@@ -34,16 +35,18 @@ const main = async () => {
             cron.repeatInterval,
             cron.repeatIntervalUnit,
         );
-        const cronMessage: CronMessage = {
-            id: cron.id,
-            userId: cron.userId,
-        };
-        sendMessage(JSON.stringify(cronMessage));
+        cronMessages.push(
+            JSON.stringify({
+                id: cron.id,
+                userId: cron.userId,
+            }),
+        );
         await db.postCron.update({
             where: { id: cron.id },
             data: { nextRunAt: nextRunAt },
         });
     }
+    return cronMessages;
 };
 
-export default main;
+export default getCronMessages;

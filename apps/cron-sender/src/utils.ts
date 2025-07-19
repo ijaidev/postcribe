@@ -8,7 +8,7 @@ export const getNextRunAt = (
 ) => {
     const scheduledDate = new Date(scheduledAt);
     const pastNextRunDate = new Date(pastNextRunAt);
-    let nextRunAt = new Date();
+    const nextRunAt = new Date();
     switch (repeatIntervalUnit) {
         case RepeatIntervalUnit.MINUTE:
             nextRunAt.setMinutes(pastNextRunDate.getMinutes() + repeatInterval);
