@@ -33,6 +33,7 @@ interface ImageCardProps {
     onCreateImage: () => void;
     isApplying: boolean;
     hasPost: boolean;
+    isPostLoading: boolean;
 }
 
 export const ImageCard = memo(function ImageCard({
@@ -50,6 +51,7 @@ export const ImageCard = memo(function ImageCard({
     onCreateImage,
     isApplying,
     hasPost,
+    isPostLoading,
 }: ImageCardProps) {
     const [isImageLoaded, setIsImageLoaded] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -163,7 +165,11 @@ export const ImageCard = memo(function ImageCard({
                                 <Button
                                     variant="outline"
                                     onClick={onCreateImage}
-                                    disabled={isLoading}
+                                    disabled={
+                                        isLoading ||
+                                        isPostLoading ||
+                                        !isImageLoaded
+                                    }
                                 >
                                     Create Image
                                 </Button>

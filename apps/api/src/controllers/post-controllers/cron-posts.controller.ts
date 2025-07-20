@@ -3,44 +3,75 @@ import { z } from "zod";
 import db from "@repo/db";
 import factory from "../../utils/factory";
 import { HTTPException } from "hono/http-exception";
-import fileToBase64 from "../../utils/file-to-base64";
-import { uploadImages, type UploadImagesInput } from "@repo/s3";
 import ApiResponse from "../../utils/api-response";
 import { logger } from "@repo/logger";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const getNextRunAt = (scheduledAt: Date) => {
+    // Extract time components from the scheduled date (in UTC)
+    const scheduledHour = scheduledAt.getUTCHours();
+    const scheduledMinute = scheduledAt.getUTCMinutes();
+    const scheduledSecond = scheduledAt.getUTCSeconds();
+
+    // Get current UTC time
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const currentMonth = now.getUTCMonth();
+    const currentDate = now.getUTCDate();
+
+    // Create today's date at the scheduled time (UTC)
+    const todayAtScheduledTime = new Date(
+        Date.UTC(
+            currentYear,
+            currentMonth,
+            currentDate,
+            scheduledHour,
+            scheduledMinute,
+            scheduledSecond,
+        ),
+    );
+
+    // If the scheduled time today has already passed, move to next occurrence
+    let nextRunAt: Date;
+
+    if (todayAtScheduledTime <= now) {
+        nextRunAt = new Date();
+        nextRunAt.setDate(now.getDate() + 1);
+        nextRunAt.setUTCHours(
+            scheduledHour,
+            scheduledMinute,
+            scheduledSecond,
+            0,
+        );
+    } else {
+        // Time hasn't passed today, use today's scheduled time
+        nextRunAt = todayAtScheduledTime;
+    }
+
+    return nextRunAt;
+};
 
 const createPostCronSchema = z.object({
     title: z.string().min(2, {
         message: "Title must be at least 2 characters long",
     }),
     scheduledAt: z.string().datetime(),
+    repeatInterval: z.number().min(1, "Repeat interval must be at least 1"),
+    repeatIntervalUnit: z.enum(["MINUTE", "HOUR", "DAY", "WEEK", "MONTH"], {
+        message: "Invalid repeat interval unit",
+    }),
     message: z.string().min(20, {
         message: "Message must be at least 20 characters long",
     }),
     platform: z.enum(["X", "LINKEDIN", "ALL"], { message: "Invalid platform" }),
     inputImages: z
-        .union([z.instanceof(File), z.array(z.instanceof(File))])
+        .union([z.string(), z.array(z.string()).max(5)])
         .optional()
         .transform(val => {
-            if (!val) return undefined;
+            if (!val) return [];
+            // Ensure it's always an array
             return Array.isArray(val) ? val : [val];
         })
-        .refine(
-            files => {
-                if (!files) return true;
-                return files.every(file => file.size <= MAX_FILE_SIZE);
-            },
-            { message: "Each image must be less than 5MB" },
-        )
-        .refine(
-            files => {
-                if (!files) return true;
-                return files.every(file => ALLOWED_TYPES.includes(file.type));
-            },
-            { message: "Only PNG, JPEG, and WEBP images are allowed" },
-        ),
+        .default([]),
     generateImage: z
         .union([z.boolean(), z.string().transform(val => val === "true")])
         .optional()
@@ -48,61 +79,44 @@ const createPostCronSchema = z.object({
     imagePrompt: z.string().optional(),
     forceWeb: z
         .union([z.boolean(), z.string().transform(val => val === "true")])
-        .optional()
         .default(false),
 });
 
-const bodyValidator = zValidator("form", createPostCronSchema);
+const bodyValidator = zValidator("json", createPostCronSchema);
 
 export type CreatePostCronInput = z.infer<typeof createPostCronSchema>;
 
 const postCronController = factory.createHandlers(bodyValidator, async c => {
-    const data = c.req.valid("form");
+    const data = c.req.valid("json");
     const user = c.get("user")!;
 
-    let images: UploadImagesInput = [];
-    if (data.inputImages && data.inputImages.length > 0) {
-        try {
-            images = await Promise.all(
-                data.inputImages.map(async file => ({
-                    base64: await fileToBase64(file),
-                    contentType:
-                        file.type as UploadImagesInput[number]["contentType"],
-                })),
-            );
-        } catch (error) {
-            throw new HTTPException(500, {
-                message: "Failed to process images",
-            });
-        }
-    }
-
     try {
-        // Upload images first if any
-        const urls = await uploadImages(images);
-
-        // Create PostCronData and PostCron in transaction
         const result = await db.$transaction(async tx => {
             const postCronData = await tx.postCronData.create({
                 data: {
                     message: data.message,
                     platform: data.platform,
-                    inputImages: urls,
+                    inputImages: data.inputImages,
                     generateImage: data.generateImage,
                     imagePrompt: data.imagePrompt,
                     forceWeb: data.forceWeb,
                 },
             });
 
+            const scheduledAt = new Date(data.scheduledAt);
+            const nextRunAt = getNextRunAt(scheduledAt);
+
             const postCron = await tx.postCron.create({
                 data: {
                     title: data.title,
-                    scheduledAt: new Date(data.scheduledAt),
+                    scheduledAt: scheduledAt,
                     userId: user.id,
                     postCronDataId: postCronData.id,
-                    repeatInterval: 1,
-                    repeatIntervalUnit: "DAY",
-                    nextRunAt: new Date(data.scheduledAt),
+                    repeatInterval: data.repeatInterval,
+                    repeatIntervalUnit: data.repeatIntervalUnit,
+                    nextRunAt: nextRunAt,
+                    isActive: false,
+                    autoApprove: false,
                 },
                 omit: {
                     userId: true,
@@ -115,7 +129,7 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
 
         return c.json(
             new ApiResponse<typeof result>({
-                message: "Post cron created successfully",
+                message: "Automation created successfully",
                 data: result,
                 status: 201,
             }),
@@ -126,9 +140,9 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
             throw error;
         }
 
-        logger.error({ error }, "Error creating post cron");
+        logger.error({ error }, "Error creating automation");
         throw new HTTPException(500, {
-            message: "Internal server error: Failed to create post cron",
+            message: "Internal server error: Failed to create automation",
         });
     }
 });

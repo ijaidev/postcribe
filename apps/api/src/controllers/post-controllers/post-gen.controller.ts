@@ -18,7 +18,7 @@ const bodySchema = z.object({
     xLoginId: z.string().optional(),
     message: z.string(),
     images: z
-        .union([z.string(), z.array(z.string())])
+        .union([z.string(), z.array(z.string()).max(5)])
         .optional()
         .transform(val => {
             if (!val) return undefined;

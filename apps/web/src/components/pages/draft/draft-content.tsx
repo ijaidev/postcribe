@@ -220,6 +220,7 @@ export const DraftContent = memo(function DraftContent({
                         onCreateImage={handleCreateImage}
                         isApplying={applyVersionMutation.isPending}
                         hasPost={draftState.posts.length > 0}
+                        isPostLoading={isCreating}
                     />
                 </div>
 

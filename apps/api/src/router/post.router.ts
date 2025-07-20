@@ -6,6 +6,8 @@ import imageUploadController from "../controllers/post-controllers/image-upload.
 import nameGenController from "../controllers/post-controllers/name-gen.controller";
 import postGenController from "../controllers/post-controllers/post-gen.controller";
 import postSuggestionsController from "../controllers/post-controllers/post-suggestions.controller";
+import getCronsController from "../controllers/post-controllers/get-crons.controller";
+import postCronController from "../controllers/post-controllers/cron-posts.controller";
 import factory from "../utils/factory";
 
 const postRouter = factory
@@ -25,6 +27,10 @@ const postRouter = factory
     // generate name
     .post("/draft/name", ...nameGenController)
     // get drafts
-    .get("/drafts", ...getDraftsController);
+    .get("/drafts", ...getDraftsController)
+    // get crons
+    .get("/crons", ...getCronsController)
+    // create cron
+    .post("/crons", ...postCronController);
 
 export default postRouter;
