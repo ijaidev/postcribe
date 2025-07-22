@@ -172,7 +172,6 @@ model PostCron {
 }
 
 enum RepeatIntervalUnit {
-  MINUTE
   HOUR
   DAY
   WEEK

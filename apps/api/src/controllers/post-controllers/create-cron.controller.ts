@@ -6,57 +6,13 @@ import { HTTPException } from "hono/http-exception";
 import ApiResponse from "../../utils/api-response";
 import { logger } from "@repo/logger";
 
-const getNextRunAt = (scheduledAt: Date) => {
-    // Extract time components from the scheduled date (in UTC)
-    const scheduledHour = scheduledAt.getUTCHours();
-    const scheduledMinute = scheduledAt.getUTCMinutes();
-    const scheduledSecond = scheduledAt.getUTCSeconds();
-
-    // Get current UTC time
-    const now = new Date();
-    const currentYear = now.getUTCFullYear();
-    const currentMonth = now.getUTCMonth();
-    const currentDate = now.getUTCDate();
-
-    // Create today's date at the scheduled time (UTC)
-    const todayAtScheduledTime = new Date(
-        Date.UTC(
-            currentYear,
-            currentMonth,
-            currentDate,
-            scheduledHour,
-            scheduledMinute,
-            scheduledSecond,
-        ),
-    );
-
-    // If the scheduled time today has already passed, move to next occurrence
-    let nextRunAt: Date;
-
-    if (todayAtScheduledTime <= now) {
-        nextRunAt = new Date();
-        nextRunAt.setDate(now.getDate() + 1);
-        nextRunAt.setUTCHours(
-            scheduledHour,
-            scheduledMinute,
-            scheduledSecond,
-            0,
-        );
-    } else {
-        // Time hasn't passed today, use today's scheduled time
-        nextRunAt = todayAtScheduledTime;
-    }
-
-    return nextRunAt;
-};
-
 const createPostCronSchema = z.object({
     title: z.string().min(2, {
         message: "Title must be at least 2 characters long",
     }),
     scheduledAt: z.string().datetime(),
     repeatInterval: z.number().min(1, "Repeat interval must be at least 1"),
-    repeatIntervalUnit: z.enum(["MINUTE", "HOUR", "DAY", "WEEK", "MONTH"], {
+    repeatIntervalUnit: z.enum(["HOUR", "DAY", "WEEK", "MONTH"], {
         message: "Invalid repeat interval unit",
     }),
     message: z.string().min(20, {
@@ -76,7 +32,7 @@ const createPostCronSchema = z.object({
         .union([z.boolean(), z.string().transform(val => val === "true")])
         .optional()
         .default(false),
-    imagePrompt: z.string().optional(),
+    imagePrompt: z.string().min(10).optional(),
     forceWeb: z
         .union([z.boolean(), z.string().transform(val => val === "true")])
         .default(false),
@@ -104,7 +60,7 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
             });
 
             const scheduledAt = new Date(data.scheduledAt);
-            const nextRunAt = getNextRunAt(scheduledAt);
+            const nextRunAt = scheduledAt;
 
             const postCron = await tx.postCron.create({
                 data: {
@@ -121,6 +77,8 @@ const postCronController = factory.createHandlers(bodyValidator, async c => {
                 omit: {
                     userId: true,
                     postCronDataId: true,
+                    isDeleted: true,
+                    autoApprove: true,
                 },
             });
 

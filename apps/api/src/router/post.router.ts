@@ -7,8 +7,11 @@ import nameGenController from "../controllers/post-controllers/name-gen.controll
 import postGenController from "../controllers/post-controllers/post-gen.controller";
 import postSuggestionsController from "../controllers/post-controllers/post-suggestions.controller";
 import getCronsController from "../controllers/post-controllers/get-crons.controller";
-import postCronController from "../controllers/post-controllers/cron-posts.controller";
+import postCronController from "../controllers/post-controllers/create-cron.controller";
 import factory from "../utils/factory";
+import editPostCronController from "../controllers/platform-controllers/edit-cron.controller";
+import deletePostCronController from "../controllers/platform-controllers/delete-cron.controller";
+import getCronController from "../controllers/platform-controllers/get-cron.controller";
 
 const postRouter = factory
     .createApp()
@@ -31,6 +34,12 @@ const postRouter = factory
     // get crons
     .get("/crons", ...getCronsController)
     // create cron
-    .post("/crons", ...postCronController);
+    .post("/cron", ...postCronController)
+    // get cron
+    .get("/cron/:id", ...getCronController)
+    // delete cron
+    .delete("/cron/:id", ...deletePostCronController)
+    // edit cron
+    .put("/cron", ...editPostCronController);
 
 export default postRouter;

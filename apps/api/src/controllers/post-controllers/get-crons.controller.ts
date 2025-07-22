@@ -16,6 +16,12 @@ const getCronsController = factory.createHandlers(async c => {
             orderBy: {
                 createdAt: "desc",
             },
+            include: {
+                PostCronData: true,
+            },
+            omit: {
+                autoApprove: true,
+            },
         });
 
         return c.json(

@@ -390,7 +390,7 @@ export const DraftInput = memo(function DraftInput({
                     onDragLeave={handleDragLeave}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
-                    className="placeholder:text-muted-foreground scroll-bar max-h-20 min-h-20 resize-none! rounded-2xl border-0 bg-transparent! p-2 text-lg leading-relaxed shadow-none focus-visible:ring-0"
+                    className="placeholder:text-muted-foreground scroll-bar-2 max-h-20 min-h-20 resize-none! rounded-2xl border-0 bg-transparent! p-2 text-lg leading-relaxed shadow-none focus-visible:ring-0"
                 />
 
                 {/* Bottom actions */}

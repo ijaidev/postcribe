@@ -10,6 +10,7 @@ import { logger } from "@repo/logger";
 const querySchema = z.object({
     page: z.string().optional().default("1"),
     pageSize: z.string().min(1).max(100).optional().default("10"),
+    cronId: z.string().optional(),
 });
 
 const zv = zValidator("query", querySchema, result => {
@@ -22,13 +23,13 @@ const zv = zValidator("query", querySchema, result => {
 
 const getDraftsHandler = factory.createHandlers(zv, async c => {
     const user = c.get("user")!;
-    const { page, pageSize } = c.req.valid("query");
+    const { page, pageSize, cronId } = c.req.valid("query");
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSizeNum = Math.max(1, parseInt(pageSize, 10) || 10);
     try {
         const [drafts, total] = await Promise.all([
             db.draft.findMany({
-                where: { userId: user.id },
+                where: { userId: user.id, postCronId: cronId },
                 orderBy: { createdAt: "desc" },
                 skip: (pageNum - 1) * pageSizeNum,
                 take: pageSizeNum,
@@ -37,7 +38,7 @@ const getDraftsHandler = factory.createHandlers(zv, async c => {
                     title: true,
                 },
             }),
-            db.draft.count({ where: { userId: user.id } }),
+            db.draft.count({ where: { userId: user.id, postCronId: cronId } }),
         ]);
         return c.json(
             new ApiResponse({

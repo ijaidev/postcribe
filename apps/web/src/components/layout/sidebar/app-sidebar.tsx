@@ -52,8 +52,8 @@ const navigationItems = [
         icon: PenTool,
     },
     {
-        title: "Scheduled Posts",
-        url: "/scheduled",
+        title: "Automations",
+        url: "/automations",
         icon: Calendar,
     },
     {

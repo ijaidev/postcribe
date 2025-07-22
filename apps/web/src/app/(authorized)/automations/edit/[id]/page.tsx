@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
     Globe,
     Sparkles,
@@ -67,20 +67,22 @@ import Image from "next/image";
 
 interface UploadedImage {
     id: string;
-    file: File;
+    file?: File;
     preview: string;
     uploaded: boolean;
     uploading: boolean;
     imageUrl?: string;
 }
 
-type CreateCronRequest = InferRequestType<
-    typeof client.post.cron.$post
->["json"];
+type EditCronRequest = InferRequestType<typeof client.post.cron.$put>["json"];
 
-export default function CreateAutomationPage() {
+export default function EditAutomationPage() {
     const router = useRouter();
+    const params = useParams();
+    const id = params?.id as string;
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const queryClient = useQueryClient();
 
     // State management
     const [images, setImages] = useState<UploadedImage[]>([]);
@@ -93,8 +95,6 @@ export default function CreateAutomationPage() {
     const [selectedTime, setSelectedTime] = useState<Date | undefined>(
         new Date(),
     );
-
-    // Form state
     const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
     const [repeatInterval, setRepeatInterval] = useState(1);
@@ -104,7 +104,6 @@ export default function CreateAutomationPage() {
     const [generateImage, setGenerateImage] = useState(false);
     const [imagePrompt, setImagePrompt] = useState("");
     const [forceWeb, setForceWeb] = useState(false);
-
     const [selectedPlatforms, setSelectedPlatforms] = useState({
         x: { selected: false },
         linkedin: { selected: false },
@@ -113,6 +112,7 @@ export default function CreateAutomationPage() {
     // Image upload mutation
     const uploadImageMutation = useMutation({
         mutationFn: async (image: UploadedImage) => {
+            if (!image.file) throw new Error("No file to upload");
             const response = await client.post.draft.image.upload.$post({
                 form: { image: image.file },
             });
@@ -133,7 +133,6 @@ export default function CreateAutomationPage() {
                         : img,
                 ),
             );
-            toast.success(`${image.file.name} uploaded successfully`);
         },
         onError: (error, image) => {
             console.error("Upload error:", error);
@@ -146,22 +145,83 @@ export default function CreateAutomationPage() {
         },
     });
 
-    // Create automation mutation
-    const createAutomationMutation = useMutation({
-        mutationFn: async (data: CreateCronRequest) => {
-            const response = await client.post.cron.$post({ json: data });
+    const automation = useQuery({
+        queryKey: ["automation", id],
+        queryFn: async () => {
+            const res = await client.post.cron[":id"].$get({ param: { id } });
+            if (!res.ok) throw new Error("Not found");
+            const data = await res.json();
+            return data.data;
+        },
+        enabled: !!id,
+    });
+
+    const didPrefill = useRef(false);
+
+    useEffect(() => {
+        if (!id || automation.isLoading || automation.isError) return;
+        if (!automation.data || didPrefill.current) return;
+        const a = automation.data;
+        if (!a) throw new Error("No automation found");
+        setTitle(a.title || "");
+        setMessage(a.PostCronData?.message || "");
+        setRepeatInterval(a.repeatInterval);
+        setRepeatIntervalUnit(a.repeatIntervalUnit);
+        setGenerateImage(!!a.PostCronData?.generateImage);
+        setImagePrompt(a.PostCronData?.imagePrompt || "");
+        setForceWeb(!!a.PostCronData?.forceWeb);
+        setSelectedPlatforms({
+            x: {
+                selected:
+                    a.PostCronData?.platform === "X" ||
+                    a.PostCronData?.platform === "ALL",
+            },
+            linkedin: {
+                selected:
+                    a.PostCronData?.platform === "LINKEDIN" ||
+                    a.PostCronData?.platform === "ALL",
+            },
+        });
+        if (a.scheduledAt) {
+            const dt = new Date(a.scheduledAt);
+            setSelectedDate(dt);
+            setSelectedTime(dt);
+        }
+        if (
+            a.PostCronData?.inputImages &&
+            a.PostCronData.inputImages.length > 0
+        ) {
+            setImages(
+                a.PostCronData.inputImages.map(url => ({
+                    id: url,
+                    file: undefined,
+                    preview: url,
+                    uploaded: true,
+                    uploading: false,
+                    imageUrl: url,
+                })),
+            );
+        }
+        didPrefill.current = true;
+    }, [automation.data, id, automation.isLoading, automation.isError]);
+
+    // Edit automation mutation
+    const editAutomationMutation = useMutation({
+        mutationFn: async (data: EditCronRequest) => {
+            const response = await client.post.cron.$put({ json: data });
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.message || "Failed to create automation");
+                throw new Error(error.message || "Failed to update automation");
             }
             return response.json();
         },
-        onSuccess: () => {
-            toast.success("Automation created successfully!");
+        onSuccess: data => {
+            queryClient.setQueryData(["automation", id], data.data);
+            toast.success("Automation updated successfully!");
             router.push("/automations");
         },
         onError: error => {
-            toast.error(error.message || "Failed to create automation");
+            toast.error(error.message || "Failed to update automation");
         },
     });
 
@@ -274,13 +334,11 @@ export default function CreateAutomationPage() {
         });
     };
 
-    const createAutomation = () => {
-        // Validate form
+    const editAutomation = () => {
         if (message.trim().length < 20) {
             toast.error("Message must be at least 20 characters long");
             return;
         }
-
         if (
             !selectedPlatforms.x.selected &&
             !selectedPlatforms.linkedin.selected
@@ -288,15 +346,15 @@ export default function CreateAutomationPage() {
             toast.error("Please select at least one platform");
             return;
         }
-
-        // Validate required fields
+        if (imagePrompt.trim().length < 10 && generateImage && imagePrompt) {
+            toast.error("Image prompt must be at least 10 characters long");
+            return;
+        }
         if (!title || !selectedDate) {
             toast.error("Please fill in all required fields");
             return;
         }
-
-        // Determine platform
-        let platform = "ALL";
+        let platform: "ALL" | "X" | "LINKEDIN" = "ALL";
         if (
             selectedPlatforms.x.selected &&
             selectedPlatforms.linkedin.selected
@@ -307,38 +365,28 @@ export default function CreateAutomationPage() {
         } else if (selectedPlatforms.linkedin.selected) {
             platform = "LINKEDIN";
         }
-
-        // Prepare image URLs
         const imageUrls = images
             .filter(img => img.uploaded && img.imageUrl)
             .map(img => img.imageUrl!);
-
-        // Combine date and time
         const combinedDateTime = new Date(selectedDate);
         if (selectedTime) {
             combinedDateTime.setHours(selectedTime.getHours());
             combinedDateTime.setMinutes(selectedTime.getMinutes());
         }
-
-        if (imagePrompt.trim().length < 10 && generateImage && imagePrompt) {
-            toast.error("Image prompt must be at least 10 characters long");
-            return;
-        }
-
-        const automationData: CreateCronRequest = {
+        const automationData: EditCronRequest = {
+            id,
             title,
             scheduledAt: combinedDateTime.toISOString(),
             repeatInterval,
             repeatIntervalUnit,
             message,
-            platform: platform as "ALL" | "X" | "LINKEDIN",
+            platform,
             inputImages: imageUrls.length > 0 ? imageUrls : undefined,
             generateImage,
             imagePrompt: imagePrompt || undefined,
             forceWeb,
         };
-
-        createAutomationMutation.mutate(automationData);
+        editAutomationMutation.mutate(automationData);
     };
 
     // Cleanup URLs on unmount
@@ -347,6 +395,26 @@ export default function CreateAutomationPage() {
             images.forEach(image => URL.revokeObjectURL(image.preview));
         };
     }, [images]);
+
+    if (automation.isLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                <span className="text-muted-foreground text-lg">
+                    Loading automation...
+                </span>
+            </div>
+        );
+    }
+    if (automation.isError) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <span className="text-destructive text-lg">
+                    {automation.error.message || "Failed to load automation"}
+                </span>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-background min-h-screen">
@@ -465,7 +533,7 @@ export default function CreateAutomationPage() {
                                             (e.metaKey || e.ctrlKey)
                                         ) {
                                             e.preventDefault();
-                                            createAutomation();
+                                            editAutomation();
                                         }
                                     }}
                                     onDragEnter={handleDragEnter}
@@ -491,7 +559,7 @@ export default function CreateAutomationPage() {
                                                         disabled={
                                                             images.length >=
                                                                 5 ||
-                                                            uploadImageMutation.isPending
+                                                            editAutomationMutation.isPending
                                                         }
                                                         className="hover:bg-accent h-8 w-8 rounded-full p-0"
                                                     >
@@ -822,18 +890,18 @@ export default function CreateAutomationPage() {
                     {/* Create Button */}
                     <div className="flex justify-end">
                         <Button
-                            onClick={createAutomation}
-                            disabled={createAutomationMutation.isPending}
+                            onClick={editAutomation}
+                            disabled={editAutomationMutation.isPending}
                             className="px-8"
                             size="lg"
                         >
-                            {createAutomationMutation.isPending ? (
+                            {editAutomationMutation.isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating...
+                                    Saving...
                                 </>
                             ) : (
-                                "Create Automation"
+                                "Save Changes"
                             )}
                         </Button>
                     </div>
