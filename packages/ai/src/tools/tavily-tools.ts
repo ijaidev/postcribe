@@ -1,4 +1,6 @@
 import { TavilySearch, TavilyExtract } from "@langchain/tavily";
+import dotenv from "dotenv";
+dotenv.config();
 
 const tavilyApiKey = process.env.TAVILY_API_KEY;
 

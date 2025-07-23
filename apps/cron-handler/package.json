@@ -1,33 +1,31 @@
 {
-  "name": "@repo/cron-handler",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "dev": "bun run --watch index.ts",
-    "start": "bun run index.ts",
-    "lint": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/aws-lambda": "^8.10.149",
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@aws-sdk/client-sqs": "^3.817.0",
-    "@repo/db": "workspace:*",
-    "@repo/logger": "workspace:*",
-    "@repo/mailer": "workspace:*",
-    "@repo/ai": "workspace:*",
-    "@repo/mail-templates": "workspace:*",
-    "@repo/cron-sender": "workspace:*"
-  }
+    "name": "@repo/cron-handler",
+    "types": "dist/index.d.ts",
+    "main": "dist/index.js",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
+        "build:prod": "bun build src/index.ts --outdir dist --target node --external @azure/functions-core",
+        "start": "bun build:prod && func start -p 7074",
+        "lint": "eslint --max-warnings 0",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@repo/cron-sender": "workspace:*"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@repo/ai": "workspace:*",
+        "@repo/db": "workspace:*",
+        "@repo/logger": "workspace:*",
+        "@repo/mail-templates": "workspace:*",
+        "@repo/mailer": "workspace:*",
+        "dotenv": "^17.2.0"
+    }
 }

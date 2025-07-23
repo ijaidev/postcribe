@@ -83,7 +83,7 @@ export default function LoginPage() {
         try {
             const { error: signInError } = await authClient.signIn.social({
                 provider: "google",
-                callbackURL: redirect ? redirect : CLIENT_URL + "/dashboard",
+                callbackURL: redirect ? redirect : CLIENT_URL + "/draft",
                 errorCallbackURL: "/signin?error=oauth_error",
             });
             if (signInError) {

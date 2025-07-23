@@ -183,7 +183,7 @@ export default function VerifyEmailPage() {
                                     </Alert>
 
                                     <Link
-                                        href="/dashboard"
+                                        href="/draft"
                                         className={cn(
                                             buttonVariants(),
                                             "w-full",

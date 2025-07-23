@@ -10,9 +10,6 @@ export const getNextRunAt = (
     const pastNextRunDate = new Date(pastNextRunAt);
     const nextRunAt = new Date();
     switch (repeatIntervalUnit) {
-        case RepeatIntervalUnit.MINUTE:
-            nextRunAt.setMinutes(pastNextRunDate.getMinutes() + repeatInterval);
-            break;
         case RepeatIntervalUnit.HOUR:
             nextRunAt.setHours(pastNextRunDate.getHours() + repeatInterval);
             break;

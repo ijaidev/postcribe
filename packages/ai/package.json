@@ -12,7 +12,7 @@
     },
     "scripts": {
         "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
-        "build:prod": "bun build src/index.ts --outdir dist --target bun",
+        "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external",
         "lint": "eslint . --max-warnings 0",
         "check-types": "tsc --noEmit"
     },
@@ -25,7 +25,6 @@
         "typescript": "^5"
     },
     "dependencies": {
-        "@repo/x": "workspace:*",
         "@langchain/langgraph": "^0.3.6",
         "@langchain/langgraph-checkpoint-postgres": "^0.0.5",
         "@langchain/openai": "^0.5.18",
@@ -33,6 +32,8 @@
         "@repo/logger": "workspace:*",
         "@repo/redis": "workspace:*",
         "@repo/s3": "workspace:*",
+        "@repo/x": "workspace:*",
+        "dotenv": "^17.2.0",
         "langchain": "^0.3.29",
         "zod": "^3.24.4"
     }

@@ -1,36 +1,28 @@
 {
-  "name": "@repo/logger",
-  "module": "dist/index.js",
-  "type": "module",
-  "types": "dist/index.d.ts",
-  "private": true,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "name": "@repo/logger",
+    "module": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "private": true,
+    "scripts": {
+        "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external --format esm && tsc",
+        "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external --format esm",
+        "lint": "eslint . --max-warnings 0",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "pino": "^9.6.0",
+        "pino-abstract-transport": "^1.2.0",
+        "pino-roll": "^2.2.0"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "*",
+        "@repo/typescript-config": "*",
+        "@types/bun": "latest",
+        "eslint": "^9.22.0",
+        "pino-pretty": "^13.0.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
     }
-  },
-  "scripts": {
-    "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && tsc",
-    "build:prod": "bun build src/index.ts --outdir dist --target bun",
-    "start": "bun run src/index.ts",
-    "dev": "bun --watch src/index.ts",
-    "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --noEmit"
-  },
-  "dependencies": {
-    "pino": "^9.6.0",
-    "pino-abstract-transport": "^1.2.0",
-    "pino-roll": "^2.2.0"
-  },
-  "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
-    "@types/bun": "latest",
-    "eslint": "^9.22.0",
-    "pino-pretty": "^13.0.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  }
 }

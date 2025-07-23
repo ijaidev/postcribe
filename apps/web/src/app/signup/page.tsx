@@ -79,7 +79,7 @@ export default function SignupPage() {
         try {
             const { error: signInError } = await authClient.signIn.social({
                 provider: "google",
-                callbackURL: redirect ? redirect : CLIENT_URL + "/dashboard",
+                callbackURL: redirect ? redirect : CLIENT_URL + "/draft",
             });
 
             if (signInError) {

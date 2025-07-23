@@ -1,43 +1,28 @@
-// import { type SQSEvent, type SQSHandler } from "aws-lambda";
-// import main from "./main";
-// import { type CronMessage } from "@repo/cron-sender/types";
-// import { logger } from "@repo/logger";
-// import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { app, InvocationContext } from "@azure/functions";
+import type { CronMessage } from "@repo/cron-sender";
+import processCron from "./main";
+import { logger } from "@repo/logger";
 
-// export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
-//     const sqsClient = new SQSClient({});
+// Queue trigger handler
+async function processScheduledPost(
+    queueItem: unknown,
+    context: InvocationContext,
+): Promise<void> {
+    const dequeueCount = context.triggerMetadata?.dequeueCount as number;
+    let retry = false;
 
-//     for (const record of event.Records) {
-//         try {
-//             const cronMessage = JSON.parse(record.body) as CronMessage;
+    if (dequeueCount > 1) {
+        retry = true;
+    }
+    const data = queueItem as CronMessage;
 
-//             const isRetry =
-//                 record.attributes?.ApproximateReceiveCount &&
-//                 parseInt(record.attributes.ApproximateReceiveCount) > 1;
-//             await main(cronMessage, Boolean(isRetry));
+    logger.info({ data, retry }, "Processing cron message");
+    await processCron(data, retry);
+}
 
-//             const deleteMessageCommand = new DeleteMessageCommand({
-//                 QueueUrl: process.env.SQS_QUEUE_URL,
-//                 ReceiptHandle: record.receiptHandle,
-//             });
-
-//             await sqsClient.send(deleteMessageCommand);
-//         } catch (error) {
-//             logger.error(
-//                 {
-//                     error,
-//                     messageId: record.messageId,
-//                     messageBody: record.body,
-//                     receiveCount: record.attributes?.ApproximateReceiveCount,
-//                     errorType:
-//                         error instanceof Error
-//                             ? error.constructor.name
-//                             : "Unknown",
-//                 },
-//                 `Failed to process message ${record.messageId}`
-//             );
-
-//             throw error;
-//         }
-//     }
-// };
+// Register the function with a queue trigger
+app.storageQueue("processScheduledPost", {
+    queueName: "post-schedule-queue", // The same queue name as used in sender!
+    connection: "AzureWebJobsStorage", // Match your sender's connection
+    handler: processScheduledPost,
+});

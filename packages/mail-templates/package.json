@@ -1,34 +1,26 @@
 {
-  "name": "@repo/mail-templates",
-  "module": "dist/index.js",
-  "type": "module",
-  "types": "dist/index.d.ts",
-  "private": true,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "name": "@repo/mail-templates",
+    "module": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "private": true,
+    "scripts": {
+        "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && tsc",
+        "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external",
+        "lint": "eslint --max-warnings 0",
+        "typecheck": "tsc --noEmit",
+        "preview": "bun run src/utils/test-template.ts"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/mjml": "^4.7.4"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "mjml": "^4.15.3"
     }
-  },
-  "scripts": {
-    "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && tsc",
-    "build:prod": "bun build src/index.ts --outdir dist --target bun",
-    "dev": "bun run --watch index.ts",
-    "start": "bun run index.ts",
-    "lint": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit",
-    "preview": "bun run src/utils/test-template.ts"
-  },
-  "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "@types/mjml": "^4.7.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "mjml": "^4.15.3"
-  }
 }

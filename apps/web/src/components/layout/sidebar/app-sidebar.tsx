@@ -42,11 +42,6 @@ import DraftsSidebarContainer from "./drafts";
 // Navigation items
 const navigationItems = [
     {
-        title: "Dashboard",
-        url: "/dashboard",
-        icon: LayoutDashboard,
-    },
-    {
         title: "Create Post",
         url: "/draft",
         icon: PenTool,
@@ -55,11 +50,6 @@ const navigationItems = [
         title: "Automations",
         url: "/automations",
         icon: Calendar,
-    },
-    {
-        title: "Analytics",
-        url: "/analytics",
-        icon: BarChart3,
     },
     {
         title: "Connections",

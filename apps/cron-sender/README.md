@@ -157,7 +157,10 @@ bun run deploy
 bun run build:prod
 
 # Deploy using Azure Functions Core Tools
-func azure functionapp publish postcribe-cron-sender
+func azure functionapp publish <function-app-name>
+
+# function app name is what you set in the Azure Portal
+# in this case cron-sender
 ```
 
 ## Troubleshooting

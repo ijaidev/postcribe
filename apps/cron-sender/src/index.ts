@@ -5,7 +5,9 @@ const queueOutput = output.storageQueue({
     queueName: "post-schedule-queue",
     connection: "AzureWebJobsStorage",
 });
+
 import getCronMessages from "./main";
+import { logger } from "@repo/logger";
 
 async function queueSender(
     myTimer: Timer,
@@ -13,21 +15,21 @@ async function queueSender(
 ): Promise<void> {
     try {
         const timeStamp = new Date().toISOString();
-        context.log(`Scheduled post sender function executed at: ${timeStamp}`);
+        logger.info(`Scheduled post sender function executed at: ${timeStamp}`);
 
         const cronMessages = await getCronMessages();
 
         if (cronMessages.length > 0) {
             // In v4, we use context.extraOutputs for queue output
             context.extraOutputs.set(queueOutput, cronMessages);
-            context.log(
+            logger.info(
                 `Message sent to queue: ${JSON.stringify(cronMessages)}`,
             );
         } else {
-            context.log("No cron messages to process");
+            logger.info("No cron messages to process");
         }
     } catch (error) {
-        context.log(`Error in scheduled function: ${error}`);
+        logger.error({ error }, "Error in scheduled function");
         throw error;
     }
 }
@@ -37,3 +39,5 @@ app.timer("queueSender", {
     handler: queueSender,
     extraOutputs: [queueOutput],
 });
+
+export { type CronMessage } from "./types";

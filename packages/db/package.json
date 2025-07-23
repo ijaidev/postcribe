@@ -1,37 +1,37 @@
 {
-  "name": "@repo/db",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "type": "module",
-  "private": true,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "name": "@repo/db",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build:dev": "bun run db:generate && bun build src/index.ts --outdir dist --target bun --packages external && tsc",
+        "build:prod": "bun run db:generate && bun build src/index.ts --outdir dist --packages external --target bun",
+        "lint": "eslint --max-warnings 0",
+        "typecheck": "tsc --noEmit",
+        "db:generate": "prisma generate",
+        "db:migrate": "prisma migrate dev",
+        "db:studio": "prisma studio"
+    },
+    "prisma": {
+        "schema": "src/prisma/schema.prisma"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "prisma": "^6.9.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@prisma/client": "^6.9.0"
     }
-  },
-  "scripts": {
-    "build:dev": "bun run db:generate && bun build src/index.ts --outdir dist --target bun --packages external && tsc",
-    "build:prod": "bun build src/index.ts --outdir dist --target bun",
-    "lint": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "schema": "src/prisma/schema.prisma"
-  },
-  "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "prisma": "^6.9.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.9.0"
-  }
 }

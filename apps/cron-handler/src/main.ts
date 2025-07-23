@@ -1,20 +1,20 @@
-// import db, {
-//     CronState,
-//     PostType,
-//     type Draft,
-//     type PostCron,
-//     type PostCronData,
-//     type User,
-// } from "@repo/db";
+import db, {
+    CronState,
+    type Draft,
+    type PostCron,
+    type PostCronData,
+    type User,
+} from "@repo/db";
 
-// import { type CronMessage } from "@repo/cron-sender/types";
-// import { logger } from "@repo/logger";
-// import { cronPostGen, type CronPostGenOptions } from "@repo/ai";
-// import { sendEmail, type SendEmailOptions } from "@repo/mailer";
-// import {
-//     generatePostApprovalEmail,
-//     type PostApprovalEmailData,
-// } from "@repo/mail-templates";
+import { logger } from "@repo/logger";
+import { cronPostGen, type CronPostGenOptions } from "@repo/ai";
+import { sendEmail, type SendEmailOptions } from "@repo/mailer";
+import {
+    generatePostApprovalEmail,
+    type PostApprovalEmailData,
+} from "@repo/mail-templates";
+import { type CronMessage } from "@repo/cron-sender";
+
 // import {
 //     postTweet,
 //     getValidAccessToken as getXAccessToken,
@@ -25,183 +25,108 @@
 //     createPost as createLinkedInPost,
 //     getValidAccessToken as getLinkedInAccessToken,
 // } from "@repo/linkedin";
-// import { getPosts } from "@repo/ai";
-// import { type Prisma } from "@repo/db";
 
-// interface DraftWithUser extends Draft {
-//     user: User;
-// }
+import { getPosts } from "@repo/ai";
 
-// interface PostCronWithData extends PostCron {
-//     PostCronData: PostCronData;
-// }
+interface DraftWithUser extends Draft {
+    user: User;
+}
 
-// const processCron = async (message: CronMessage, isRetry: boolean) => {
-//     const { id: cronId, userId } = message;
-//     let currentStage: CronState = CronState.DRAFT_CREATION;
-//     let draft: DraftWithUser | null = null;
+interface PostCronWithData extends PostCron {
+    PostCronData: PostCronData;
+}
 
-//     try {
-//         const postCron = await db.postCron.findUnique({
-//             where: { id: cronId, userId },
-//             include: {
-//                 PostCronData: true,
-//             },
-//         });
+const processAIGeneration = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    const existingPosts = await getPosts({ draftId: draft.id });
+    const hasXPost = existingPosts.x.posts.length > 0;
+    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
+    const cronData = postCron.PostCronData;
 
-//         if (!postCron) {
-//             throw new Error(`PostCron not found for cronId: ${cronId}`);
-//         }
+    if (!hasXPost || !hasLinkedinPost) {
+        const cronPostGenOptions: CronPostGenOptions = {
+            draftId: draft.id,
+            message: cronData.message,
+            platform: cronData.platform,
+            inputImages: cronData.inputImages,
+            generateImage: cronData.generateImage,
+            imagePrompt: cronData.imagePrompt || undefined,
+            forceWeb: cronData.forceWeb,
+        };
 
-//         if (isRetry) {
-//             draft = await db.draft.findFirst({
-//                 where: { postCronId: postCron.id, userId },
-//                 include: {
-//                     user: true,
-//                 },
-//             });
-//             if (draft?.cronState === CronState.COMPLETED) return;
-//         }
-//         if (!draft) {
-//             draft = await db.draft.create({
-//                 data: {
-//                     userId,
-//                     title: `Draft for ${postCron.title}`,
-//                     postCronId: postCron.id,
-//                     cronState: CronState.DRAFT_CREATION,
-//                 },
-//                 include: {
-//                     user: true,
-//                 },
-//             });
-//         }
+        await cronPostGen(cronPostGenOptions);
+    }
 
-//         currentStage = draft.cronState as CronState;
+    // if (postCron.autoApprove) {
+    //     await db.draft.update({
+    //         where: { id: draft.id },
+    //         data: {
+    //             cronState: CronState.POST_CREATION,
+    //         },
+    //     });
+    //     await processPostCreation(draft, postCron);
+    //     return;
+    // }
 
-//         switch (currentStage) {
-//             case CronState.AI_GENERATION:
-//                 await processAIGeneration(draft, postCron);
-//                 break;
-//             case CronState.EMAIL_NOTIFICATION:
-//                 await processEmailNotification(draft, postCron);
-//                 break;
-//             case CronState.MEDIA_UPLOAD:
-//                 await processMediaUpload(draft, postCron);
-//                 break;
-//             case CronState.POST_CREATION:
-//                 await processPostCreation(draft, postCron);
-//                 break;
-//             case CronState.PLATFORM_PUBLISHING:
-//                 await processPlatformPublishing(draft, postCron);
-//                 break;
-//             case CronState.COMPLETED:
-//                 return;
-//         }
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.EMAIL_NOTIFICATION,
+        },
+    });
+    await processEmailNotification(draft, postCron);
+    return;
+};
 
-//         await db.draft.update({
-//             where: { id: draft.id },
-//             data: {
-//                 cronState: CronState.COMPLETED,
-//             },
-//         });
-//         return;
-//     } catch (error) {
-//         logger.error({ error, cronId }, `Error processing cron message ${cronId}`);
-//         throw error;
-//     }
-// };
+const processEmailNotification = async (
+    draft: DraftWithUser,
+    postCron: PostCronWithData,
+) => {
+    const existingPosts = await getPosts({ draftId: draft.id });
+    const hasXPost = existingPosts.x.posts.length > 0;
+    const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
 
-// const processAIGeneration = async (
-//     draft: DraftWithUser,
-//     postCron: PostCronWithData,
-// ) => {
-//     const existingPosts = await getPosts({ draftId: draft.id });
-//     const hasXPost = existingPosts.x.posts.length > 0;
-//     const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
-//     const cronData = postCron.PostCronData;
+    if (!hasXPost || !hasLinkedinPost) {
+        throw new Error("No posts found for draft");
+    }
 
-//     if (!hasXPost || !hasLinkedinPost) {
-//         const cronPostGenOptions: CronPostGenOptions = {
-//             draftId: draft.id,
-//             message: cronData.message,
-//             platform: cronData.platform,
-//             inputImages: cronData.inputImages,
-//             generateImage: cronData.generateImage,
-//             imagePrompt: cronData.imagePrompt || undefined,
-//             forceWeb: cronData.forceWeb,
-//         };
+    const baseUrl =
+        process.env.FRONTEND_BASE_URL ||
+        process.env.BASE_URL ||
+        "http://localhost:3000";
+    const reviewUrl = `${baseUrl}/post/draft/${draft.id}`;
 
-//         await cronPostGen(cronPostGenOptions);
-//     }
+    const emailData: PostApprovalEmailData = {
+        userName: draft.user.name || "User",
+        postTitle: draft.title + " - " + postCron.title,
+        reviewUrl: reviewUrl,
+    };
 
-//     if (postCron.autoApprove) {
-//         await db.draft.update({
-//             where: { id: draft.id },
-//             data: {
-//                 cronState: CronState.POST_CREATION,
-//             },
-//         });
-//         await processPostCreation(draft, postCron);
-//         return;
-//     }
+    const htmlContent = generatePostApprovalEmail(emailData);
 
-//     await db.draft.update({
-//         where: { id: draft.id },
-//         data: {
-//             cronState: CronState.EMAIL_NOTIFICATION,
-//         },
-//     });
-//     await processEmailNotification(draft, postCron);
-//     return;
-// };
+    const emailOptions: SendEmailOptions = {
+        to: [{ name: draft.user.name || "User", email: draft.user.email }],
+        subject: `Post Ready for Review: ${draft.title}`,
+        htmlContent: htmlContent,
+        sender: {
+            name: "PostCribe",
+            email: process.env.FROM_EMAIL || "noreply@postcribe.com",
+        },
+    };
 
-// const processEmailNotification = async (
-//     draft: DraftWithUser,
-//     postCron: PostCronWithData,
-// ) => {
-//     const existingPosts = await getPosts({ draftId: draft.id });
-//     const hasXPost = existingPosts.x.posts.length > 0;
-//     const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
+    await sendEmail(emailOptions);
 
-//     if (!hasXPost || !hasLinkedinPost) {
-//         throw new Error("No posts found for draft");
-//     }
+    await db.draft.update({
+        where: { id: draft.id },
+        data: {
+            cronState: CronState.COMPLETED,
+        },
+    });
 
-//     const baseUrl =
-//         process.env.FRONTEND_BASE_URL ||
-//         process.env.BASE_URL ||
-//         "http://localhost:3000";
-//     const reviewUrl = `${baseUrl}/post/draft/${draft.id}`;
-
-//     const emailData: PostApprovalEmailData = {
-//         userName: draft.user.name,
-//         postTitle: draft.title,
-//         reviewUrl: reviewUrl,
-//     };
-
-//     const htmlContent = generatePostApprovalEmail(emailData);
-
-//     const emailOptions: SendEmailOptions = {
-//         to: [{ name: draft.user.name, email: draft.user.email }],
-//         subject: `Post Ready for Review: ${draft.title}`,
-//         htmlContent: htmlContent,
-//         sender: {
-//             name: "PostCribe",
-//             email: process.env.FROM_EMAIL || "noreply@postcribe.com",
-//         },
-//     };
-
-//     await sendEmail(emailOptions);
-
-//     await db.draft.update({
-//         where: { id: draft.id },
-//         data: {
-//             cronState: CronState.COMPLETED,
-//         },
-//     });
-
-//     return;
-// };
+    return;
+};
 
 // const processPostCreation = async (
 //     draft: DraftWithUser,
@@ -214,29 +139,30 @@
 //     const platform = postCron.PostCronData.platform;
 
 //     if (hasXPost || hasLinkedinPost) {
-//         let postsToCreate: Prisma.PostCreateManyInput[] = [];
+//         const postsToCreate: Prisma.PostCreateManyInput[] = [];
 
 //         if (
 //             (platform === "X" || platform === "ALL") &&
-//             existingPosts.x.posts[0]?.content
+//             existingPosts.x.posts[0]?.post
 //         ) {
 //             postsToCreate.push({
 //                 draftId: draft.id,
 //                 postType: "X" as PostType,
-//                 post: existingPosts.x.posts[0].content,
+//                 post: existingPosts.x.posts[0].post,
 //                 socialLoginId: postCron.PostCronData.xSocialLoginId || "",
 //             });
 //         }
 
 //         if (
 //             (platform === "LINKEDIN" || platform === "ALL") &&
-//             existingPosts.linkedin.posts[0]?.content
+//             existingPosts.linkedin.posts[0]?.post
 //         ) {
 //             postsToCreate.push({
 //                 draftId: draft.id,
 //                 postType: "LINKEDIN" as PostType,
-//                 post: existingPosts.linkedin.posts[0].content,
-//                 socialLoginId: postCron.PostCronData.linkedinSocialLoginId || "",
+//                 post: existingPosts.linkedin.posts[0].post,
+//                 socialLoginId:
+//                     postCron.PostCronData.linkedinSocialLoginId || "",
 //             });
 //         }
 
@@ -278,7 +204,7 @@
 
 //     const platform = postCron.PostCronData.platform;
 
-//     let mediaPromises: Promise<MediaUploadResult>[] = [];
+//     const mediaPromises: Promise<MediaUploadResult>[] = [];
 
 //     if ((platform === "X" || platform === "ALL") && hasXPost) {
 //         const xImage = existingPosts.x.images[0];
@@ -450,4 +376,79 @@
 //     return;
 // };
 
-// export default processCron;
+const processCron = async (message: CronMessage, isRetry: boolean) => {
+    const { id: cronId, userId } = message;
+    let currentStage: CronState = CronState.DRAFT_CREATION;
+    let draft: DraftWithUser | null = null;
+
+    try {
+        const postCron = await db.postCron.findUnique({
+            where: { id: cronId, userId },
+            include: {
+                PostCronData: true,
+            },
+        });
+
+        if (!postCron) {
+            throw new Error(`PostCron not found for cronId: ${cronId}`);
+        }
+
+        if (isRetry) {
+            draft = await db.draft.findFirst({
+                where: { postCronId: postCron.id, userId },
+                include: {
+                    user: true,
+                },
+            });
+            if (draft?.cronState === CronState.COMPLETED) return;
+        }
+        if (!draft) {
+            draft = await db.draft.create({
+                data: {
+                    userId,
+                    title: `Draft for ${postCron.title}`,
+                    postCronId: postCron.id,
+                    cronState: CronState.DRAFT_CREATION,
+                },
+                include: {
+                    user: true,
+                },
+            });
+        }
+
+        currentStage = draft.cronState as CronState;
+
+        switch (currentStage) {
+            case CronState.AI_GENERATION:
+                await processAIGeneration(draft, postCron);
+                break;
+            case CronState.EMAIL_NOTIFICATION:
+                await processEmailNotification(draft, postCron);
+                break;
+            // case CronState.MEDIA_UPLOAD:
+            //     await processMediaUpload(draft, postCron);
+            //     break;
+            // case CronState.POST_CREATION:
+            //     await processPostCreation(draft, postCron);
+            //     break;
+            // case CronState.PLATFORM_PUBLISHING:
+            //     await processPlatformPublishing(draft, postCron);
+            //     break;
+            case CronState.COMPLETED:
+                return;
+        }
+
+        await db.draft.update({
+            where: { id: draft.id },
+            data: {
+                cronState: CronState.COMPLETED,
+            },
+        });
+        return;
+    } catch (error) {
+        logger.error({ error, cronId }, "Error processing cron message");
+        throw error;
+    }
+};
+
+export default processCron;

@@ -46,7 +46,7 @@ export function LoginChecker() {
             const redirect = searchParams.get("redirect");
             if (isAuthRoute) {
                 if (!isAuthenticated) return;
-                router.push(redirect ? redirect : CLIENT_URL + "/dashboard");
+                router.push(redirect ? redirect : CLIENT_URL + "/draft");
             }
             if (!isAuthenticated)
                 router.push(
