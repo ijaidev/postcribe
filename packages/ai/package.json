@@ -11,8 +11,8 @@
         }
     },
     "scripts": {
-        "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
-        "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external",
+        "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external --format esm",
+        "build:dev": "bun build:prod && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
         "lint": "eslint . --max-warnings 0",
         "check-types": "tsc --noEmit"
     },

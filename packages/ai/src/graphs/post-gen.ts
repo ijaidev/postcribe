@@ -48,12 +48,8 @@ const linkedInCheckPointer = PostgresSaver.fromConnString(
     },
 );
 
-const setupCheckpointer = async () => {
-    await xCheckPointer.setup();
-    await linkedInCheckPointer.setup();
-};
-
-setupCheckpointer();
+await xCheckPointer.setup();
+await linkedInCheckPointer.setup();
 
 const tools = [dateTimeTool, tavilySearch, tavilyExtract, responseTool];
 

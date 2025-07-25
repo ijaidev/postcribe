@@ -7,7 +7,11 @@ import db, {
 } from "@repo/db";
 
 import { logger } from "@repo/logger";
-import { cronPostGen, type CronPostGenOptions } from "@repo/ai";
+import {
+    cronPostGen,
+    generateNameWithDraftId,
+    type CronPostGenOptions,
+} from "@repo/ai";
 import { sendEmail, type SendEmailOptions } from "@repo/mailer";
 import {
     generatePostApprovalEmail,
@@ -41,15 +45,31 @@ const processAIGeneration = async (
     postCron: PostCronWithData,
 ) => {
     const existingPosts = await getPosts({ draftId: draft.id });
+
     const hasXPost = existingPosts.x.posts.length > 0;
     const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
     const cronData = postCron.PostCronData;
 
-    if (!hasXPost || !hasLinkedinPost) {
+    const isX =
+        (cronData.platform === "X" || cronData.platform === "ALL") && !hasXPost;
+    const isLinkedin =
+        (cronData.platform === "LINKEDIN" || cronData.platform === "ALL") &&
+        !hasLinkedinPost;
+
+    let platform: "X" | "LINKEDIN" | "ALL" | undefined;
+    if (isX && isLinkedin) {
+        platform = "ALL";
+    } else if (isX) {
+        platform = "X";
+    } else if (isLinkedin) {
+        platform = "LINKEDIN";
+    }
+
+    if (platform) {
         const cronPostGenOptions: CronPostGenOptions = {
             draftId: draft.id,
             message: cronData.message,
-            platform: cronData.platform,
+            platform: platform,
             inputImages: cronData.inputImages,
             generateImage: cronData.generateImage,
             imagePrompt: cronData.imagePrompt || undefined,
@@ -70,12 +90,15 @@ const processAIGeneration = async (
     //     return;
     // }
 
-    await db.draft.update({
+    const name = await generateNameWithDraftId(draft.id, cronData.platform);
+    const draftUpdate = await db.draft.update({
         where: { id: draft.id },
         data: {
             cronState: CronState.EMAIL_NOTIFICATION,
+            title: name,
         },
     });
+    draft.title = draftUpdate.title;
     await processEmailNotification(draft, postCron);
     return;
 };
@@ -88,15 +111,15 @@ const processEmailNotification = async (
     const hasXPost = existingPosts.x.posts.length > 0;
     const hasLinkedinPost = existingPosts.linkedin.posts.length > 0;
 
-    if (!hasXPost || !hasLinkedinPost) {
+    if (!hasXPost && !hasLinkedinPost) {
         throw new Error("No posts found for draft");
     }
 
     const baseUrl =
         process.env.FRONTEND_BASE_URL ||
         process.env.BASE_URL ||
-        "http://localhost:3000";
-    const reviewUrl = `${baseUrl}/post/draft/${draft.id}`;
+        "http://localhost:3001";
+    const reviewUrl = `${baseUrl}/draft/?draftId=${draft.id}`;
 
     const emailData: PostApprovalEmailData = {
         userName: draft.user.name || "User",
@@ -396,6 +419,9 @@ const processCron = async (message: CronMessage, isRetry: boolean) => {
         if (isRetry) {
             draft = await db.draft.findFirst({
                 where: { postCronId: postCron.id, userId },
+                orderBy: {
+                    createdAt: "desc",
+                },
                 include: {
                     user: true,
                 },
@@ -408,7 +434,7 @@ const processCron = async (message: CronMessage, isRetry: boolean) => {
                     userId,
                     title: `Draft for ${postCron.title}`,
                     postCronId: postCron.id,
-                    cronState: CronState.DRAFT_CREATION,
+                    cronState: CronState.AI_GENERATION,
                 },
                 include: {
                     user: true,
@@ -437,14 +463,6 @@ const processCron = async (message: CronMessage, isRetry: boolean) => {
             case CronState.COMPLETED:
                 return;
         }
-
-        await db.draft.update({
-            where: { id: draft.id },
-            data: {
-                cronState: CronState.COMPLETED,
-            },
-        });
-        return;
     } catch (error) {
         logger.error({ error, cronId }, "Error processing cron message");
         throw error;

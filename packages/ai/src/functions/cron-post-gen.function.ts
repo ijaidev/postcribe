@@ -39,9 +39,7 @@ export const cronPostGen = async (
 
     try {
         // First generate posts
-        const postGenPromises: Promise<{
-            stream(): AsyncGenerator<PostGenStreamResponse>;
-        }>[] = [];
+        const postGenStreams: Array<AsyncGenerator<PostGenStreamResponse>> = [];
 
         if (platform === "X" || platform === "ALL") {
             const xPostGenOptions: PostGenOptions = {
@@ -50,7 +48,8 @@ export const cronPostGen = async (
                 images: inputImages.length > 0 ? inputImages : undefined,
                 forceWeb,
             };
-            postGenPromises.push(postGen(xPostGenOptions, "X"));
+            const xPostGen = await postGen(xPostGenOptions, "X");
+            postGenStreams.push(xPostGen.stream());
         }
 
         if (platform === "LINKEDIN" || platform === "ALL") {
@@ -60,10 +59,21 @@ export const cronPostGen = async (
                 images: inputImages.length > 0 ? inputImages : undefined,
                 forceWeb,
             };
-            postGenPromises.push(postGen(linkedinPostGenOptions, "LINKEDIN"));
+            const linkedinPostGen = await postGen(
+                linkedinPostGenOptions,
+                "LINKEDIN",
+            );
+            postGenStreams.push(linkedinPostGen.stream());
         }
 
-        await Promise.all(postGenPromises);
+        // Await all postGen streams to completion
+        await Promise.all(
+            postGenStreams.map(async stream => {
+                for await (const _ of stream) {
+                    // Consume all events, do nothing
+                }
+            }),
+        );
 
         // Then generate images if needed
         if (generateImage) {

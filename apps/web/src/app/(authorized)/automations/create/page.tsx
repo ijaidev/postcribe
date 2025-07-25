@@ -64,6 +64,8 @@ import { format } from "date-fns";
 import client from "@/lib/hono-client";
 import { InferRequestType } from "hono";
 import Image from "next/image";
+import { DateTime } from "luxon";
+import { useUser } from "@/components/providers/user-provider";
 
 interface UploadedImage {
     id: string;
@@ -81,6 +83,7 @@ type CreateCronRequest = InferRequestType<
 export default function CreateAutomationPage() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const user = useUser();
 
     // State management
     const [images, setImages] = useState<UploadedImage[]>([]);
@@ -319,6 +322,11 @@ export default function CreateAutomationPage() {
             combinedDateTime.setHours(selectedTime.getHours());
             combinedDateTime.setMinutes(selectedTime.getMinutes());
         }
+        const utcDateTime = DateTime.fromJSDate(combinedDateTime, {
+            zone: user.user?.timeZone || undefined,
+        })
+            .toUTC()
+            .toISO()!;
 
         if (imagePrompt.trim().length < 10 && generateImage && imagePrompt) {
             toast.error("Image prompt must be at least 10 characters long");
@@ -327,7 +335,7 @@ export default function CreateAutomationPage() {
 
         const automationData: CreateCronRequest = {
             title,
-            scheduledAt: combinedDateTime.toISOString(),
+            scheduledAt: utcDateTime,
             repeatInterval,
             repeatIntervalUnit,
             message,

@@ -85,7 +85,7 @@ model Draft {
   posts           Post[]
   draftSchedule   DraftSchedule?
   postCron        PostCron?      @relation(fields: [postCronId], references: [id], onDelete: Cascade)
-  postCronId      String?        @unique
+  postCronId      String?        
   isPublished     Boolean        @default(false)
   publishedAt     DateTime?
   isDeleted       Boolean        @default(false)

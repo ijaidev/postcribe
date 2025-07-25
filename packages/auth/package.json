@@ -1,39 +1,39 @@
 {
-  "name": "@repo/auth",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "type": "module",
-  "private": true,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "name": "@repo/auth",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external --format esm",
+        "build:dev": "bun build:prod && tsc",
+        "dev": "bun run --watch index.ts",
+        "start": "bun run index.ts",
+        "lint": "eslint --max-warnings 0",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@repo/eslint-config": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/luxon": "^3.6.2"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@repo/db": "workspace:*",
+        "@repo/logger": "workspace:*",
+        "@repo/mail-templates": "workspace:*",
+        "@repo/mailer": "workspace:*",
+        "better-auth": "^1.2.8",
+        "luxon": "^3.6.1",
+        "@repo/redis": "workspace:*"
     }
-  },
-  "scripts": {
-    "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && tsc",
-    "build:prod": "bun build src/index.ts --outdir dist --target bun",
-    "dev": "bun run --watch index.ts",
-    "start": "bun run index.ts",
-    "lint": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/bun": "latest",
-    "@types/luxon": "^3.6.2"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@repo/db": "workspace:*",
-    "@repo/logger": "workspace:*",
-    "@repo/mail-templates": "workspace:*",
-    "@repo/mailer": "workspace:*",
-    "better-auth": "^1.2.8",
-    "luxon": "^3.6.1",
-    "@repo/redis": "workspace:*"
-  }
 }

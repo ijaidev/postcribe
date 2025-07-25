@@ -10,11 +10,11 @@
         "./types": "./dist/types.d.ts"
     },
     "scripts": {
-        "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
-        "build:prod": "bun build src/index.ts --outdir dist --target node --external @azure/functions-core",
+        "build:prod": "bun build src/index.ts --outdir dist --target node --packages external --format esm",
+        "build:dev": "bun build:prod && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
         "lint": "eslint --max-warnings 0",
         "typecheck": "tsc --noEmit",
-        "test:func": "bun build:prod && func start -p 7070"
+        "start": "bun build:prod && func start -p 7070"
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",

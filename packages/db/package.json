@@ -11,8 +11,8 @@
         }
     },
     "scripts": {
-        "build:dev": "bun run db:generate && bun build src/index.ts --outdir dist --target bun --packages external && tsc",
-        "build:prod": "bun run db:generate && bun build src/index.ts --outdir dist --packages external --target bun",
+        "build:prod": "bun run db:generate && bun build src/index.ts --outdir dist --packages external --target bun --format esm",
+        "build:dev": "bun build:prod && tsc",
         "lint": "eslint --max-warnings 0",
         "typecheck": "tsc --noEmit",
         "db:generate": "prisma generate",

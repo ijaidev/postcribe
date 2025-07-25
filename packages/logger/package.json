@@ -2,6 +2,7 @@
     "name": "@repo/logger",
     "module": "dist/index.js",
     "type": "module",
+    "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "private": true,
     "scripts": {

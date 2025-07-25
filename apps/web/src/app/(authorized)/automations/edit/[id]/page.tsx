@@ -64,6 +64,8 @@ import { format } from "date-fns";
 import client from "@/lib/hono-client";
 import { InferRequestType } from "hono";
 import Image from "next/image";
+import { useUser } from "@/components/providers/user-provider";
+import { DateTime } from "luxon";
 
 interface UploadedImage {
     id: string;
@@ -81,7 +83,7 @@ export default function EditAutomationPage() {
     const params = useParams();
     const id = params?.id as string;
     const fileInputRef = useRef<HTMLInputElement>(null);
-
+    const user = useUser();
     const queryClient = useQueryClient();
 
     // State management
@@ -373,10 +375,16 @@ export default function EditAutomationPage() {
             combinedDateTime.setHours(selectedTime.getHours());
             combinedDateTime.setMinutes(selectedTime.getMinutes());
         }
+        const utcDateTime = DateTime.fromJSDate(combinedDateTime, {
+            zone: user.user?.timeZone || undefined,
+        })
+            .toUTC()
+            .toISO()!;
+
         const automationData: EditCronRequest = {
             id,
             title,
-            scheduledAt: combinedDateTime.toISOString(),
+            scheduledAt: utcDateTime,
             repeatInterval,
             repeatIntervalUnit,
             message,
