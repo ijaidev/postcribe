@@ -33,7 +33,6 @@
         "@repo/mail-templates": "workspace:*",
         "@repo/mailer": "workspace:*",
         "better-auth": "^1.2.8",
-        "luxon": "^3.6.1",
-        "@repo/redis": "workspace:*"
+        "luxon": "^3.6.1"
     }
 }

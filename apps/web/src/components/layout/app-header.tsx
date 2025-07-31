@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, CreditCard } from "lucide-react";
 
 import { useUser } from "@/components/providers/user-provider";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -52,8 +52,8 @@ export function AppHeader() {
 
     return (
         <header className="bg-sidebar sticky top-0 z-40 w-full">
-            <div className="relative container flex h-16 items-center px-6">
-                {/* <div className="h-5 rounded-tl-2xl bg-black absolute top-12 -left-0.5 right-0 z-10 overflow-hidden" /> */}
+            <div className="relative flex h-16 w-full items-center px-6">
+                {/* <div className="absolute top-12 right-0 -left-0.5 z-10 h-5 overflow-hidden rounded-tl-2xl bg-black" /> */}
                 {/* Left side - Sidebar trigger */}
                 <div className="mr-4 flex">
                     <SidebarTrigger />
@@ -94,7 +94,7 @@ export function AppHeader() {
                                 align="end"
                                 sideOffset={8}
                             >
-                                <div className="space-y-4">
+                                <div className="space-y-2">
                                     {/* User info */}
                                     <div className="flex items-center gap-3">
                                         <Avatar className="size-12">
@@ -116,35 +116,51 @@ export function AppHeader() {
                                             <p className="text-muted-foreground text-xs">
                                                 {user.email}
                                             </p>
-                                            <div className="flex items-center gap-2">
-                                                <Badge
-                                                    variant={
-                                                        emailVerified
-                                                            ? "default"
-                                                            : "destructive"
-                                                    }
-                                                    className="text-xs"
-                                                >
-                                                    {emailVerified
-                                                        ? "Verified"
-                                                        : "Unverified"}
-                                                </Badge>
-                                                {user.timeZone && (
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="text-xs"
-                                                    >
-                                                        {user.timeZone}
-                                                    </Badge>
-                                                )}
-                                            </div>
                                         </div>
+                                    </div>
+                                    <div className="mt-6 flex flex-wrap items-center gap-4">
+                                        <Badge
+                                            variant={
+                                                emailVerified
+                                                    ? "default"
+                                                    : "destructive"
+                                            }
+                                            className="text-xs"
+                                        >
+                                            {emailVerified
+                                                ? "Verified"
+                                                : "Unverified"}
+                                        </Badge>
+                                        {user.timeZone && (
+                                            <Badge
+                                                variant="secondary"
+                                                className="text-xs"
+                                            >
+                                                {user.timeZone}
+                                            </Badge>
+                                        )}
+                                        <Badge
+                                            variant="secondary"
+                                            className="text-xs"
+                                        >
+                                            Credits: {user.credits}
+                                        </Badge>
                                     </div>
 
                                     <Separator />
 
                                     {/* Actions */}
                                     <div className="space-y-1">
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start gap-2 text-sm"
+                                            onClick={() => {
+                                                toast.info("Coming soon!");
+                                            }}
+                                        >
+                                            <CreditCard className="size-4" />
+                                            Add Credits
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             className="w-full justify-start gap-2 text-sm"

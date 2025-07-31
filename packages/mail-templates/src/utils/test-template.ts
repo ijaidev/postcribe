@@ -10,6 +10,10 @@ import {
     generatePasswordResetEmail,
     type PasswordResetData,
 } from "../templates/password-reset.template";
+import {
+    generateNoCreditsEmail,
+    type NoCreditsEmailData,
+} from "../templates/no-credits.template";
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { logger } from "@repo/logger";
@@ -87,12 +91,37 @@ export const previewPasswordReset = () => {
     return htmlContent;
 };
 
+export const previewNoCredits = () => {
+    const sampleData: NoCreditsEmailData = {
+        userName: "Test User",
+        message:
+            "You have used all your credits. Please upgrade your plan or wait for your monthly reset to continue generating posts and images.",
+        accountUrl: "https://app.postcribe.com/account",
+    };
+
+    const htmlContent = generateNoCreditsEmail(sampleData);
+
+    // Create dist/samples directory if it doesn't exist
+    const samplesDir = join(process.cwd(), "dist", "samples");
+    mkdirSync(samplesDir, { recursive: true });
+
+    // Write the HTML file
+    const filePath = join(samplesDir, "no-credits-sample.html");
+    writeFileSync(filePath, htmlContent);
+
+    logger.info("No credits preview generated!");
+    logger.info(`Open ${filePath} in your browser to preview the email.`);
+
+    return htmlContent;
+};
+
 export const previewAllTemplates = () => {
     logger.info("Generating all email template previews...\n");
 
     previewPostApproval();
     previewEmailVerification();
     previewPasswordReset();
+    previewNoCredits();
 
     logger.info("\n✅ All email template previews generated successfully!");
     logger.info(

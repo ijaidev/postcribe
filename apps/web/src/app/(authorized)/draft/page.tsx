@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { type PostGenStreamResponse, type Post } from "@repo/ai";
 import { Allow, parse } from "partial-json";
 import { DraftState } from "@/components/pages/draft/types";
+import { useUser } from "@/components/providers/user-provider";
 
 interface StreamData extends PostGenStreamResponse {
     platform: "X" | "LINKEDIN";
@@ -23,6 +24,7 @@ interface StreamData extends PostGenStreamResponse {
 }
 
 const Page = () => {
+    const { refreshUser } = useUser();
     const [prompt, setPrompt] = useState("");
     const [draftId, setDraftId] = useState<string | null>(null);
     const [draftState, setDraftState] = useState<{
@@ -187,7 +189,8 @@ const Page = () => {
         }) => {
             const response = await $post({ json: data });
             if (!response.ok) {
-                throw new Error("Failed to create post");
+                const error = (await response.json()) as { message?: string };
+                throw new Error(error.message || "Failed to create post");
             }
             return {
                 response,
@@ -212,6 +215,7 @@ const Page = () => {
             hasStarted.current = { x: false, linkedin: false };
         },
         onSuccess: async ({ response, createImage, platform, images }) => {
+            setPrompt("");
             const reader = response.body?.getReader();
             if (!reader) {
                 throw new Error("No response stream available");
@@ -365,6 +369,9 @@ const Page = () => {
                 toast.error("An error occurred while processing the post.");
             } finally {
                 // Mark streaming as complete
+                refreshUser({
+                    disableCookieCache: true,
+                });
                 setCurrentEvent({ x: null, linkedin: null });
             }
         },
@@ -393,7 +400,8 @@ const Page = () => {
 
             const response = await $createImage({ json: data });
             if (!response.ok) {
-                throw new Error("Failed to create image");
+                const error = await response.json();
+                throw new Error(error.message || "Failed to create image");
             }
             return response.json();
         },
@@ -436,6 +444,9 @@ const Page = () => {
             });
 
             toast.success("Image created successfully");
+            refreshUser({
+                disableCookieCache: true,
+            });
         },
         onError: error => {
             setIsImageLoading({

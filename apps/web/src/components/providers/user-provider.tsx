@@ -16,6 +16,7 @@ interface User {
     timeZone?: string | null;
     emailVerified: boolean;
     image?: string | null;
+    credits: number;
 }
 
 interface UserContextType {
@@ -24,7 +25,7 @@ interface UserContextType {
     isAuthenticated: boolean;
     emailVerified: boolean;
     error: string | null;
-    refreshUser: () => Promise<void>;
+    refreshUser: (options?: { disableCookieCache?: boolean }) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -40,13 +41,21 @@ export function UserProvider({ children }: UserProviderProps) {
     const [emailVerified, setEmailVerified] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const refreshUser = async () => {
+    const refreshUser = async ({
+        disableCookieCache = false,
+    }: {
+        disableCookieCache?: boolean;
+    } = {}) => {
         try {
             setIsLoading(true);
             setError(null);
 
+            const query = disableCookieCache ? { disableCookieCache } : {};
+
             const { data: session, error: sessionError } =
-                await authClient.getSession();
+                await authClient.getSession({
+                    query,
+                });
 
             if (sessionError) {
                 throw new Error(
@@ -63,7 +72,10 @@ export function UserProvider({ children }: UserProviderProps) {
             } else {
                 // Authenticated
                 setIsAuthenticated(true);
-                setUser(session.user);
+                setUser({
+                    ...session.user,
+                    credits: session.user.credits || 0,
+                });
                 setEmailVerified(session.user.emailVerified || false);
             }
         } catch (err) {

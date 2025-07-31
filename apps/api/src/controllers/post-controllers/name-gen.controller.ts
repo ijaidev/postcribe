@@ -51,12 +51,7 @@ const nameGenHandler = factory.createHandlers(zv, async c => {
             );
         }
 
-        const platform =
-            draft.platform === "X" || draft.platform === "ALL"
-                ? "x"
-                : "linkedin";
-
-        const name = await generateNameWithDraftId(draftId, platform);
+        const name = await generateNameWithDraftId(draftId, draft.platform);
 
         const updatedDraft = await db.draft.update({
             where: {

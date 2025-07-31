@@ -1,16 +1,21 @@
-import Link from "next/link";
+import { LandingHeader } from "@/components/layout/landing-header";
+import { Hero1 } from "@/components/pages/landing/hero-section";
+import { CursorTrail } from "@/components/pages/landing/cursor-trail";
+import HistorySection from "@/components/pages/landing/history-section";
+import CalendarSection from "@/components/pages/landing/calendar-section";
+import LastCta from "@/components/pages/landing/last-cta";
 
 export default function Home() {
     return (
-        <div>
-            <Link href="/signin">Sign in</Link>
-            <Link href="/signup">Sign up</Link>
-            <Link href="/reset-password">Reset password</Link>
-            <Link href="/verify-email">Verify email</Link>
-            <Link href="/dashboard">Dashboard</Link>
-            <Link href="/profile">Profile</Link>
-            <Link href="/settings">Settings</Link>
-            <Link href="/logout">Logout</Link>
-        </div>
+        <main>
+            <LandingHeader />
+            <Hero1 />
+            <div className="flex flex-col items-center justify-center space-y-40">
+                <HistorySection />
+                <CalendarSection />
+                <LastCta />
+            </div>
+            <CursorTrail className="fixed inset-0 -z-10 h-full w-full" />
+        </main>
     );
 }

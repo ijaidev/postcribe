@@ -261,7 +261,6 @@ export const DraftInput = memo(function DraftInput({
             });
         }
 
-        setPrompt("");
         setImages([]);
     };
 

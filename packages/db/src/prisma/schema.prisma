@@ -21,6 +21,8 @@ model User {
   postCron      PostCron[]
   draft         Draft[]
 
+  credits Int @default(20)
+
   timeZone String?
 
   socialLogins SocialLogin[]

@@ -181,7 +181,6 @@
         "@repo/logger": "workspace:*",
         "@repo/mail-templates": "workspace:*",
         "@repo/mailer": "workspace:*",
-        "@repo/redis": "workspace:*",
         "better-auth": "^1.2.8",
         "luxon": "^3.6.1",
       },

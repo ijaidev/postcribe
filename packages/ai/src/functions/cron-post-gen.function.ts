@@ -66,14 +66,12 @@ export const cronPostGen = async (
             postGenStreams.push(linkedinPostGen.stream());
         }
 
-        // Await all postGen streams to completion
-        await Promise.all(
-            postGenStreams.map(async stream => {
-                for await (const _ of stream) {
-                    // Consume all events, do nothing
-                }
-            }),
-        );
+        const promises = await Promise.all(postGenStreams);
+        for (const promise of promises) {
+            for await (const _ of promise) {
+                // Consume all events, do nothing
+            }
+        }
 
         // Then generate images if needed
         if (generateImage) {

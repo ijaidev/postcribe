@@ -175,12 +175,7 @@ export function AppSidebar({
     };
 
     return (
-        <Sidebar
-            variant="inset"
-            collapsible="icon"
-            className={cn("scroll-bar sticky top-0 h-screen", className)}
-            {...props}
-        >
+        <Sidebar variant="inset" collapsible="icon" {...props}>
             {/* Header */}
             <SidebarHeader className="border-sidebar-border border-b">
                 <div className="flex items-center gap-2 py-2">

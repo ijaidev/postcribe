@@ -21,6 +21,8 @@ model User {
 
   timeZone String?
 
+  credits Int @default(20)
+
   @@unique([email])
   @@map("user")
 }

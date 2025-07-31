@@ -16,6 +16,8 @@ import { sendEmail, type SendEmailOptions } from "@repo/mailer";
 import {
     generatePostApprovalEmail,
     type PostApprovalEmailData,
+    type NoCreditsEmailData,
+    generateNoCreditsEmail,
 } from "@repo/mail-templates";
 import { type CronMessage } from "@repo/cron-sender";
 
@@ -39,6 +41,15 @@ interface DraftWithUser extends Draft {
 interface PostCronWithData extends PostCron {
     PostCronData: PostCronData;
 }
+
+let creditsUsed = 0;
+
+const updateCredits = async (userId: string, credits: number) => {
+    await db.user.update({
+        where: { id: userId },
+        data: { credits: { decrement: credits } },
+    });
+};
 
 const processAIGeneration = async (
     draft: DraftWithUser,
@@ -100,6 +111,7 @@ const processAIGeneration = async (
     });
     draft.title = draftUpdate.title;
     await processEmailNotification(draft, postCron);
+    await updateCredits(draft.userId, creditsUsed);
     return;
 };
 
@@ -409,12 +421,59 @@ const processCron = async (message: CronMessage, isRetry: boolean) => {
             where: { id: cronId, userId },
             include: {
                 PostCronData: true,
+                user: true,
             },
         });
 
         if (!postCron) {
             throw new Error(`PostCron not found for cronId: ${cronId}`);
         }
+
+        let requiredCredits = 0;
+        creditsUsed = 0;
+        if (postCron.PostCronData.generateImage) {
+            const imageCredits =
+                postCron.PostCronData.platform === "ALL" ? 8 : 4;
+            requiredCredits += imageCredits;
+        }
+        const textCredits = postCron.PostCronData.platform === "ALL" ? 2 : 1;
+        requiredCredits += textCredits;
+
+        if (postCron.user.credits < requiredCredits) {
+            const baseUrl =
+                process.env.FRONTEND_BASE_URL ||
+                process.env.BASE_URL ||
+                "http://localhost:3001";
+
+            const noCreditsData: NoCreditsEmailData = {
+                userName: postCron.user.name || "User",
+                message:
+                    "We can't process your automation because you don't have enough credits.",
+                accountUrl: baseUrl,
+            };
+
+            const htmlContent = generateNoCreditsEmail(noCreditsData);
+
+            const emailOptions: SendEmailOptions = {
+                to: [
+                    {
+                        name: postCron.user.name || "User",
+                        email: postCron.user.email,
+                    },
+                ],
+                subject: "No Credits Left",
+                htmlContent: htmlContent,
+                sender: {
+                    name: "PostCribe",
+                    email: process.env.FROM_EMAIL || "noreply@postcribe.com",
+                },
+            };
+
+            await sendEmail(emailOptions);
+            return;
+        }
+
+        creditsUsed = requiredCredits;
 
         if (isRetry) {
             draft = await db.draft.findFirst({

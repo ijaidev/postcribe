@@ -140,7 +140,9 @@ export const createPrimaryButton = (
   font-size="16px"
   font-weight="600"
   border-radius="8px"
-  padding="32px 0"
+  width="320px"
+  align="center"
+  padding="16px 0 16px 0"
   inner-padding="16px 32px"
   css-class="primary-button ${extraClasses || ""}"
 >

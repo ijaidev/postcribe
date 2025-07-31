@@ -97,6 +97,13 @@ const postGenController = factory.createHandlers(
             });
         }
 
+        const requiredCredits = platform === "ALL" ? 2 : 1;
+        if (user.credits < requiredCredits) {
+            throw new HTTPException(400, {
+                message: "You don't have enough credits to generate posts",
+            });
+        }
+
         if (platform === "X" || platform === "ALL") {
             if (draft?.xLoginId) {
                 const xAccount = await db.socialLogin.findFirst({
@@ -189,6 +196,12 @@ const postGenController = factory.createHandlers(
                             );
                         })(),
                     ]);
+                    await db.user.update({
+                        where: { id: user.id },
+                        data: {
+                            credits: { decrement: requiredCredits },
+                        },
+                    });
                     stream.close();
                 });
             }
@@ -220,6 +233,12 @@ const postGenController = factory.createHandlers(
                         content: "",
                     } as PostGenStreamResponseWithPlatform) + "\n",
                 );
+                await db.user.update({
+                    where: { id: user.id },
+                    data: {
+                        credits: { decrement: requiredCredits },
+                    },
+                });
                 stream.close();
             });
         } catch (error) {

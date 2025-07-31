@@ -19,12 +19,12 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@repo/s3": "workspace:*",
         "@hono/zod-validator": "^0.5.0",
         "@repo/ai": "workspace:*",
         "@repo/auth": "workspace:*",
         "@repo/db": "workspace:*",
         "@repo/logger": "workspace:*",
+        "@repo/s3": "workspace:*",
         "@repo/x": "workspace:*",
         "axios": "^1.9.0",
         "hono": "^4.7.11",

@@ -8,20 +8,9 @@ import {
     generateEmailVerificationEmail,
     generatePasswordResetEmail,
 } from "@repo/mail-templates";
-import { getRedisClient } from "@repo/redis";
 import { IANAZone } from "luxon";
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3001";
-
-// Get Redis client instance
-const redis = getRedisClient();
-
-// Connect to Redis with proper error handling
-if (redis) {
-    redis.connect().catch(err => {
-        logger.error({ error: err }, "❌ Redis connection failed");
-    });
-}
 
 // Custom email rate limiting helper
 const checkEmailRateLimit = async (
@@ -124,35 +113,7 @@ const auth = betterAuth({
                 max: 3, // 3 sign-up attempts per 60 seconds
             },
         },
-        storage: "secondary-storage",
-    },
-    secondaryStorage: {
-        get: async key => {
-            try {
-                return await redis.get(key);
-            } catch (error) {
-                logger.error({ error }, "❌ Redis GET error");
-                return null;
-            }
-        },
-        set: async (key, value, ttl) => {
-            try {
-                if (ttl) {
-                    await redis.set(key, value, "EX", ttl);
-                } else {
-                    await redis.set(key, value);
-                }
-            } catch (error) {
-                logger.error({ error }, "❌ Redis SET error");
-            }
-        },
-        delete: async key => {
-            try {
-                await redis.del(key);
-            } catch (error) {
-                logger.error({ error }, "❌ Redis DEL error");
-            }
-        },
+        storage: "memory",
     },
     session: {
         cookieCache: {
@@ -220,6 +181,11 @@ const auth = betterAuth({
             timeZone: {
                 type: "string",
                 required: false,
+            },
+            credits: {
+                type: "number",
+                required: true,
+                defaultValue: 20,
             },
         },
     },

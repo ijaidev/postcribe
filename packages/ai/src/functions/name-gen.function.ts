@@ -26,12 +26,9 @@ export async function generateNameWithDraftId(
             xAccountId: undefined,
         },
     };
-    console.log("config", config);
     const state = await graph.getState(config);
-    console.log("state", state);
     const values = state.values as unknown as postGraphState;
     const { messages } = values;
-    console.log("messages", messages);
     const messagesAsHumanMessage = new HumanMessage(JSON.stringify(messages));
     const name = await generateNameFromDiscussion([messagesAsHumanMessage]);
     return name;

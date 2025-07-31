@@ -54,6 +54,13 @@ const imageGenController = factory.createHandlers(
             });
         }
 
+        const requiredCredits = platform === "ALL" ? 8 : 4;
+        if (user.credits < requiredCredits) {
+            throw new HTTPException(400, {
+                message: "You don't have enough credits to generate images",
+            });
+        }
+
         const options: ImageGenOptions = {
             draftId,
             message,
@@ -99,6 +106,11 @@ const imageGenController = factory.createHandlers(
                 });
             }
 
+            await db.user.update({
+                where: { id: user.id },
+                data: { credits: { decrement: requiredCredits } },
+            });
+
             return c.json(
                 new ApiResponse<ImageGenResponse>({
                     message: "Images generated",
@@ -114,6 +126,12 @@ const imageGenController = factory.createHandlers(
                 options,
                 platform.toUpperCase() as "X" | "LINKEDIN",
             );
+
+            await db.user.update({
+                where: { id: user.id },
+                data: { credits: { decrement: requiredCredits } },
+            });
+
             return c.json(
                 new ApiResponse<ImageGenResponse>({
                     message: "Image generated",
