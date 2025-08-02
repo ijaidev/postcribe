@@ -10,7 +10,22 @@ import {
 } from "@repo/mail-templates";
 import { IANAZone } from "luxon";
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3001";
+const CLIENT_URL = process.env.CLIENT_URL || "";
+const TRUSTED_ORIGINS = process.env.TRUSTED_ORIGINS?.split(",") || [];
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set");
+}
+
+if (!TRUSTED_ORIGINS.length) {
+    throw new Error("TRUSTED_ORIGINS must be set");
+}
+
+if (!CLIENT_URL) {
+    throw new Error("CLIENT_URL must be set");
+}
 
 // Custom email rate limiting helper
 const checkEmailRateLimit = async (
@@ -97,7 +112,7 @@ const checkEmailRateLimit = async (
     }
 };
 
-const auth = betterAuth({
+const auth: ReturnType<typeof betterAuth> = betterAuth({
     basePath: "/auth",
     rateLimit: {
         enabled: true,
@@ -121,7 +136,7 @@ const auth = betterAuth({
             maxAge: 60 * 5, // 5 minutes
         },
     },
-    trustedOrigins: [...(process.env.TRUSTED_ORIGINS?.split(",") || [])],
+    trustedOrigins: TRUSTED_ORIGINS,
     database: prismaAdapter(db, {
         provider: "postgresql",
     }),
@@ -193,8 +208,8 @@ const auth = betterAuth({
         google: {
             enabled: true,
             prompt: "select_account",
-            clientId: process.env.GOOGLE_CLIENT_ID as string,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+            clientId: GOOGLE_CLIENT_ID,
+            clientSecret: GOOGLE_CLIENT_SECRET,
         },
         // Add more social providers as needed
     },

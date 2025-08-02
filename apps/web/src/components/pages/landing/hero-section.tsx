@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
-const Hero1 = () => {
+import Link from "next/link";
+const HeroSection = () => {
     return (
-        <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+        <div className="relative flex min-h-screen min-w-full flex-col overflow-x-hidden">
             {/* Gradient */}
             <div className="absolute top-[-40rem] right-[-30rem] z-[0] flex rotate-[-20deg] skew-[-40deg] gap-[10rem] opacity-50 blur-[4rem]">
                 <div className="h-[20rem] w-[10rem] bg-linear-90 from-white to-blue-300"></div>
@@ -50,13 +51,13 @@ const Hero1 = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 1.1 }}
                     >
-                        <a
-                            href="#final-cta"
+                        <Link
+                            href="/signin"
                             id="hero-cta"
                             className="text-primary hover:border-primary inline-block rounded-lg border-2 border-transparent px-6 py-3 text-lg font-medium transition-all duration-300"
                         >
                             Start Crafting &rarr;
-                        </a>
+                        </Link>
                     </motion.div>
                 </div>
             </section>
@@ -64,4 +65,4 @@ const Hero1 = () => {
     );
 };
 
-export { Hero1 };
+export { HeroSection };

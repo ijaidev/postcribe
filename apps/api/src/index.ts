@@ -7,6 +7,11 @@ import { logger } from "@repo/logger";
 import ApiResponse from "./utils/api-response";
 import { ZodError } from "zod";
 import { getZodErrorMessage } from "./utils/zod-error-message";
+import { TRUSTED_ORIGINS } from "./config";
+
+if (!TRUSTED_ORIGINS.length) {
+    throw new Error("TRUSTED_ORIGINS must be set");
+}
 
 const app = factory
     .createApp()
@@ -14,7 +19,7 @@ const app = factory
     .use(
         "*",
         cors({
-            origin: "http://localhost:3001",
+            origin: TRUSTED_ORIGINS,
             allowHeaders: ["Content-Type", "Authorization"],
             allowMethods: ["POST", "GET", "OPTIONS", "DELETE", "PUT"],
             exposeHeaders: ["Content-Length"],

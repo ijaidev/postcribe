@@ -7,9 +7,11 @@ import { StagewiseToolbar } from "@stagewise/toolbar-next";
 import ReactPlugin from "@stagewise-plugins/react";
 
 export const metadata: Metadata = {
-    title: "PostCribe",
+    title: "Postcribe",
     description:
-        "PostCribe is a platform for creating and scheduling social media posts.",
+        "Postcribe is a platform for creating and scheduling social media posts.",
+    viewport:
+        "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
 };
 
 export default async function RootLayout({
@@ -24,11 +26,11 @@ export default async function RootLayout({
                     {children}
                     <LoginChecker />
                     <Toaster />
-                    <StagewiseToolbar
+                    {/* <StagewiseToolbar
                         config={{
                             plugins: [ReactPlugin],
                         }}
-                    />
+                    /> */}
                 </Providers>
             </body>
         </html>

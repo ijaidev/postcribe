@@ -17,9 +17,16 @@ const LastCta = () => {
                     Start Free. No credit card required.
                 </p>
                 <div className="mt-10 flex max-h-20 w-full items-center justify-center">
-                    <ShimmerButton className="text-primary text-lg font-medium">
-                        <Link href="/signin">Create Your Free Account</Link>
-                    </ShimmerButton>
+                    <Link href="/signin">
+                        <ShimmerButton
+                            className="text-primary p-4 px-8 text-sm font-medium"
+                            borderRadius="15px"
+                        >
+                            <span className="text-primary">
+                                Create Your Free Account
+                            </span>
+                        </ShimmerButton>
+                    </Link>
                 </div>
             </div>
         </section>

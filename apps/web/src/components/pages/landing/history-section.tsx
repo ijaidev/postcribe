@@ -77,14 +77,54 @@ export function Tab({ text, selected, setSelected }: TabProps) {
     );
 }
 
+// Typing effect: On first SSR/initial render, text is shown instantly for SEO and hydration. On tab/version change (client), a typing effect is used for both prompt and text, with a blinking cursor during typing. See useTypingEffect below.
+function useTypingEffect(text: string, speed = 20, enabled = true) {
+    const [displayed, setDisplayed] = React.useState(enabled ? "" : text);
+    const [isTyping, setIsTyping] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!enabled) {
+            setDisplayed(text);
+            setIsTyping(false);
+            return;
+        }
+        setDisplayed("");
+        setIsTyping(true);
+        let i = 0;
+        const interval = setInterval(() => {
+            setDisplayed(prev => prev + text[i]);
+            i++;
+            if (i >= text.length) {
+                clearInterval(interval);
+                setIsTyping(false);
+            }
+        }, speed);
+        return () => clearInterval(interval);
+    }, [text, speed, enabled]);
+
+    return { displayed, isTyping };
+}
+
 const HistorySection = () => {
     const [version, setVersion] = useState(3);
     const [activeTab, setActiveTab] = useState<"x" | "linkedin">("x");
+    // SSR detection: only type on client after first render
+    const [hasMounted, setHasMounted] = React.useState(false);
+    React.useEffect(() => {
+        setHasMounted(true);
+    }, []);
 
     const currentPost = posts[activeTab].find(post => post.version === version);
+    // Only enable typing effect after mount (client), not on SSR
+    const typingEnabled = hasMounted;
+    const { displayed: typedText, isTyping: isTypingText } = useTypingEffect(
+        currentPost?.text ?? "",
+        8,
+        typingEnabled,
+    );
 
     return (
-        <div className="flex w-full flex-col items-center justify-center space-y-8">
+        <section className="flex w-full flex-col items-center justify-center space-y-8 px-10">
             <div>
                 <h3 className="text-foreground text-center text-3xl font-bold md:text-4xl">
                     Full Creative Control.
@@ -106,13 +146,16 @@ const HistorySection = () => {
                     />
                 ))}
             </div>
-            <div className="flex min-h-80 items-center gap-10">
-                <AnimatePresence mode="wait">
-                    {currentPost && (
-                        <div className="flex h-full items-start justify-center">
-                            <div className="flex flex-col gap-4">
+            <div className="flex min-h-80 flex-col items-center gap-10 sm:flex-row">
+                <div className="order-2 flex h-full w-80 flex-1 flex-col items-start justify-center gap-4 sm:order-1 md:w-md lg:w-lg xl:w-xl">
+                    <AnimatePresence mode="wait">
+                        {currentPost && (
+                            <>
                                 <div className="flex items-start gap-2">
-                                    <CircleUserRound className="mt-1 size-8" />
+                                    <span>
+                                        <CircleUserRound className="mt-1 size-8! h-8! w-8!" />
+                                    </span>
+
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -138,30 +181,43 @@ const HistorySection = () => {
                                         key={`${activeTab}-${currentPost.version}`}
                                         className="bg-muted border-border flex max-w-lg items-center justify-center rounded-xl p-10 pt-5 pl-5"
                                     >
-                                        <p>{currentPost.text}</p>
+                                        <p>
+                                            {typedText}
+                                            {isTypingText && (
+                                                <span className="animate-pulse">
+                                                    |
+                                                </span>
+                                            )}
+                                        </p>
                                     </motion.div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
                 <RadioGroup
                     value={version.toString()}
                     onValueChange={value => setVersion(Number(value))}
-                    className="flex flex-col gap-5"
+                    className="order-1 flex gap-3 sm:flex-col sm:gap-5"
                 >
                     {Array.from({ length: 3 }).map((_, index) => (
-                        <div key={index} className="flex items-center gap-4">
+                        <div
+                            key={index}
+                            className="flex items-center gap-2 sm:gap-4"
+                        >
                             <RadioGroupItem
                                 value={(index + 1).toString()}
                                 className="h-4 w-4"
+                                id={`version-${index + 1}`}
                             ></RadioGroupItem>
-                            <Label>Version {index + 1}</Label>
+                            <Label htmlFor={`version-${index + 1}`}>
+                                Version {index + 1}
+                            </Label>
                         </div>
                     ))}
                 </RadioGroup>
             </div>
-        </div>
+        </section>
     );
 };
 

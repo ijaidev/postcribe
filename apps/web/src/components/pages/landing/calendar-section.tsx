@@ -2,8 +2,8 @@
 
 const CalendarSection = () => {
     return (
-        <section className="flex w-full flex-col items-center justify-center">
-            <h3 className="text-foreground text-3xl font-bold md:text-4xl">
+        <section className="flex w-full flex-col items-center justify-center px-10">
+            <h3 className="text-foreground text-center text-3xl font-bold md:text-4xl">
                 Your Content, On Autopilot.
             </h3>
             <p className="text-muted-foreground mx-auto mt-4 max-w-2xl text-center text-lg">

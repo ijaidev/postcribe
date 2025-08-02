@@ -119,10 +119,10 @@ export default function Suggestions({
         return Array.from({ length: 8 }, (_, index) => (
             <Card
                 key={`skeleton-${index}`}
-                className="bg-muted/30 flex min-h-40 w-96 flex-shrink-0 items-center justify-center border-dashed"
+                className="bg-muted/30 flex min-h-40 w-90 flex-shrink-0 items-center justify-center border-dashed"
             >
                 <CardContent className="flex flex-col items-center justify-center gap-4 p-3">
-                    <Skeleton className="h-3 w-90" />
+                    <Skeleton className="h-3 w-80" />
                     <Skeleton className="h-3 w-80" />
                     <Skeleton className="h-3 w-50" />
                 </CardContent>
@@ -134,11 +134,11 @@ export default function Suggestions({
         return suggestions.map((suggestion, index) => (
             <Card
                 key={index}
-                className="bg-muted/50 hover:bg-muted flex min-h-40 min-w-fit flex-shrink-0 cursor-pointer items-center justify-center border-0 p-0 shadow-sm transition-all hover:shadow-md"
+                className="bg-muted/50 hover:bg-muted flex min-h-40 w-72 flex-shrink-0 cursor-pointer items-center justify-center border-0 p-0 shadow-sm transition-all hover:shadow-md sm:w-80 md:w-96"
                 onClick={() => setPrompt(suggestion)}
             >
-                <CardContent className="flex items-center justify-center px-4 py-2">
-                    <p className="max-w-md text-center text-sm leading-relaxed font-medium whitespace-pre-wrap">
+                <CardContent className="flex items-center justify-center px-3 py-2 sm:px-4">
+                    <p className="max-w-full text-center text-xs leading-relaxed font-medium whitespace-pre-wrap sm:text-sm">
                         {suggestion}
                     </p>
                 </CardContent>
@@ -147,21 +147,11 @@ export default function Suggestions({
     };
 
     return (
-        <div className="space-y-3">
-            <div className="relative flex items-center gap-3">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={scrollLeft}
-                    disabled={isLoading}
-                    className="h-8 w-8 shrink-0 rounded-full p-0"
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                </Button>
-
+        <div className="w-full space-y-3 overflow-hidden">
+            <div className="relative flex flex-col items-center gap-3 overflow-hidden">
                 <div
                     ref={scrollContainerRef}
-                    className="flex flex-1 gap-3 overflow-x-auto py-1"
+                    className="flex w-full max-w-[70vw] gap-2 overflow-x-auto px-2 sm:gap-3 sm:px-0"
                     style={{
                         scrollbarWidth: "none",
                         msOverflowStyle: "none",
@@ -172,28 +162,39 @@ export default function Suggestions({
                         ? renderSkeletons()
                         : renderSuggestions()}
                 </div>
+                <div className="flex flex-row items-center gap-3">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={scrollLeft}
+                        disabled={isLoading}
+                        className="h-8 w-8 shrink-0 rounded-full p-0"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
 
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={scrollRight}
-                    disabled={isLoading}
-                    className="h-8 w-8 shrink-0 rounded-full p-0"
-                >
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={scrollRight}
+                        disabled={isLoading}
+                        className="h-8 w-8 shrink-0 rounded-full p-0"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
 
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={isLoading}
-                    className="h-8 w-8 shrink-0 rounded-full p-0"
-                >
-                    <RefreshCw
-                        className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-                    />
-                </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRefresh}
+                        disabled={isLoading}
+                        className="h-8 w-8 shrink-0 rounded-full p-0"
+                    >
+                        <RefreshCw
+                            className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                        />
+                    </Button>
+                </div>
             </div>
         </div>
     );

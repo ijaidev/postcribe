@@ -331,7 +331,7 @@ export function CreateDraft({
 
     return (
         <div className="bg-background min-h-screen">
-            <div className="container mx-auto max-w-4xl py-8">
+            <div className="mx-auto max-w-4xl py-8">
                 {/* Main Chat Interface */}
                 <div className="space-y-6">
                     {/* Input */}
@@ -401,6 +401,7 @@ export function CreateDraft({
 
                             {/* Textarea */}
                             <Textarea
+                                name="prompt_input"
                                 ref={textareaRef}
                                 placeholder="What's on your mind?"
                                 value={prompt}
@@ -419,7 +420,7 @@ export function CreateDraft({
                                 onDragLeave={handleDragLeave}
                                 onDragOver={handleDragOver}
                                 onDrop={handleDrop}
-                                className="placeholder:text-muted-foreground scroll-bar-2 max-h-30 min-h-30 resize-none! rounded-2xl border-0 bg-transparent! p-6 text-lg leading-relaxed shadow-none focus-visible:ring-0"
+                                className="placeholder:text-muted-foreground scroll-bar-2 max-h-30 min-h-30 resize-none! rounded-2xl border-0 bg-transparent! p-6 text-sm leading-relaxed shadow-none focus-visible:ring-0 md:text-lg"
                             />
 
                             {/* Bottom actions */}
@@ -522,7 +523,7 @@ export function CreateDraft({
                     </div>
 
                     {/* Platform & Settings Section */}
-                    <div className="flex flex-row items-center gap-4 p-2">
+                    <div className="flex flex-col gap-4 p-2 lg:flex-row">
                         <Select
                             onValueChange={value => {
                                 setSelectedPlatforms(prev => ({
@@ -532,7 +533,7 @@ export function CreateDraft({
                             }}
                             value={selectedPlatforms.x.accountId ?? ""}
                         >
-                            <SelectTrigger className="w-[180px] items-center">
+                            <SelectTrigger className="h-8! w-[180px] items-center text-xs md:h-10! md:text-sm">
                                 <SelectValue
                                     placeholder={
                                         <span className="flex items-center gap-2">
@@ -588,59 +589,76 @@ export function CreateDraft({
                             </SelectContent>
                         </Select>
                         <div className="flex-1"></div>
-                        <div className="flex flex-row items-center gap-2">
-                            <Checkbox
-                                id="x/twitter"
-                                checked={selectedPlatforms.x.selected}
-                                onCheckedChange={checked => {
-                                    setSelectedPlatforms(prev => ({
-                                        ...prev,
-                                        x: {
-                                            ...prev.x,
-                                            selected:
-                                                checked === "indeterminate"
-                                                    ? false
-                                                    : checked,
-                                        },
-                                    }));
-                                }}
-                            />
-                            <Label htmlFor="x/twitter">X (Twitter)</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Checkbox
-                                id="linkedin"
-                                checked={selectedPlatforms.linkedin.selected}
-                                onCheckedChange={checked => {
-                                    setSelectedPlatforms(prev => ({
-                                        ...prev,
-                                        linkedin: {
-                                            ...prev.linkedin,
-                                            selected:
-                                                checked === "indeterminate"
-                                                    ? false
-                                                    : checked,
-                                        },
-                                    }));
-                                }}
-                            />
-                            <Label htmlFor="linkedin">LinkedIn</Label>
-                        </div>
-                        <div className="flex items-center gap-2 pl-4">
-                            <Switch
-                                id="generateImage"
-                                checked={generateImage}
-                                onCheckedChange={setGenerateImage}
-                            />
-                            <Label htmlFor="generateImage">
-                                Generate images
-                            </Label>
+                        <div className="flex gap-2 text-xs">
+                            <div className="flex flex-row items-center gap-2">
+                                <Checkbox
+                                    id="x/twitter"
+                                    checked={selectedPlatforms.x.selected}
+                                    onCheckedChange={checked => {
+                                        setSelectedPlatforms(prev => ({
+                                            ...prev,
+                                            x: {
+                                                ...prev.x,
+                                                selected:
+                                                    checked === "indeterminate"
+                                                        ? false
+                                                        : checked,
+                                            },
+                                        }));
+                                    }}
+                                />
+                                <Label
+                                    className="text-xs text-nowrap md:text-sm"
+                                    htmlFor="x/twitter"
+                                >
+                                    X (Twitter)
+                                </Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id="linkedin"
+                                    checked={
+                                        selectedPlatforms.linkedin.selected
+                                    }
+                                    onCheckedChange={checked => {
+                                        setSelectedPlatforms(prev => ({
+                                            ...prev,
+                                            linkedin: {
+                                                ...prev.linkedin,
+                                                selected:
+                                                    checked === "indeterminate"
+                                                        ? false
+                                                        : checked,
+                                            },
+                                        }));
+                                    }}
+                                />
+                                <Label
+                                    className="text-xs text-nowrap md:text-sm"
+                                    htmlFor="linkedin"
+                                >
+                                    LinkedIn
+                                </Label>
+                            </div>
+                            <div className="flex items-center gap-2 pl-4">
+                                <Switch
+                                    id="generateImage"
+                                    checked={generateImage}
+                                    onCheckedChange={setGenerateImage}
+                                />
+                                <Label
+                                    className="text-xs text-nowrap md:text-sm"
+                                    htmlFor="generateImage"
+                                >
+                                    Generate images
+                                </Label>
+                            </div>
                         </div>
                     </div>
 
                     {/* AI Suggestions with Tabs */}
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 overflow-hidden">
                         <div className="flex items-center gap-2 px-1">
                             <Sparkles className="text-primary h-4 w-4" />
                             <span className="text-muted-foreground text-sm font-medium">
