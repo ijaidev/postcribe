@@ -18,7 +18,7 @@ export const OptionsSection = memo(function OptionsSection({
     if (!isVisible || options.length === 0) return null;
 
     return (
-        <div className="mt-6 w-full space-y-3">
+        <div className="mx-auto mt-6 w-full max-w-4xl space-y-3">
             <div className="text-muted-foreground text-sm font-medium">
                 Suggestions for improvement:
             </div>

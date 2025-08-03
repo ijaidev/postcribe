@@ -5,7 +5,6 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PostCard } from "./post-card";
 import { ImageCard } from "./image-card";
-import { OptionsSection } from "./options-section";
 import { DraftState } from "./types";
 import { type PostGenStreamResponse } from "@repo/ai";
 import client from "@/lib/hono-client";
@@ -36,9 +35,7 @@ interface DraftContentProps {
     draftId: string;
     currentEvent: PostGenStreamResponse["event"] | null;
     isImageLoading: boolean;
-    options: string[];
     onCreateImage: (platformKey: "x" | "linkedin") => void;
-    onSuggestionClick: (suggestion: string) => void;
     isCreating: boolean;
 }
 
@@ -49,9 +46,7 @@ export const DraftContent = memo(function DraftContent({
     draftId,
     currentEvent,
     isImageLoading,
-    options,
     onCreateImage,
-    onSuggestionClick,
     isCreating,
 }: DraftContentProps) {
     // Add local state for dialog
@@ -238,7 +233,6 @@ export const DraftContent = memo(function DraftContent({
                             <TabsTrigger
                                 value="post"
                                 className="flex items-center gap-2"
-                                // disabled={platform !== "LINKEDIN" && platform !== "ALL"}
                             >
                                 <TextIcon />
                                 Post
@@ -246,7 +240,6 @@ export const DraftContent = memo(function DraftContent({
                             <TabsTrigger
                                 value="image"
                                 className="hover:bg-background flex items-center gap-2 p-3 hover:cursor-pointer"
-                                // disabled={platform !== "X" && platform !== "ALL"}
                             >
                                 <ImageIcon className="text-foreground" />
                                 Image
@@ -292,11 +285,6 @@ export const DraftContent = memo(function DraftContent({
                         </TabsContent>
                     </Tabs>
                 )}
-                <OptionsSection
-                    options={options}
-                    isVisible={!currentEvent}
-                    onSuggestionClick={onSuggestionClick}
-                />
             </div>
 
             {/* Confirmation AlertDialog for apply version */}

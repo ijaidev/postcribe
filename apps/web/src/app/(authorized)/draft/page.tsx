@@ -17,6 +17,7 @@ import { type PostGenStreamResponse, type Post } from "@repo/ai";
 import { Allow, parse } from "partial-json";
 import { DraftState } from "@/components/pages/draft/types";
 import { useUser } from "@/components/providers/user-provider";
+import { OptionsSection } from "@/components/pages/draft/options-section";
 
 interface StreamData extends PostGenStreamResponse {
     platform: "X" | "LINKEDIN";
@@ -555,9 +556,7 @@ const Page = () => {
                             draftId={draftId}
                             currentEvent={currentEvent.x}
                             isImageLoading={isImageLoading.x}
-                            options={options.x}
                             onCreateImage={handleCreateImage}
-                            onSuggestionClick={setPrompt}
                             isCreating={createPostMutation.isPending}
                         />
                     </TabsContent>
@@ -570,9 +569,7 @@ const Page = () => {
                             draftId={draftId}
                             currentEvent={currentEvent.linkedin}
                             isImageLoading={isImageLoading.linkedin}
-                            options={options.linkedin}
                             onCreateImage={handleCreateImage}
-                            onSuggestionClick={setPrompt}
                             isCreating={createPostMutation.isPending}
                         />
                     </TabsContent>
@@ -580,6 +577,12 @@ const Page = () => {
             </div>
 
             {/* Draft Input */}
+
+            <OptionsSection
+                options={options[activeTab]}
+                isVisible={!currentEvent[activeTab]}
+                onSuggestionClick={setPrompt}
+            />
             <DraftInput
                 draftId={draftId}
                 onSendPost={data =>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect, memo, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
     Globe,
     Text,
     Image as ImageIcon,
+    WandSparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,6 +27,7 @@ import {
     TooltipContent,
     TooltipProvider,
 } from "@/components/ui/tooltip";
+import { motion } from "motion/react";
 import Image from "next/image";
 import client from "@/lib/hono-client";
 import { InferRequestType } from "hono";
@@ -72,9 +74,16 @@ export const DraftInput = memo(function DraftInput({
         "all" | "x" | "linkedin"
     >("all");
     const [applyOn, setApplyOn] = useState<"post" | "image">("post");
+    const [isTextareaFocused, setIsTextareaFocused] = useState(false);
+    const [isButtonOverTextarea, setIsButtonOverTextarea] = useState(false);
+    const isButtonVisible = useMemo(() => {
+        return !isTextareaFocused && !prompt.trim() && !isButtonOverTextarea;
+    }, [isTextareaFocused, prompt, isButtonOverTextarea]);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setPlatformToEdit(activeTab);
@@ -271,6 +280,72 @@ export const DraftInput = memo(function DraftInput({
         }
     };
 
+    const handleMagicPencilClick = () => {
+        containerRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+        });
+        setTimeout(() => {
+            textareaRef.current?.focus();
+        }, 300);
+    };
+
+    useEffect(() => {
+        function checkOverlap() {
+            const button = buttonRef.current;
+            const container = containerRef.current;
+            if (!(button && container)) return;
+
+            const rect1 = button.getBoundingClientRect();
+            const rect2 = container.getBoundingClientRect();
+
+            const isOverlapping = !(
+                rect1.right < rect2.left ||
+                rect1.left > rect2.right ||
+                rect1.bottom < rect2.top ||
+                rect1.top > rect2.bottom
+            );
+
+            setIsButtonOverTextarea(isOverlapping);
+        }
+
+        checkOverlap(); // Initial check
+        window.addEventListener("scroll", checkOverlap, true);
+        window.addEventListener("resize", checkOverlap, true);
+
+        return () => {
+            window.removeEventListener("scroll", checkOverlap, true);
+            window.removeEventListener("resize", checkOverlap, true);
+        };
+    }, []);
+
+    // Mobile keyboard viewport handling
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const handleViewportChange = () => {
+            // Ensure textarea is visible when keyboard appears
+            if (isTextareaFocused && containerRef.current) {
+                setTimeout(() => {
+                    containerRef.current?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "end",
+                    });
+                }, 100);
+            }
+        };
+
+        // Listen for viewport changes (keyboard appearance)
+        window.visualViewport?.addEventListener("resize", handleViewportChange);
+
+        return () => {
+            window.visualViewport?.removeEventListener(
+                "resize",
+                handleViewportChange,
+            );
+        };
+    }, [isTextareaFocused]);
+
     // Cleanup URLs on unmount
     useEffect(() => {
         return () => {
@@ -278,17 +353,10 @@ export const DraftInput = memo(function DraftInput({
         };
     }, [images]);
 
-    // Focus textarea on mount
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.focus();
-        }
-    }, []);
-
     return (
-        <div className="sticky right-0 bottom-0 left-0 z-10 -mb-6 py-2 lg:px-36">
+        <div ref={containerRef} className="py-2">
             <Card
-                className={`relative gap-1 rounded-2xl border p-2 shadow-lg transition-all duration-300 ${
+                className={`relative mx-auto max-w-4xl gap-1 rounded-2xl border p-2 shadow-lg transition-all duration-300 ${
                     isDragging
                         ? "border-primary ring-primary/20 scale-[1.02] shadow-2xl ring-2"
                         : "border-border hover:shadow-xl"
@@ -385,6 +453,8 @@ export const DraftInput = memo(function DraftInput({
                             handleSendMessage();
                         }
                     }}
+                    onFocus={() => setIsTextareaFocused(true)}
+                    onBlur={() => setIsTextareaFocused(false)}
                     onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
                     onDragOver={handleDragOver}
@@ -517,6 +587,27 @@ export const DraftInput = memo(function DraftInput({
                     </div>
                 )}
             </Card>
+            <motion.div
+                animate={{
+                    scale: isButtonVisible ? 1 : 0,
+                    opacity: isButtonVisible ? 1 : 0,
+                }}
+                transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 25,
+                }}
+                className="fixed right-6 bottom-6 z-50"
+            >
+                <Button
+                    ref={buttonRef}
+                    onClick={handleMagicPencilClick}
+                    size="sm"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 w-12 rounded-full shadow-lg hover:shadow-xl"
+                >
+                    <WandSparkles className="h-5 w-5" />
+                </Button>
+            </motion.div>
         </div>
     );
 });
