@@ -151,7 +151,7 @@ export default function Suggestions({
             <div className="relative flex flex-col items-center gap-3 overflow-hidden">
                 <div
                     ref={scrollContainerRef}
-                    className="flex w-full max-w-[70vw] gap-2 overflow-x-auto px-2 sm:gap-3 sm:px-0"
+                    className="flex w-full gap-2 overflow-x-scroll px-2 sm:gap-3 sm:px-0"
                     style={{
                         scrollbarWidth: "none",
                         msOverflowStyle: "none",

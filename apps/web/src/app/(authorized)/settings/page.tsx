@@ -286,7 +286,7 @@ export default function SettingsPage() {
 
     return (
         <div className="from-background via-background to-muted/20 min-h-screen bg-gradient-to-br">
-            <div className="container mx-auto max-w-4xl px-4 py-6">
+            <div className="container mx-auto max-w-4xl py-6">
                 <div className="space-y-6">
                     {/* Header */}
                     <div className="space-y-3 text-center">

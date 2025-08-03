@@ -518,7 +518,7 @@ const Page = () => {
 
     return (
         <div className="bg-background min-h-screen">
-            <div className="container mx-auto max-w-4xl space-y-6 py-8 pb-32">
+            <div className="container mx-auto max-w-4xl space-y-6 py-2 pb-32 md:py-8">
                 {/* Platform Tabs */}
                 <div className="space-y-3"></div>
                 <Tabs

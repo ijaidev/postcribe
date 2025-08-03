@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { PostData } from "./types";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface PostCardProps {
     platformKey: "x" | "linkedin";
@@ -85,7 +86,7 @@ export const PostCard = memo(function PostCard({
     };
 
     return (
-        <div className="w-full lg:w-1/2">
+        <div className="w-full md:w-1/2">
             {/* Post Header */}
             <Card className="mb-2 py-2">
                 <CardHeader className="flex w-full items-center">

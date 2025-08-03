@@ -430,7 +430,7 @@ export default function EditAutomationPage() {
                 {/* Header */}
                 <div className="mb-6 flex items-center gap-4">
                     <div>
-                        <H1>Create Automation</H1>
+                        <H1>Edit Automation</H1>
                         <p className="text-muted-foreground">
                             Set up automated social media posts that run on a
                             schedule
@@ -453,7 +453,7 @@ export default function EditAutomationPage() {
                         <CardContent>
                             <Input
                                 placeholder="e.g., Weekly Tech Updates"
-                                className="text-lg"
+                                className="text-md"
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
                             />
@@ -548,7 +548,7 @@ export default function EditAutomationPage() {
                                     onDragLeave={handleDragLeave}
                                     onDragOver={handleDragOver}
                                     onDrop={handleDrop}
-                                    className="placeholder:text-muted-foreground scroll-bar-2 max-h-30 min-h-30 resize-none! rounded-2xl border-0 bg-transparent! p-6 text-lg leading-relaxed shadow-none focus-visible:ring-0"
+                                    className="placeholder:text-muted-foreground scroll-bar-2 text-md max-h-30 min-h-30 resize-none! rounded-2xl border-0 bg-transparent! p-6 leading-relaxed shadow-none focus-visible:ring-0 md:text-lg"
                                 />
 
                                 {/* Bottom actions */}
@@ -633,119 +633,131 @@ export default function EditAutomationPage() {
                         </div>
 
                         {/* Platform & Settings Section */}
-                        <div className="flex flex-row items-center gap-4 p-2">
-                            <div className="flex flex-row items-center gap-2">
-                                <Checkbox
-                                    id="x/twitter"
-                                    checked={selectedPlatforms.x.selected}
-                                    onCheckedChange={checked => {
-                                        setSelectedPlatforms(prev => ({
-                                            ...prev,
-                                            x: {
-                                                ...prev.x,
-                                                selected:
-                                                    checked === "indeterminate"
-                                                        ? false
-                                                        : checked,
-                                            },
-                                        }));
-                                    }}
-                                />
-                                <Label htmlFor="x/twitter">X (Twitter)</Label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Checkbox
-                                    id="linkedin"
-                                    checked={
-                                        selectedPlatforms.linkedin.selected
-                                    }
-                                    onCheckedChange={checked => {
-                                        setSelectedPlatforms(prev => ({
-                                            ...prev,
-                                            linkedin: {
-                                                ...prev.linkedin,
-                                                selected:
-                                                    checked === "indeterminate"
-                                                        ? false
-                                                        : checked,
-                                            },
-                                        }));
-                                    }}
-                                />
-                                <Label htmlFor="linkedin">LinkedIn</Label>
-                            </div>
-                            <div className="flex items-center gap-2 pl-4">
-                                <div className="flex items-center gap-2">
-                                    <Switch
-                                        id="generateImage"
-                                        checked={generateImage}
-                                        onCheckedChange={setGenerateImage}
+                        <div className="flex flex-col items-center gap-6 p-2 md:flex-row">
+                            <div className="flex w-full flex-row flex-wrap items-center justify-start gap-3 md:flex-nowrap">
+                                <div className="flex flex-row items-center gap-2">
+                                    <Checkbox
+                                        id="x/twitter"
+                                        checked={selectedPlatforms.x.selected}
+                                        onCheckedChange={checked => {
+                                            setSelectedPlatforms(prev => ({
+                                                ...prev,
+                                                x: {
+                                                    ...prev.x,
+                                                    selected:
+                                                        checked ===
+                                                        "indeterminate"
+                                                            ? false
+                                                            : checked,
+                                                },
+                                            }));
+                                        }}
                                     />
-                                    <Label htmlFor="generateImage">
-                                        Generate images
+                                    <Label htmlFor="x/twitter">
+                                        X (Twitter)
                                     </Label>
                                 </div>
-                            </div>
-                            <div className="flex-1"></div>
-                            <Dialog
-                                open={showImageInstructionsDialog}
-                                onOpenChange={setShowImageInstructionsDialog}
-                            >
-                                <DialogTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex items-center justify-center gap-2"
-                                    >
-                                        <Settings className="h-4 w-4" />
-                                        <span className="mb-0.5">
-                                            Image Instructions
-                                        </span>
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[500px]">
-                                    <DialogHeader>
-                                        <DialogTitle>
-                                            Custom Image Instructions
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            Provide custom instructions for
-                                            image generation (optional)
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <Textarea
-                                            placeholder="Provide custom instructions for image, like styling, theme, etc. For example: 'Create images with a modern, minimalist style using blue and white colors, with clean typography and professional layout'"
-                                            value={imagePrompt}
-                                            onChange={e =>
-                                                setImagePrompt(e.target.value)
-                                            }
-                                            className="min-h-[120px]"
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="linkedin"
+                                        checked={
+                                            selectedPlatforms.linkedin.selected
+                                        }
+                                        onCheckedChange={checked => {
+                                            setSelectedPlatforms(prev => ({
+                                                ...prev,
+                                                linkedin: {
+                                                    ...prev.linkedin,
+                                                    selected:
+                                                        checked ===
+                                                        "indeterminate"
+                                                            ? false
+                                                            : checked,
+                                                },
+                                            }));
+                                        }}
+                                    />
+                                    <Label htmlFor="linkedin">LinkedIn</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                            id="generateImage"
+                                            checked={generateImage}
+                                            onCheckedChange={setGenerateImage}
                                         />
+                                        <Label htmlFor="generateImage">
+                                            Generate images
+                                        </Label>
                                     </div>
-                                    <DialogFooter>
+                                </div>
+                            </div>
+
+                            <div className="flex w-full items-center justify-end md:w-fit">
+                                <Dialog
+                                    open={showImageInstructionsDialog}
+                                    onOpenChange={
+                                        setShowImageInstructionsDialog
+                                    }
+                                >
+                                    <DialogTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            onClick={() =>
-                                                setShowImageInstructionsDialog(
-                                                    false,
-                                                )
-                                            }
+                                            size="sm"
+                                            className="flex items-center justify-center gap-2"
                                         >
-                                            Cancel
+                                            <Settings className="h-4 w-4" />
+                                            <span className="mb-0.5">
+                                                Image Instructions
+                                            </span>
                                         </Button>
-                                        <Button
-                                            onClick={() =>
-                                                setShowImageInstructionsDialog(
-                                                    false,
-                                                )
-                                            }
-                                        >
-                                            Save Instructions
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[500px]">
+                                        <DialogHeader>
+                                            <DialogTitle>
+                                                Custom Image Instructions
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                Provide custom instructions for
+                                                image generation (optional)
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-4">
+                                            <Textarea
+                                                placeholder="Provide custom instructions for image, like styling, theme, etc. For example: 'Create images with a modern, minimalist style using blue and white colors, with clean typography and professional layout'"
+                                                value={imagePrompt}
+                                                onChange={e =>
+                                                    setImagePrompt(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="min-h-[120px]"
+                                            />
+                                        </div>
+                                        <DialogFooter>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setShowImageInstructionsDialog(
+                                                        false,
+                                                    )
+                                                }
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                onClick={() =>
+                                                    setShowImageInstructionsDialog(
+                                                        false,
+                                                    )
+                                                }
+                                            >
+                                                Save Instructions
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         </div>
                     </div>
 

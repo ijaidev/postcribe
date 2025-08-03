@@ -19,6 +19,10 @@ import {
     AlertDialogAction,
     AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ImageIcon, TextIcon } from "lucide-react";
 
 interface DraftContentProps {
     platformKey: "x" | "linkedin";
@@ -185,45 +189,109 @@ export const DraftContent = memo(function DraftContent({
     const currentPost = draftState.posts[draftState.currentPostVersion];
     const currentImage = draftState.images[draftState.currentImageVersion];
 
+    const isMobile = useIsMobile();
+
     return (
         <>
             <div className="flex flex-col items-center">
-                <div className="flex w-full flex-col gap-4 lg:flex-row">
-                    <PostCard
-                        platformKey={platformKey}
-                        currentPost={currentPost}
-                        currentVersion={draftState.currentPostVersion}
-                        totalPosts={draftState.posts.length}
-                        isLoading={isCreating}
-                        currentEvent={currentEvent}
-                        canUndo={canUndo("post")}
-                        canRedo={canRedo("post")}
-                        canApply={canApply("post")}
-                        onUndo={handlePostUndo}
-                        onRedo={handlePostRedo}
-                        onApply={handlePostApply}
-                        isApplying={applyVersionMutation.isPending}
-                    />
+                {!isMobile ? (
+                    <div
+                        className={cn("flex w-full flex-col gap-4 md:flex-row")}
+                    >
+                        <PostCard
+                            platformKey={platformKey}
+                            currentPost={currentPost}
+                            currentVersion={draftState.currentPostVersion}
+                            totalPosts={draftState.posts.length}
+                            isLoading={isCreating}
+                            currentEvent={currentEvent}
+                            canUndo={canUndo("post")}
+                            canRedo={canRedo("post")}
+                            canApply={canApply("post")}
+                            onUndo={handlePostUndo}
+                            onRedo={handlePostRedo}
+                            onApply={handlePostApply}
+                            isApplying={applyVersionMutation.isPending}
+                        />
 
-                    <ImageCard
-                        platformKey={platformKey}
-                        currentImage={currentImage}
-                        currentVersion={draftState.currentImageVersion}
-                        totalImages={draftState.images.length}
-                        isLoading={isImageLoading}
-                        canUndo={canUndo("image")}
-                        canRedo={canRedo("image")}
-                        canApply={canApply("image")}
-                        onUndo={handleImageUndo}
-                        onRedo={handleImageRedo}
-                        onApply={handleImageApply}
-                        onCreateImage={handleCreateImage}
-                        isApplying={applyVersionMutation.isPending}
-                        hasPost={draftState.posts.length > 0}
-                        isPostLoading={isCreating}
-                    />
-                </div>
+                        <ImageCard
+                            platformKey={platformKey}
+                            currentImage={currentImage}
+                            currentVersion={draftState.currentImageVersion}
+                            totalImages={draftState.images.length}
+                            isLoading={isImageLoading}
+                            canUndo={canUndo("image")}
+                            canRedo={canRedo("image")}
+                            canApply={canApply("image")}
+                            onUndo={handleImageUndo}
+                            onRedo={handleImageRedo}
+                            onApply={handleImageApply}
+                            onCreateImage={handleCreateImage}
+                            isApplying={applyVersionMutation.isPending}
+                            hasPost={draftState.posts.length > 0}
+                            isPostLoading={isCreating}
+                        />
+                    </div>
+                ) : (
+                    <Tabs className="w-full gap-4" defaultValue="post">
+                        <TabsList className="grid w-full grid-cols-2 bg-transparent">
+                            <TabsTrigger
+                                value="post"
+                                className="flex items-center gap-2"
+                                // disabled={platform !== "LINKEDIN" && platform !== "ALL"}
+                            >
+                                <TextIcon />
+                                Post
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="image"
+                                className="hover:bg-background flex items-center gap-2 p-3 hover:cursor-pointer"
+                                // disabled={platform !== "X" && platform !== "ALL"}
+                            >
+                                <ImageIcon className="text-foreground" />
+                                Image
+                            </TabsTrigger>
+                        </TabsList>
 
+                        <TabsContent value="image" className="mt-4 space-y-4">
+                            <ImageCard
+                                platformKey={platformKey}
+                                currentImage={currentImage}
+                                currentVersion={draftState.currentImageVersion}
+                                totalImages={draftState.images.length}
+                                isLoading={isImageLoading}
+                                canUndo={canUndo("image")}
+                                canRedo={canRedo("image")}
+                                canApply={canApply("image")}
+                                onUndo={handleImageUndo}
+                                onRedo={handleImageRedo}
+                                onApply={handleImageApply}
+                                onCreateImage={handleCreateImage}
+                                isApplying={applyVersionMutation.isPending}
+                                hasPost={draftState.posts.length > 0}
+                                isPostLoading={isCreating}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="post" className="mt-4 space-y-4">
+                            <PostCard
+                                platformKey={platformKey}
+                                currentPost={currentPost}
+                                currentVersion={draftState.currentPostVersion}
+                                totalPosts={draftState.posts.length}
+                                isLoading={isCreating}
+                                currentEvent={currentEvent}
+                                canUndo={canUndo("post")}
+                                canRedo={canRedo("post")}
+                                canApply={canApply("post")}
+                                onUndo={handlePostUndo}
+                                onRedo={handlePostRedo}
+                                onApply={handlePostApply}
+                                isApplying={applyVersionMutation.isPending}
+                            />
+                        </TabsContent>
+                    </Tabs>
+                )}
                 <OptionsSection
                     options={options}
                     isVisible={!currentEvent}

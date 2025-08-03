@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { TextShimmer } from "@/components/ui/text-shimmer";
-import Image from "next/image";
 import { ImageData } from "./types";
 import { ThreeDotSpinningLoader } from "@/components/ui/loaders";
 import { toast } from "sonner";
@@ -94,7 +93,7 @@ export const ImageCard = memo(function ImageCard({
     }
 
     return (
-        <div className="w-full lg:w-1/2">
+        <div className="w-full md:w-1/2">
             {/* Image Header */}
             <Card className="mb-2 py-2">
                 <CardHeader className="flex w-full items-center">
@@ -158,9 +157,9 @@ export const ImageCard = memo(function ImageCard({
 
             {/* Image Content */}
             <Card>
-                <div className="relative flex items-center justify-center">
+                <div className="relative flex h-96 w-full items-center justify-center bg-transparent! p-1">
                     {!currentImage && !isLoading ? (
-                        <div className="flex h-96 w-96 flex-col items-center justify-center gap-10">
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-10">
                             {hasPost ? (
                                 <Button
                                     variant="outline"
@@ -180,27 +179,26 @@ export const ImageCard = memo(function ImageCard({
                             )}
                         </div>
                     ) : (
-                        <div className="group relative flex h-96 w-96 items-center justify-center">
+                        <div className="group relative flex h-full w-full max-w-96 items-center justify-center">
                             {(isLoading || !isImageLoaded) && (
-                                <Skeleton className="absolute inset-0 z-10 mx-auto h-full w-96 rounded-lg" />
+                                <Skeleton className="absolute inset-0 z-10 mx-auto h-full w-full rounded-lg" />
                             )}
                             {isLoading && (
-                                <div className="bg-card/90 absolute inset-0 z-10 mx-auto flex h-full w-96 items-center justify-center">
+                                <div className="bg-card/90 absolute inset-0 z-10 mx-auto flex h-full w-full items-center justify-center">
                                     <ThreeDotSpinningLoader />
                                 </div>
                             )}
                             {currentImage && (
-                                <Image
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
                                     src={currentImage.imageUrl}
+                                    key={currentImage.imageUrl}
                                     alt="Generated image"
-                                    fill
                                     className={cn(
-                                        "verflow-hidden mx-auto h-full rounded-lg object-contain transition-opacity duration-300",
-                                        !isImageLoaded && "opacity-0",
+                                        "mx-auto h-full rounded-lg object-contain transition-opacity duration-300",
+                                        !isImageLoaded && "opacity-10",
                                     )}
-                                    onLoadingComplete={() =>
-                                        setIsImageLoaded(true)
-                                    }
+                                    onLoad={() => setIsImageLoaded(true)}
                                 />
                             )}
                         </div>

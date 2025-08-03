@@ -2,17 +2,17 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
-    LayoutDashboard,
     PenTool,
     Calendar,
-    BarChart3,
     Plus,
     LogOut,
     Sparkles,
     FileText,
     Link as LinkIcon,
+    Zap,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { ThreeDotLoader } from "@/components/ui/loaders";
 import { H6 } from "@/components/ui/headings";
 import DraftsSidebarContainer from "./drafts";
+import { AnimatePresence, motion } from "framer-motion";
 
 // Navigation items
 const navigationItems = [
@@ -55,6 +56,11 @@ const navigationItems = [
         title: "Connections",
         url: "/connections",
         icon: LinkIcon,
+    },
+    {
+        title: "Create Automation",
+        url: "/automations/create",
+        icon: Zap,
     },
 ];
 
@@ -156,19 +162,17 @@ function QuickActions() {
                 )}
             >
                 <Plus className="-ml-5 size-5!" />
-                <span className="mb-1">Create Post</span>
+                <span>Create Post</span>
             </Link>
         </SidebarMenuButton>
     );
 }
 
-export function AppSidebar({
-    className,
-    ...props
-}: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
     const { refreshUser } = useUser();
     const { state } = useSidebar();
+    const router = useRouter();
     const handleSignOut = async () => {
         await authClient.signOut();
         await refreshUser();
@@ -177,18 +181,53 @@ export function AppSidebar({
     return (
         <Sidebar variant="inset" collapsible="icon" {...props}>
             {/* Header */}
-            <SidebarHeader className="border-sidebar-border border-b">
-                <div className="flex items-center gap-2 py-2">
-                    <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
-                        <Sparkles className="size-4" />
-                    </div>
-                    <div className="group-data-[collapsible=icon]:hidden">
-                        <H6 className="text-foreground font-bold">PostCribe</H6>
-                        <p className="text-muted-foreground text-xs">
-                            AI Social Media
-                        </p>
-                    </div>
-                </div>
+            <SidebarHeader className="border-sidebar-border relative flex h-14 items-center justify-center border-b pt-8 pb-6 md:py-2">
+                <AnimatePresence mode="popLayout">
+                    {state === "expanded" && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, x: -100 }}
+                            transition={{ duration: 0.5 }}
+                            onClick={() => {
+                                router.push("/draft");
+                            }}
+                            className="-ml-8 cursor-pointer"
+                        >
+                            <Image
+                                src="/postcribe-logo.png"
+                                alt="Postcribe"
+                                className="dark:invert"
+                                width={70}
+                                height={70}
+                                priority
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                <AnimatePresence mode="popLayout">
+                    {state === "collapsed" && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, x: -100 }}
+                            transition={{ duration: 0.5 }}
+                            onClick={() => {
+                                router.push("/draft");
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <Image
+                                src="/postcribe-logo-small.png"
+                                alt="Postcribe"
+                                className="dark:invert"
+                                width={35}
+                                height={35}
+                                priority
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </SidebarHeader>
 
             {/* Content */}

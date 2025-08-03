@@ -165,7 +165,7 @@ export default function AutomationsPage() {
         <div className="bg-background min-h-screen">
             <div className="container mx-auto max-w-4xl py-8">
                 {/* Header */}
-                <div className="mb-8 flex items-center justify-between gap-4">
+                <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <H1>Automations</H1>
                         <p className="text-muted-foreground mt-1 text-base">

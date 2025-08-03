@@ -286,7 +286,7 @@ export const DraftInput = memo(function DraftInput({
     }, []);
 
     return (
-        <div className="sticky right-0 bottom-0 left-0 -m-6 p-4 px-4 lg:px-36">
+        <div className="sticky right-0 bottom-0 left-0 z-10 -mb-6 py-2 lg:px-36">
             <Card
                 className={`relative gap-1 rounded-2xl border p-2 shadow-lg transition-all duration-300 ${
                     isDragging
@@ -389,7 +389,7 @@ export const DraftInput = memo(function DraftInput({
                     onDragLeave={handleDragLeave}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
-                    className="placeholder:text-muted-foreground scroll-bar-2 max-h-20 min-h-20 resize-none! rounded-2xl border-0 bg-transparent! p-2 text-lg leading-relaxed shadow-none focus-visible:ring-0"
+                    className="placeholder:text-muted-foreground scroll-bar-2 text-md max-h-20 min-h-20 resize-none! rounded-2xl border-0 bg-transparent! p-2 leading-relaxed shadow-none focus-visible:ring-0 lg:text-lg"
                 />
 
                 {/* Bottom actions */}

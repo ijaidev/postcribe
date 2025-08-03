@@ -36,7 +36,7 @@ export default function TimezoneSelect({
                     role="combobox"
                     aria-expanded={open}
                     className={cn(
-                        "bg-background/50 focus:bg-background h-12 justify-between border-2 text-left text-base font-normal transition-all duration-200",
+                        "bg-background/50 focus:bg-background h-12 justify-between truncate border-2 text-left text-base font-normal transition-all duration-200",
                         className,
                     )}
                 >
@@ -52,7 +52,10 @@ export default function TimezoneSelect({
                     <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="max-h-96 w-[400px] p-0" align="start">
+            <PopoverContent
+                className="max-h-96 w-[350px] p-0 md:w-[400px]"
+                align="start"
+            >
                 <Command className="[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input]]:text-base">
                     <CommandInput placeholder="Search timezone..." />
                     <CommandSeparator className="bg-accent" />

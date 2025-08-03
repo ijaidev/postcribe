@@ -112,7 +112,7 @@ const checkEmailRateLimit = async (
     }
 };
 
-const auth: ReturnType<typeof betterAuth> = betterAuth({
+const auth = betterAuth({
     basePath: "/auth",
     rateLimit: {
         enabled: true,
