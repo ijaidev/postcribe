@@ -85,7 +85,7 @@ const scheduleDraftController = factory.createHandlers(
                 }),
                 201,
             );
-        } catch (error: any) {
+        } catch (error) {
             if (error instanceof HTTPException) {
                 throw error;
             }

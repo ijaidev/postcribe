@@ -11,6 +11,7 @@ import {
 import { streamText } from "hono/streaming";
 import type { Draft, Platform, SocialLogin } from "@prisma/client";
 import { getZodErrorMessage } from "../../utils/zod-error-message";
+import { logger } from "@repo/logger";
 
 const bodySchema = z.object({
     id: z.string().optional(),
@@ -47,7 +48,7 @@ const postGenController = factory.createHandlers(
     bodySchemaValidator,
     async c => {
         const user = c.get("user")!;
-        let { id, message, forceWeb, platform, images, xLoginId } =
+        const { id, message, forceWeb, platform, images, xLoginId } =
             c.req.valid("json");
 
         // Images are already validated base64 strings from Zod schema
@@ -119,7 +120,7 @@ const postGenController = factory.createHandlers(
             }
         }
 
-        let options: PostGenOptions = {
+        const options: PostGenOptions = {
             draftId: draft.id,
             message,
             forceWeb,
@@ -141,7 +142,7 @@ const postGenController = factory.createHandlers(
                         (async () => {
                             await stream.write(
                                 JSON.stringify({
-                                    draftId: draft.id,
+                                    draftId: draft!.id,
                                     platform: "LINKEDIN",
                                     event: "start",
                                     content: "",
@@ -150,7 +151,7 @@ const postGenController = factory.createHandlers(
                             for await (const chunk of linkedinPostGenResult.stream()) {
                                 await stream.write(
                                     JSON.stringify({
-                                        draftId: draft.id,
+                                        draftId: draft!.id,
                                         platform: "LINKEDIN",
                                         ...chunk,
                                     } as PostGenStreamResponseWithPlatform) +
@@ -159,7 +160,7 @@ const postGenController = factory.createHandlers(
                             }
                             await stream.write(
                                 JSON.stringify({
-                                    draftId: draft.id,
+                                    draftId: draft!.id,
                                     platform: "LINKEDIN",
                                     event: "end",
                                     content: "",
@@ -170,7 +171,7 @@ const postGenController = factory.createHandlers(
                         (async () => {
                             await stream.write(
                                 JSON.stringify({
-                                    draftId: draft.id,
+                                    draftId: draft!.id,
                                     platform: "X",
                                     event: "start",
                                     content: "",
@@ -179,7 +180,7 @@ const postGenController = factory.createHandlers(
                             for await (const chunk of xPostGenResult.stream()) {
                                 await stream.write(
                                     JSON.stringify({
-                                        draftId: draft.id,
+                                        draftId: draft!.id,
                                         platform: "X",
                                         ...chunk,
                                     } as PostGenStreamResponseWithPlatform) +
@@ -188,7 +189,7 @@ const postGenController = factory.createHandlers(
                             }
                             await stream.write(
                                 JSON.stringify({
-                                    draftId: draft.id,
+                                    draftId: draft!.id,
                                     platform: "X",
                                     event: "end",
                                     content: "",
@@ -210,7 +211,7 @@ const postGenController = factory.createHandlers(
             return streamText(c, async stream => {
                 await stream.write(
                     JSON.stringify({
-                        draftId: draft.id,
+                        draftId: draft!.id,
                         platform,
                         event: "start",
                         content: "",
@@ -219,7 +220,7 @@ const postGenController = factory.createHandlers(
                 for await (const chunk of postGenResult.stream()) {
                     await stream.write(
                         JSON.stringify({
-                            draftId: draft.id,
+                            draftId: draft!.id,
                             platform,
                             ...chunk,
                         } as PostGenStreamResponseWithPlatform) + "\n",
@@ -227,7 +228,7 @@ const postGenController = factory.createHandlers(
                 }
                 await stream.write(
                     JSON.stringify({
-                        draftId: draft.id,
+                        draftId: draft!.id,
                         platform,
                         event: "end",
                         content: "",
@@ -242,6 +243,7 @@ const postGenController = factory.createHandlers(
                 stream.close();
             });
         } catch (error) {
+            logger.error({ error }, "Error generating post");
             throw new HTTPException(500, {
                 message: "Failed to generate post",
             });
