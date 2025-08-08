@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { LoginChecker } from "../ui/login-checker";
 import ThemeProvider from "./theme-provider";
 import { UserProvider } from "./user-provider";
@@ -24,7 +25,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 disableTransitionOnChange
             >
                 <UserProvider>
-                    <LoginChecker />
+                    <Suspense fallback={null}>
+                        <LoginChecker />
+                    </Suspense>
                     {children}
                 </UserProvider>
             </ThemeProvider>

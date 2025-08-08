@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ThreeDotLoader } from "@/components/ui/loaders";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ResendVerificationEmail } from "@/components/ui/resend-verification-email";
 import { useUser } from "@/components/providers/user-provider";
@@ -20,7 +20,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
     const { refreshUser, user, isLoading } = useUser();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -200,5 +200,19 @@ export default function VerifyEmailPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex min-h-svh items-center justify-center p-6">
+                    <ThreeDotLoader size="lg" />
+                </div>
+            }
+        >
+            <VerifyEmailContent />
+        </Suspense>
     );
 }

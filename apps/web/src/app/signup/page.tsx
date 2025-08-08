@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ThreeDotLoader } from "@/components/ui/loaders";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +38,7 @@ const formSchema = z.object({
 
 type SignupFormData = z.infer<typeof formSchema>;
 
-export default function SignupPage() {
+function SignupPageContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const redirect = useSearchParams().get("redirect");
@@ -233,5 +233,19 @@ export default function SignupPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function SignupPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex min-h-svh items-center justify-center p-6">
+                    <ThreeDotLoader size="lg" />
+                </div>
+            }
+        >
+            <SignupPageContent />
+        </Suspense>
     );
 }

@@ -32,7 +32,7 @@ const getCronsController = factory.createHandlers(async c => {
             }),
             200,
         );
-    } catch (error: any) {
+    } catch (error) {
         logger.error({ error }, "Error getting automations");
         throw new HTTPException(500, {
             message: "Internal server error: Failed to get crons",
