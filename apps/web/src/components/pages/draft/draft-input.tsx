@@ -394,7 +394,14 @@ export const DraftInput = memo(function DraftInput({
                                 )}
 
                                 <button
-                                    onClick={() => removeImage(image.id)}
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        removeImage(image.id);
+                                    }}
+                                    onMouseDown={e => {
+                                        e.preventDefault();
+                                    }}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90 absolute -top-1 -right-1 rounded-full p-0.5 transition-opacity"
                                 >
                                     <X className="h-2 w-2" />
@@ -412,27 +419,72 @@ export const DraftInput = memo(function DraftInput({
                                 className="group after:bg-card has-[:focus-visible]:after:outline-ring/70 relative inline-grid grid-cols-[1fr_1fr_1fr] items-center gap-0 text-sm font-medium after:absolute after:inset-y-0 after:w-1/3 after:rounded-md after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline-2 data-[state=all]:after:translate-x-[200%] data-[state=linkedin]:after:translate-x-full data-[state=x]:after:translate-x-0"
                                 data-state={platformToEdit}
                             >
-                                <label className="group-data-[state=linkedin]:text-muted-foreground/70 group-data-[state=all]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-3 whitespace-nowrap transition-colors select-none">
+                                <label
+                                    className="group-data-[state=linkedin]:text-muted-foreground/70 group-data-[state=all]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-3 whitespace-nowrap transition-colors select-none"
+                                    onMouseDown={e => e.preventDefault()}
+                                    onPointerDown={e => e.preventDefault()}
+                                    onTouchStart={e => e.preventDefault()}
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handlePlatformChange("x");
+                                    }}
+                                >
                                     <XLogo size="sm" />
                                     <RadioGroupItem
                                         value="x"
                                         className="sr-only"
+                                        tabIndex={-1}
+                                        onMouseDown={e => e.preventDefault()}
+                                        onPointerDown={e => e.preventDefault()}
+                                        onTouchStart={e => e.preventDefault()}
+                                        style={{ pointerEvents: "none" }}
                                     />
                                 </label>
-                                <label className="group-data-[state=x]:text-muted-foreground/70 group-data-[state=all]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-3 whitespace-nowrap transition-colors select-none">
+                                <label
+                                    className="group-data-[state=x]:text-muted-foreground/70 group-data-[state=all]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-3 whitespace-nowrap transition-colors select-none"
+                                    onMouseDown={e => e.preventDefault()}
+                                    onPointerDown={e => e.preventDefault()}
+                                    onTouchStart={e => e.preventDefault()}
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handlePlatformChange("linkedin");
+                                    }}
+                                >
                                     <LinkedinLogo size="sm" />
                                     <RadioGroupItem
                                         value="linkedin"
                                         className="sr-only"
+                                        tabIndex={-1}
+                                        onMouseDown={e => e.preventDefault()}
+                                        onPointerDown={e => e.preventDefault()}
+                                        onTouchStart={e => e.preventDefault()}
+                                        style={{ pointerEvents: "none" }}
                                     />
                                 </label>
-                                <label className="group-data-[state=x]:text-muted-foreground/70 group-data-[state=linkedin]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-3 whitespace-nowrap transition-colors select-none">
+                                <label
+                                    className="group-data-[state=x]:text-muted-foreground/70 group-data-[state=linkedin]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-3 whitespace-nowrap transition-colors select-none"
+                                    onMouseDown={e => e.preventDefault()}
+                                    onPointerDown={e => e.preventDefault()}
+                                    onTouchStart={e => e.preventDefault()}
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handlePlatformChange("all");
+                                    }}
+                                >
                                     <span className="text-xs font-medium">
                                         ALL
                                     </span>
                                     <RadioGroupItem
                                         value="all"
                                         className="sr-only"
+                                        tabIndex={-1}
+                                        onMouseDown={e => e.preventDefault()}
+                                        onPointerDown={e => e.preventDefault()}
+                                        onTouchStart={e => e.preventDefault()}
+                                        style={{ pointerEvents: "none" }}
                                     />
                                 </label>
                             </RadioGroup>
@@ -528,20 +580,78 @@ export const DraftInput = memo(function DraftInput({
                                         className="group after:bg-card has-[:focus-visible]:after:outline-ring/70 relative inline-grid grid-cols-[1fr_1fr] items-center gap-0 text-sm font-medium after:absolute after:inset-y-0 after:w-1/2 after:rounded-md after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline-2 data-[state=image]:after:translate-x-full data-[state=post]:after:translate-x-0"
                                         data-state={applyOn}
                                     >
-                                        <label className="group-data-[state=image]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-4 whitespace-nowrap transition-colors select-none">
+                                        <label
+                                            className="group-data-[state=image]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-4 whitespace-nowrap transition-colors select-none"
+                                            onMouseDown={e =>
+                                                e.preventDefault()
+                                            }
+                                            onPointerDown={e =>
+                                                e.preventDefault()
+                                            }
+                                            onTouchStart={e =>
+                                                e.preventDefault()
+                                            }
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setApplyOn("post");
+                                            }}
+                                        >
                                             <Text className="mr-2 h-5 w-5" />
                                             <span>Post</span>
                                             <RadioGroupItem
                                                 value="post"
                                                 className="sr-only"
+                                                tabIndex={-1}
+                                                onMouseDown={e =>
+                                                    e.preventDefault()
+                                                }
+                                                onPointerDown={e =>
+                                                    e.preventDefault()
+                                                }
+                                                onTouchStart={e =>
+                                                    e.preventDefault()
+                                                }
+                                                style={{
+                                                    pointerEvents: "none",
+                                                }}
                                             />
                                         </label>
-                                        <label className="group-data-[state=post]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-4 whitespace-nowrap transition-colors select-none">
+                                        <label
+                                            className="group-data-[state=post]:text-muted-foreground/70 relative z-10 inline-flex h-full min-w-8 cursor-pointer items-center justify-center px-4 whitespace-nowrap transition-colors select-none"
+                                            onMouseDown={e =>
+                                                e.preventDefault()
+                                            }
+                                            onPointerDown={e =>
+                                                e.preventDefault()
+                                            }
+                                            onTouchStart={e =>
+                                                e.preventDefault()
+                                            }
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setApplyOn("image");
+                                            }}
+                                        >
                                             <ImageIcon className="mr-2 h-5 w-5" />
                                             <span>Image</span>
                                             <RadioGroupItem
                                                 value="image"
                                                 className="sr-only"
+                                                tabIndex={-1}
+                                                onMouseDown={e =>
+                                                    e.preventDefault()
+                                                }
+                                                onPointerDown={e =>
+                                                    e.preventDefault()
+                                                }
+                                                onTouchStart={e =>
+                                                    e.preventDefault()
+                                                }
+                                                style={{
+                                                    pointerEvents: "none",
+                                                }}
                                             />
                                         </label>
                                     </RadioGroup>
