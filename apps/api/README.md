@@ -102,6 +102,16 @@ heroku plugins:install heroku-config
 heroku config:push -a APP
 ```
 
+- Optional (no plugin; bash one-liner):
+
+```bash
+# Uses your current default Heroku app (set via `heroku git:remote -a APP`)
+heroku config:set $(grep -v '^#' .env | xargs)
+
+# Or explicitly target an app
+heroku config:set $(grep -v '^#' .env | xargs) -a APP
+```
+
 ### Prisma migrations (if using the DB)
 
 ```bash
