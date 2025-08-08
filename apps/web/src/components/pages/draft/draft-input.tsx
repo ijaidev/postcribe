@@ -549,10 +549,25 @@ export const DraftInput = memo(function DraftInput({
                                         <div>
                                             <Toggle
                                                 pressed={forceWeb}
-                                                onPressedChange={setForceWeb}
                                                 variant="outline"
                                                 size="sm"
                                                 className="h-8 w-8 rounded-full border-none bg-transparent p-0"
+                                                onMouseDown={e =>
+                                                    e.preventDefault()
+                                                }
+                                                onPointerDown={e =>
+                                                    e.preventDefault()
+                                                }
+                                                onTouchStart={e =>
+                                                    e.preventDefault()
+                                                }
+                                                onClick={e => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setForceWeb(prev => !prev);
+                                                    // maintain textarea focus on mobile
+                                                    textareaRef.current?.focus();
+                                                }}
                                             >
                                                 <Globe
                                                     className="h-15 w-15"
