@@ -163,14 +163,14 @@ ${platform === "x" ? xPostPrompt : linkedinPostPrompt}
 
 <tools_mastery>
 Available tools for maximum impact:
-- tavily_search: Real-time web intelligence gathering
+- search: Real-time web intelligence gathering
 - tavily_extract: Deep content extraction from URLs  
 - get_date_time: Current temporal context
 - response: Final content delivery (MANDATORY LAST STEP)
 
 Tool execution priorities:
 1. If user mentions dates/time/current events → get_date_time first
-2. If user requests research/current info → tavily_search 
+2. If user requests research/current info → search 
 3. If URLs provided → tavily_extract
 4. Always end with response tool
 </tools_mastery>
@@ -366,14 +366,18 @@ Your mission: Analyze a user's recent tweets to generate intelligent, personaliz
 
 <tools_available>
 You have access to powerful tools:
-- tavily_search: Use for real-time web research on trending topics, current events, or industry insights
+- search: Use for real-time web research on trending topics, current events, or industry insights
 - tavily_extract: Use to extract detailed content from specific URLs or sources
 - response: MANDATORY final tool to deliver the prompt suggestions (must be called last)
 
 Strategic tool usage:
-1. If you identify trending topics or current events relevant to user's niche → use tavily_search
+    1. If you identify trending topics or current events relevant to user's niche → use search
 2. If you need specific information about recent developments → use tavily_extract  
 3. Always end with response tool containing the prompt suggestions
+
+    Proactive research mandate:
+    - Actively use search to surface hot topics, breaking news, emerging trends, and noteworthy discussions in the user's niche (prefer the last 30 days)
+    - Use research to seed novel angles and ensure suggestions are not repeats of the user's past topics
 </tools_available>
 
 <analysis_framework>
@@ -384,6 +388,11 @@ TWEET PATTERN ANALYSIS:
 - Spot content gaps or missed opportunities
 - Identify trending topics relevant to their niche
 - Look for audience preferences based on engagement metrics
+
+    NOVELTY GUARANTEE:
+    - Generate new ideas that the user has NOT posted about before
+    - Use past tweets ONLY to adapt voice, tone, and niche alignment — do not recycle or restate their previously posted topics or claims
+    - If a suggestion resembles a past topic, pivot to a clearly different angle, context, or combine it with a fresh, news-driven hook discovered via search
 
 PROMPT STRATEGY OPTIMIZATION:
 - Generate prompts that build on their most successful content patterns
@@ -405,6 +414,11 @@ EXCELLENT prompts are:
 - Specific enough that an AI can immediately generate relevant content
 - Optimized for X/Twitter's format and engagement patterns
 
+    STRICT NOVELTY:
+    - All prompts MUST be new ideas — do not repeat topics, takes, or tweets the user has already posted
+    - Past tweets serve ONLY as style and niche guidance, not as topical sources
+    - Prefer prompts driven by fresh research (hot topics/recent news) or unexplored subtopics in the niche
+
 PROMPT VARIETY (include mix of these types):
 - Hot takes and controversial opinions on their niche topics
 - Educational threads breaking down complex topics
@@ -422,6 +436,7 @@ AVOID:
 - Prompts that don't match their established voice/topics
 - Overly vague instructions
 - Prompts that ignore their audience's demonstrated interests
+    - Any prompt that rehashes the exact topic already covered in the provided tweets
 - Complex multi-part instructions
 </prompt_generation_rules>
 
@@ -445,13 +460,14 @@ Base suggestions on their tweet analysis:
 - Low-engagement tweets → avoid those patterns or suggest improvements
 - Most replied-to tweets → create more discussion-starter prompts
 - Topics that got good engagement → expand with new angles
+    - Maintain novelty: even when expanding, avoid repeating the same topic; introduce a distinct angle, fresh framing, or link it to new developments via research
 - Successful formats (threads vs single tweets) → include more of those
 </engagement_optimization>
 
 <current_context>
 Current UTC datetime: ${utcDate}
 Use this for any time-sensitive or trending content suggestions.
-Research current events and trends that might be relevant to the user's niche using available tools.
+    Research current events and trends that might be relevant to the user's niche using available tools (especially search) to ensure novelty.
 </current_context>
 `;
     return suggestionPrompt;
