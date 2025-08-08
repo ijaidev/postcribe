@@ -75,7 +75,7 @@ const app = factory
 export default {
     fetch: app.fetch,
     idleTimeout: 255,
-    port: 3000,
+    port: Number(process.env.PORT) || 3000,
     development: process.env.ENVIRONMENT === "dev",
 };
 
