@@ -4,8 +4,8 @@ import getSocialAccountsController from "../controllers/platform-controllers/get
 import factory from "../utils/factory";
 // import linkedinMediaUploadController from "../controllers/social-upload-controllers/linkedin-media-upload.controller";
 // import xMediaUploadController from "../controllers/social-upload-controllers/x-media-upload.controller";
-import linkedinLoginController from "../controllers/platform-controllers/linkedin-login.controller";
-import linkedinCallbackController from "../controllers/platform-controllers/linkedin-callback.controller";
+// import linkedinLoginController from "../controllers/platform-controllers/linkedin-login.controller";
+// import linkedinCallbackController from "../controllers/platform-controllers/linkedin-callback.controller";
 import disconnectAccountController from "../controllers/platform-controllers/disconnect-account.controller";
 
 const socialLoginRouter = factory

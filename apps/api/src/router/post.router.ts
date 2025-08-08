@@ -9,9 +9,9 @@ import postSuggestionsController from "../controllers/post-controllers/post-sugg
 import getCronsController from "../controllers/post-controllers/get-crons.controller";
 import postCronController from "../controllers/post-controllers/create-cron.controller";
 import factory from "../utils/factory";
-import editPostCronController from "../controllers/platform-controllers/edit-cron.controller";
-import deletePostCronController from "../controllers/platform-controllers/delete-cron.controller";
-import getCronController from "../controllers/platform-controllers/get-cron.controller";
+import editPostCronController from "../controllers/post-controllers/edit-cron.controller";
+import deletePostCronController from "../controllers/post-controllers/delete-cron.controller";
+import getCronController from "../controllers/post-controllers/get-cron.controller";
 
 const postRouter = factory
     .createApp()

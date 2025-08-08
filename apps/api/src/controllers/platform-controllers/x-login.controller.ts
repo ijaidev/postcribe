@@ -2,7 +2,7 @@ import db from "@repo/db";
 import factory from "../../utils/factory";
 // import { generateAuthURL } from "@repo/x";
 import ApiResponse from "../../utils/api-response";
-import { v4 as uuidv4 } from "uuid";
+// import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
