@@ -22,7 +22,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { PostData } from "./types";
-import { useSidebar } from "@/components/ui/sidebar";
 
 interface PostCardProps {
     platformKey: "x" | "linkedin";

@@ -9,7 +9,6 @@ import {
     Calendar,
     Plus,
     LogOut,
-    Sparkles,
     FileText,
     Link as LinkIcon,
     Zap,
@@ -36,7 +35,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ThreeDotLoader } from "@/components/ui/loaders";
-import { H6 } from "@/components/ui/headings";
+
 import DraftsSidebarContainer from "./drafts";
 import { AnimatePresence, motion } from "framer-motion";
 
