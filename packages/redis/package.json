@@ -11,7 +11,7 @@
         }
     },
     "scripts": {
-        "build:prod": "bun build src/index.ts --outdir dist --target bun --format esm --packages external",
+        "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external --format esm",
         "build:dev": "bun build:prod && tsc",
         "dev": "bun run --watch index.ts",
         "start": "bun run index.ts",

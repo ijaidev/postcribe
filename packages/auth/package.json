@@ -6,6 +6,7 @@
     "private": true,
     "scripts": {
         "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external --format esm",
+        "build:dev": "bun build:prod",
         "dev": "bun run --watch index.ts",
         "start": "bun run index.ts",
         "lint": "eslint --max-warnings 0",

@@ -1,4 +1,4 @@
-import { pino, type TransportTargetOptions } from "pino";
+import pino, { type TransportTargetOptions } from "pino";
 import { LOG_LEVELS } from "./types/index.js";
 import {
     LOGGER_CONFIG,

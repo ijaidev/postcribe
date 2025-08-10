@@ -6,7 +6,7 @@
     "types": "dist/index.d.ts",
     "private": true,
     "scripts": {
-        "build:dev": "bun build src/index.ts --outdir dist --target bun --packages external --format esm&& tsc",
+        "build:dev": "bun build:prod && tsc",
         "build:prod": "bun build src/index.ts --outdir dist --target bun --packages external --format esm",
         "lint": "eslint --max-warnings 0",
         "typecheck": "tsc --noEmit",
