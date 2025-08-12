@@ -138,30 +138,78 @@ The function runs every minute (`0 * * * * *`) and will:
 - **Database**: PostgreSQL (via Prisma)
 - **Runtime**: Node.js 18
 
-## Deployment
+## Deployment (matches actual pruned-root publish steps)
 
-### Deploy to Azure
+This mirrors the exact flow used in your successful deployment: prune, move function config to the pruned root, install, build, production install, Prisma generate, and publish from the `out/` root.
 
-```bash
-# Login to Azure
-az login
+### 0) Prereqs
 
-# Deploy (requires Azure CLI)
-bun run deploy
-```
+- Azure CLI and signed in: `az login`
+- Azure Functions Core Tools v4: `func --version`
+- Bun v1.2.13+ and Turbo installed
 
-### Manual Deployment
+### 1) Create a pruned workspace (from repo root)
 
 ```bash
-# Build for production
-bun run build:prod
-
-# Deploy using Azure Functions Core Tools
-func azure functionapp publish <function-app-name>
-
-# function app name is what you set in the Azure Portal
-# in this case cron-sender
+turbo prune @repo/cron-sender --out-dir out
 ```
+
+### 2) Move function files to the pruned root
+
+```bash
+cd out
+mv apps/cron-sender/.funcignore apps/cron-sender/host.json apps/cron-sender/local.settings.json ./
+```
+
+### 3) Ensure the pruned root package.json points to this function
+
+Edit `out/package.json` and ensure:
+
+```json
+{
+    "type": "module",
+    "main": "apps/cron-sender/dist/index.js",
+    "scripts": {
+        "build:prod": "turbo run build:prod"
+    }
+}
+```
+
+### 4) Install deps and build inside pruned workspace
+
+```bash
+bun install
+bun build:prod   # runs "turbo run build:prod" in the pruned graph
+```
+
+You should see builds for `@repo/db`, `@repo/logger`, and `@repo/cron-sender` finishing, with `apps/cron-sender/dist/index.js` generated.
+
+### 5) Production install and Prisma Client
+
+```bash
+rm -rf node_modules/
+bun install --production
+
+# Generate Prisma Client for the pruned workspace
+bunx prisma generate --schema packages/db/src/prisma/schema.prisma
+```
+
+### 6) Publish from the pruned root
+
+```bash
+func azure functionapp publish cron-sender
+```
+
+Expected output indicators:
+
+- Remote build skipped (remotebuild = false)
+- Host status: Running
+- Functions in cron-sender: `queueSender - [timerTrigger]`
+
+### App settings required (Azure → Function App → Configuration)
+
+- `AzureWebJobsStorage`: Storage account connection string
+- `DATABASE_URL`: Postgres connection string
 
 ## Troubleshooting
 

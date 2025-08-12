@@ -138,30 +138,77 @@ The function runs every minute (`0 * * * * *`) and will:
 - **Database**: PostgreSQL (via Prisma)
 - **Runtime**: Node.js 18
 
-## Deployment
+## Deployment (matches actual pruned-root publish steps)
 
-### Deploy to Azure
+This mirrors the exact flow used for pruned-root deployments: prune, move function config to the pruned root, ensure `out/package.json` has `type` and the correct `main`, production install, Prisma generate, and publish from `out/`.
 
-```bash
-# Login to Azure
-az login
+### 0) Prereqs
 
-# Deploy (requires Azure CLI)
-bun run deploy
-```
+- Azure CLI and signed in: `az login`
+- Azure Functions Core Tools v4: `func --version`
+- Bun v1.2.13+ and Turbo installed
 
-### Manual Deployment
+### 1) Create a pruned workspace (from repo root)
 
 ```bash
-# Build for production
-bun run build:prod
-
-# Deploy using Azure Functions Core Tools
-func azure functionapp publish <function-app-name>
-
-# function app name is what you set in the Azure Portal
-# in this case cron-handler
+turbo prune @repo/cron-handler --out-dir out
 ```
+
+### 2) Move function files to the pruned root
+
+```bash
+cd out
+mv apps/cron-handler/.funcignore apps/cron-handler/host.json apps/cron-handler/local.settings.json ./
+```
+
+### 3) Ensure the pruned root package.json points to this function
+
+Edit `out/package.json` and ensure:
+
+```json
+{
+    "type": "module",
+    "main": "apps/cron-handler/dist/index.js",
+    "scripts": {
+        "build:prod": "turbo run build:prod"
+    }
+}
+```
+
+### 4) Install deps and build inside pruned workspace
+
+```bash
+bun install
+bun build:prod
+```
+
+You should see builds for `@repo/db`, `@repo/logger`, and `@repo/cron-handler`, with `apps/cron-handler/dist/index.js` generated.
+
+### 5) Production install and Prisma Client
+
+```bash
+rm -rf node_modules/
+bun install --production
+
+bunx prisma generate --schema packages/db/src/prisma/schema.prisma
+```
+
+### 6) Publish from the pruned root
+
+```bash
+func azure functionapp publish cron-handler
+```
+
+Expected output indicators:
+
+- Host status: Running
+- Functions in cron-handler: queue trigger function (e.g., `processScheduledPost - [storageQueueTrigger]`)
+
+### App settings required (Azure → Function App → Configuration)
+
+- `AzureWebJobsStorage`: Storage account connection string
+- `DATABASE_URL`: Postgres connection string
+- Optional depending on your handler logic: `FROM_EMAIL`, `FRONTEND_BASE_URL` or `BASE_URL`, and any AI/email keys used by downstream packages
 
 ## Troubleshooting
 
