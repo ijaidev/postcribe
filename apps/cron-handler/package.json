@@ -7,7 +7,7 @@
     "private": true,
     "scripts": {
         "build:dev": "bun build:prod && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
-        "build:prod": "bun run build.js",
+        "build:prod": "bun build src/index.ts --outdir dist --target node --format esm --packages external",
         "start": "bun build:prod && func start -p 7074",
         "lint": "eslint --max-warnings 0",
         "typecheck": "tsc --noEmit"
@@ -28,6 +28,6 @@
         "@repo/logger": "workspace:*",
         "@repo/mail-templates": "workspace:*",
         "@repo/mailer": "workspace:*",
-        "dotenv": "^17.2.0"
+        "dotenv": "^17.2.1"
     }
 }

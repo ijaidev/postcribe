@@ -34,6 +34,9 @@ import { type CronMessage } from "@repo/cron-sender";
 
 import { getPosts } from "@repo/ai";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 interface DraftWithUser extends Draft {
     user: User;
 }

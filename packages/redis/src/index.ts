@@ -1,5 +1,7 @@
 import { logger } from "@repo/logger";
 import Redis from "ioredis";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Redis client instance
 let redis: Redis;

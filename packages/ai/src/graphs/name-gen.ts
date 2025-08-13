@@ -1,6 +1,8 @@
 import { AzureChatOpenAI } from "@langchain/openai";
 import { SystemMessage, BaseMessage } from "@langchain/core/messages";
 import { getNameGenPrompt } from "../config/system-prompts";
+import dotenv from "dotenv";
+dotenv.config();
 
 const model = new AzureChatOpenAI({
     model: "gpt-4.1-mini",

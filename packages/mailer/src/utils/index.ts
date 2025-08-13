@@ -1,6 +1,8 @@
 import nodemailer, { type SendMailOptions } from "nodemailer";
 import type { SendEmailOptions } from "../types";
 import { logger } from "@repo/logger";
+import dotenv from "dotenv";
+dotenv.config();
 
 const host = process.env.SMTP_HOST;
 const port = process.env.SMTP_PORT

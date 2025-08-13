@@ -27,8 +27,9 @@
         "typescript": "^5"
     },
     "dependencies": {
-        "twitter-api-v2": "^1.23.2",
         "@repo/db": "workspace:*",
-        "@repo/redis": "workspace:*"
+        "@repo/redis": "workspace:*",
+        "dotenv": "^17.2.1",
+        "twitter-api-v2": "^1.23.2"
     }
 }

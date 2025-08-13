@@ -12,6 +12,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
+        "dotenv": "^17.2.1",
         "pino": "^9.6.0",
         "pino-abstract-transport": "^1.2.0",
         "pino-roll": "^2.2.0"

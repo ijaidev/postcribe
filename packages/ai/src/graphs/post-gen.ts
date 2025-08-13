@@ -18,6 +18,8 @@ import { postGraphConfig, postGraphState } from "../graph-states";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { getPostPrompt } from "../config/system-prompts";
 import { getUserTweets } from "@repo/x";
+import dotenv from "dotenv";
+dotenv.config();
 
 // const model = new ChatOpenAI({
 //     model: "gpt-4.1",

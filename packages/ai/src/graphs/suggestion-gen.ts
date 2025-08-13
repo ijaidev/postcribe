@@ -15,6 +15,8 @@ import suggestionResponseTool from "../tools/suggestion-structure.tool";
 import { suggestionGraphState, suggestionGraphConfig } from "../graph-states";
 import { getSuggestionPrompt } from "../config/system-prompts";
 import { tavilyExtract, tavilySearch } from "../tools/tavily-tools";
+import dotenv from "dotenv";
+dotenv.config();
 
 // const model = new ChatOpenAI({
 //     model: "gpt-4.1-mini",

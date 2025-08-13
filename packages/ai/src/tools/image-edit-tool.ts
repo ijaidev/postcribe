@@ -20,6 +20,8 @@ import { Command, getCurrentTaskInput } from "@langchain/langgraph";
 import { type imageGraphState } from "../graph-states";
 import { isHumanMessage, ToolMessage } from "@langchain/core/messages";
 import { uploadImages } from "@repo/s3";
+import dotenv from "dotenv";
+dotenv.config();
 
 const paramsSchema = z.object({
     prompt: z

@@ -5,6 +5,8 @@ import {
     FILE_OPTIONS,
     CONSOLE_TRANSPORT_CONFIG,
 } from "./config/index.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const transports: TransportTargetOptions[] = [];
 

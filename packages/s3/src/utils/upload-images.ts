@@ -4,6 +4,8 @@ import {
 } from "@aws-sdk/client-s3";
 import s3 from "../client";
 import { R2_BUCKET_NAME, R2_PUBLIC_URL } from "../config/consts";
+import dotenv from "dotenv";
+dotenv.config();
 
 interface InputImage {
     base64: string;

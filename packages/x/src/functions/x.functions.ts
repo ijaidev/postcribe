@@ -8,6 +8,8 @@ import type {
     UserInfoResponse,
 } from "../types";
 import { getRedisClient } from "@repo/redis";
+import dotenv from "dotenv";
+dotenv.config();
 
 const X_RAPID_API_KEY = process.env.X_RAPID_API_KEY;
 const X_RAPID_API_HOST = "twitter241.p.rapidapi.com";

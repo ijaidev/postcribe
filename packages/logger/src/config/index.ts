@@ -5,6 +5,8 @@ import {
     type FileOptions,
 } from "../types/index.js";
 import { join } from "path";
+import dotenv from "dotenv";
+dotenv.config();
 
 // const shouldEnableFileLogging = process.env.ENVIRONMENT === "production";
 const shouldEnableFileLogging = false;

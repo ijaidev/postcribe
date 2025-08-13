@@ -17,6 +17,8 @@ import imageEditTool from "../tools/image-edit-tool";
 import ImageGenTool from "../tools/image-gen.tool";
 import { getImagePrompt } from "../config/system-prompts";
 import { linkedInPostGraph, xPostGraph } from "./post-gen";
+import dotenv from "dotenv";
+dotenv.config();
 
 // const model = new ChatOpenAI({
 //     model: "gpt-4.1",
