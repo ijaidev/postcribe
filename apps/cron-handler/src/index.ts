@@ -55,7 +55,7 @@ async function main(): Promise<void> {
         return;
     }
 
-    const isRetry = message.dequeueCount > 0;
+    const isRetry = message.dequeueCount > 1;
 
     const data = parseQueueMessageText<CronMessage>(message.messageText);
 
