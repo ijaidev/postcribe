@@ -7,8 +7,9 @@
     "private": true,
     "scripts": {
         "build:dev": "bun build:prod && NODE_OPTIONS=\"--max_old_space_size=8192\" tsc",
-        "build:prod": "bun build src/index.ts --outdir dist --target node --format esm --packages external",
-        "start": "bun build:prod && func start -p 7074",
+        "build:prod": "bun build src/index.ts --outdir dist --target bun --format esm --packages external",
+        "start": "bun run dist/index.js",
+        "dev": "bun run src/index.ts",
         "lint": "eslint --max-warnings 0",
         "typecheck": "tsc --noEmit"
     },
@@ -22,7 +23,7 @@
         "typescript": "^5"
     },
     "dependencies": {
-        "@azure/functions": "4.7.2",
+        "@azure/storage-queue": "^12.27.0",
         "@repo/ai": "workspace:*",
         "@repo/db": "workspace:*",
         "@repo/logger": "workspace:*",

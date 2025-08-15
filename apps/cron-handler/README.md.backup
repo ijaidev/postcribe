@@ -187,53 +187,53 @@ properties:
       image: registry.gitlab.com/your-org/cron-handler:latest  # Update with your container image
       env:
       - name: DATABASE_URL
-        value: "your-postgresql-connection-string"  # Get from Neon, Supabase, etc.
+        value: postgresql://neondb_owner:npg_qxB9iaT2LVUp@ep-bitter-rice-aey55wz3-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - name: FRONTEND_BASE_URL
-        value: "https://your-domain.com"  # Your frontend URL
+        value: https://postcribe.com
       - name: TAVILY_API_KEY
-        value: "your-tavily-api-key"  # Get from https://tavily.com/
+        value: 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
       - name: LANGSMITH_TRACING
         value: "true"
       - name: LANGSMITH_ENDPOINT
         value: https://api.smith.langchain.com
       - name: LANGSMITH_API_KEY
-        value: "your-langsmith-api-key"  # Get from https://smith.langchain.com/
+        value: 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
       - name: LANGSMITH_PROJECT
-        value: "your-langsmith-project-name"
+        value: pr-best-boutique-57
       - name: R2_API_URL
-        value: "your-r2-api-url"  # Cloudflare Dashboard → R2 → Your Bucket
+        value: https://af242cbf4d994b17eebbc904ac73ba50.r2.cloudflarestorage.com/postcribe
       - name: R2_ACCESS_KEY_ID
-        value: "your-r2-access-key"  # R2 → Manage R2 API Tokens
+        value: eb5d34d31e0262629df5f6e4e2eea24f
       - name: R2_SECRET_ACCESS_KEY
-        value: "your-r2-secret-key"
+        value: e426407953354924210c0949e3eae997f88ead0e6c64628c64716119f7a9083e
       - name: R2_BUCKET_NAME
-        value: "your-r2-bucket-name"
+        value: postcribe
       - name: R2_PUBLIC_URL
-        value: "your-r2-public-url"  # Public URL for your R2 bucket
+        value: https://pub-a9d1d733450b4c238f0f8fcd82d6d699.r2.dev
       - name: AI_DB_URL
-        value: "your-ai-database-url"  # Separate AI database if used
+        value: postgresql://neondb_owner:npg_OTp8SRY1HhVE@ep-super-surf-aeh9mbq6-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - name: ENVIRONMENT
         value: production
       - name: REDIS_URL
-        value: "your-redis-connection-string"  # Upstash, Redis Cloud, etc.
+        value: rediss://default:AVCGAAIjcDE3M2I3YjE0NzMwMjQ0YWQwYTQwNzdlMWY0M2E0MTRmOHAxMA@feasible-ghoul-20614.upstash.io:6379
       - name: AZURE_OPENAI_ENDPOINT
-        value: "your-azure-openai-endpoint"  # Azure Portal → AI Services
+        value: https://postcrive.openai.azure.com/
       - name: AZURE_OPENAI_API_KEY
-        value: "your-azure-openai-api-key"  # Keys and Endpoint section
+        value: F8LkFL32Ie50Cvo198wj6Ay6ccOoiKHnTRoCyWcOWUnsd79hBQJHJQQJ99BGAC77bzfXJ3w3AAABACOGgmSB
       - name: AZURE_OPENAI_ENDPOINT_IMAGE
-        value: "your-azure-openai-image-endpoint"  # For DALL-E
+        value: https://maxlt-md09fnxm-westus3.cognitiveservices.azure.com/
       - name: AZURE_OPENAI_API_KEY_IMAGE
-        value: "your-azure-openai-image-api-key"
+        value: 3kuQa2z7U5iIaIePqVFSVCU8IIIKsJjg3XTVr1kT5EMr5q1Nn2zzJQQJ99BGACMsfrFXJ3w3AAABACOGrNx2
       - name: SMTP_HOST
-        value: "your-smtp-host"  # e.g., smtp-relay.brevo.com
+        value: smtp-relay.brevo.com
       - name: SMTP_PORT
         value: "587"
       - name: SMTP_USER
-        value: "your-smtp-username"
+        value: 855dde003@smtp-brevo.com
       - name: SMTP_PASS
-        value: "your-smtp-password"
+        value: xsmtpsib-99e656aa92869e6e2c7ae92b8961428db96dfbca19ed49bf6946a28320c20ae0-1AUBzMIpPgRDc0E4
       - name: X_RAPID_API_KEY
-        value: "your-x-rapid-api-key"  # Get from RapidAPI
+        value: 894623d301mshdae3c7380a23de5p1f4b18jsnaff698f16a76
       - name: AZURE_STORAGE_CONNECTION_STRING
         secretRef: connection-string-secret
 EOF
@@ -248,50 +248,16 @@ az containerapp job update \
 rm temp_env.yaml
 ```
 
-> **⚠️ Security Note**: The YAML template above contains placeholder values. You MUST replace ALL placeholder values with your actual configuration from your `.env.prod` file before running the command. Never commit real credentials to version control.
-
 ### 6. Update Environment Variables from .env.prod (Alternative)
 
 ```bash
 # For future updates, use this streamlined approach:
-# Make sure to update your apps/cron-handler/.env.prod file first with your actual values
 az containerapp job update \
   --name "cron-handler" \
   --resource-group "postcribe-cron" \
   --replace-env-vars "$(grep -v '^#' apps/cron-handler/.env.prod | grep -v '^$' | tr '\n' ' ')" \
   AZURE_STORAGE_CONNECTION_STRING=secretref:connection-string-secret
 ```
-
-### 7. Update Container Image (For Code Changes)
-
-When you push a new image with the same tag (e.g., `:latest`), you need to force the Container App Job to pull the updated image:
-
-```bash
-# After building and pushing your updated image:
-docker build -f out/apps/cron-handler/Dockerfile -t registry.gitlab.com/your-org/cron-handler:latest .
-docker push registry.gitlab.com/your-org/cron-handler:latest
-
-# Force Container App Job to pull the updated image
-az containerapp job update \
-  --name "cron-handler" \
-  --resource-group "postcribe-cron" \
-  --image "registry.gitlab.com/your-org/cron-handler:latest"
-```
-
-> **Note**: For production deployments, consider using specific version tags (e.g., `v1.0.1`, `build-123`) instead of `:latest` to ensure reproducible deployments and avoid confusion about which version is deployed.
-
-#### Where to Get Your Configuration Values:
-
-| Service                 | Where to Get Values                                            | Configuration Example                 |
-| ----------------------- | -------------------------------------------------------------- | ------------------------------------- |
-| **PostgreSQL Database** | Neon, Supabase, or your provider                               | `postgresql://user:pass@host:port/db` |
-| **Tavily API**          | https://tavily.com/ → API Keys                                 | Web search API for AI features        |
-| **LangSmith**           | https://smith.langchain.com/ → Settings → API Keys             | LLM observability and tracing         |
-| **Azure OpenAI**        | Azure Portal → AI Services → Your Resource → Keys and Endpoint | Text/image generation APIs            |
-| **Cloudflare R2**       | Cloudflare Dashboard → R2 → Manage R2 API Tokens               | File storage service                  |
-| **Redis**               | Upstash, Redis Cloud, or your provider                         | Cache service connection string       |
-| **SMTP Email**          | Brevo, SendGrid, or your email provider                        | Email sending configuration           |
-| **RapidAPI**            | https://rapidapi.com/ → Your Apps → Security                   | For X/Twitter API access              |
 
 ## Monitoring and Troubleshooting
 
@@ -328,17 +294,10 @@ az containerapp job execution list --name "cron-handler" --resource-group "postc
 
 ```bash
 # Add a test message to the queue (using Azure Portal or Azure CLI)
-# Replace $STORAGE_CONNECTION_STRING with your actual Azure Storage connection string
 az storage message put \
   --queue-name "post-schedule-queue" \
   --content '{"type":"test","data":"test message"}' \
   --connection-string "$STORAGE_CONNECTION_STRING"
-
-# Or use Azure Portal:
-# 1. Go to Azure Portal → Storage Account → Queues
-# 2. Click on "post-schedule-queue"
-# 3. Click "Add message"
-# 4. Add test JSON: {"type":"test","data":"test message"}
 ```
 
 ## Project Structure
