@@ -29,6 +29,13 @@ sudo sh get-docker.sh
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 ```
 
+### 4. Install Azure Container Apps Extension
+
+```bash
+# Install/upgrade the Azure Container Apps extension (required for all containerapp commands)
+az extension add --name containerapp --upgrade
+```
+
 ## Development Environment
 
 ### 1. Install Dependencies
@@ -104,14 +111,23 @@ bun run dev
 ### Prerequisites
 
 - Azure CLI logged in: `az login`
-- Docker access to GitLab Registry
+- Azure Container Apps extension installed: `az extension add --name containerapp --upgrade`
+- Docker access to your container registry
 - Environment variables configured (see below)
 
-### 1. Login to GitLab Registry
+### 1. Login to Container Registry
+
+> **Note**: You can use any container registry (GitLab, Docker Hub, Azure Container Registry, GitHub Container Registry, etc.). This example uses GitLab Registry.
 
 ```bash
+# GitLab Registry (example)
 docker login registry.gitlab.com
 # Use your GitLab username and personal access token
+
+# Other registry examples:
+# Docker Hub: docker login
+# Azure Container Registry: docker login yourregistry.azurecr.io
+# GitHub Container Registry: docker login ghcr.io
 ```
 
 ### 2. Build and Push Container Image
@@ -137,10 +153,10 @@ export JOB_NAME="cron-handler"
 export STORAGE_ACCOUNT_NAME="postcribe-cron"
 export QUEUE_NAME="post-schedule-queue"
 
-export GITLAB_REGISTRY_SERVER="registry.gitlab.com"
-export GITLAB_REGISTRY_USERNAME="your-gitlab-username"  # Your GitLab username
-export GITLAB_REGISTRY_PASSWORD="your-gitlab-access-token"  # Generate at GitLab → Settings → Access Tokens
-export CONTAINER_IMAGE="registry.gitlab.com/your-org/cron-handler:latest"  # Update with your org name
+export GITLAB_REGISTRY_SERVER="registry.gitlab.com"  # Or your registry URL
+export GITLAB_REGISTRY_USERNAME="your-registry-username"  # Your registry username
+export GITLAB_REGISTRY_PASSWORD="your-registry-access-token"  # Your registry access token/password
+export CONTAINER_IMAGE="registry.gitlab.com/your-org/cron-handler:latest"  # Update with your registry and org
 
 # Get your Azure Storage connection string from: Azure Portal → Storage Account → Access Keys
 export STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=your-storage-account;AccountKey=your-access-key;EndpointSuffix=core.windows.net"
@@ -268,14 +284,16 @@ When you push a new image with the same tag (e.g., `:latest`), you need to force
 
 ```bash
 # After building and pushing your updated image:
-docker build -f out/apps/cron-handler/Dockerfile -t registry.gitlab.com/your-org/cron-handler:latest .
-docker push registry.gitlab.com/your-org/cron-handler:latest
+docker build -f out/apps/cron-handler/Dockerfile -t registry.gitlab.com/postcribe/cron-handler:latest .
+docker push registry.gitlab.com/postcribe/cron-handler:latest
+
+# replace postcribe with your project or org
 
 # Force Container App Job to pull the updated image
 az containerapp job update \
   --name "cron-handler" \
   --resource-group "postcribe-cron" \
-  --image "registry.gitlab.com/your-org/cron-handler:latest"
+  --image "registry.gitlab.com/postcribe/cron-handler:latest"
 ```
 
 > **Note**: For production deployments, consider using specific version tags (e.g., `v1.0.1`, `build-123`) instead of `:latest` to ensure reproducible deployments and avoid confusion about which version is deployed.
