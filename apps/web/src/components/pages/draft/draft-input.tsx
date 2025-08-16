@@ -116,7 +116,6 @@ export const DraftInput = memo(function DraftInput({
                         : img,
                 ),
             );
-            toast.success(`${image.file.name} uploaded successfully`);
         },
         onError: (error, image) => {
             console.error("Upload error:", error);
@@ -176,8 +175,6 @@ export const DraftInput = memo(function DraftInput({
             newImages.forEach(image => {
                 uploadImageMutation.mutate(image);
             });
-
-            toast.success(`Starting upload of ${validFiles.length} image(s)`);
         }
     };
 
@@ -375,13 +372,16 @@ export const DraftInput = memo(function DraftInput({
                 <div className="mb-1 flex flex-wrap gap-2">
                     {images.length > 0 &&
                         images.map(image => (
-                            <div key={image.id} className="group relative">
+                            <div
+                                key={image.id}
+                                className="group relative flex items-center justify-center"
+                            >
                                 <Image
                                     src={image.preview}
                                     alt="Upload preview"
                                     width={40}
                                     height={40}
-                                    className={`rounded-lg border-2 object-cover shadow-sm transition-opacity ${
+                                    className={`h-11 w-11 rounded-lg border-2 object-cover shadow-sm transition-opacity ${
                                         image.uploading &&
                                         "border-primary opacity-70"
                                     }`}
