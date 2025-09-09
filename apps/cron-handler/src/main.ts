@@ -473,6 +473,10 @@ const processCron = async (message: CronMessage, isRetry: boolean) => {
             };
 
             await sendEmail(emailOptions);
+            await db.postCron.update({
+                where: { id: postCron.id },
+                data: { isActive: false },
+            });
             return;
         }
 

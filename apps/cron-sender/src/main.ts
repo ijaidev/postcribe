@@ -10,6 +10,7 @@ const getCrons = async () => {
                 ).toISOString(),
             },
             isDeleted: false,
+            isActive: true,
         },
         select: {
             id: true,
